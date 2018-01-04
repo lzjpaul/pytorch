@@ -183,9 +183,9 @@ print(loss)
 #
 # For illustration, let us follow a few steps backward:
 
-print(loss.creator)  # MSELoss
-print(loss.creator.previous_functions[0][0])  # Linear
-print(loss.creator.previous_functions[0][0].previous_functions[0][0])  # ReLU
+print(loss.grad_fn)  # MSELoss
+print(loss.grad_fn.next_functions[0][0])  # Linear
+print(loss.grad_fn.next_functions[0][0].next_functions[0][0])  # ReLU
 
 ########################################################################
 # Backprop

@@ -32,7 +32,7 @@ import numpy as np
 
 # functions to show an image
 
-
+gpu_id = 1
 def imshow(img):
     img = img / 2 + 0.5     # unnormalize
     npimg = img.numpy()
@@ -75,7 +75,7 @@ class Net(nn.Module):
 
 
 net = Net()
-net.cuda()
+net.cuda(gpu_id)
 
 import torch.optim as optim
 
@@ -85,15 +85,15 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 ########################################################################
 # 4. Train the network
 #
-# for epoch in range(2):  # loop over the dataset multiple times
-for epoch in range(0):  # loop over the dataset multiple times
+for epoch in range(2):  # loop over the dataset multiple times
+# for epoch in range(0):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels = data
 
         # wrap them in Variable
-        inputs, labels = Variable(inputs.cuda()), Variable(labels.cuda())
+        inputs, labels = Variable(inputs.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -125,13 +125,13 @@ print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
 ########################################################################
 # Okay, now let us see what the neural network thinks these examples above are:
 
-outputs = net(Variable(images.cuda()))
+outputs = net(Variable(images.cuda(gpu_id)))
 
 _, predicted = torch.max(outputs.data, 1)
 
 print (predicted[0])
-print (predicted[0][0])
-print('Predicted: ', ' '.join('%5s' % classes[predicted[j][0]]
+print (predicted[0])
+print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
                               for j in range(4)))
 
 ########################################################################
@@ -141,10 +141,10 @@ correct = 0
 total = 0
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images.cuda()))
+    outputs = net(Variable(images.cuda(gpu_id)))
     _, predicted = torch.max(outputs.data, 1)
     total += labels.size(0)
-    correct += (predicted == labels.cuda()).sum()
+    correct += (predicted == labels.cuda(gpu_id)).sum()
 
 print('Accuracy of the network on the 10000 test images: %d %%' % (
     100 * correct / total))
@@ -157,9 +157,9 @@ class_correct = list(0. for i in range(10))
 class_total = list(0. for i in range(10))
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images.cuda()))
+    outputs = net(Variable(images.cuda(gpu_id)))
     _, predicted = torch.max(outputs.data, 1)
-    c = (predicted == labels.cuda()).squeeze()
+    c = (predicted == labels.cuda(gpu_id)).squeeze()
     for i in range(4):
         label = labels[i]
         class_correct[label] += c[i]
