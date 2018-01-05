@@ -6,6 +6,11 @@ from mimic_dataset import MIMICDataset
 from mimic_metric import *
 import datetime
 import time
+from init_linear import InitLinear
+'''
+(0) dataset is try_dataset
+(1) print shape and norm of the parameters
+'''
 ########################################################################
 trainset = MIMICDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv')
 # trainset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
@@ -33,8 +38,8 @@ import torch.nn.functional as F
 class Net(nn.Module):
     def __init__(self, feature_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(feature_dim, 128)
-        self.fc2 = nn.Linear(128, 80)
+        self.fc1 = InitLinear(feature_dim, 128)
+        self.fc2 = InitLinear(128, 80)
 
     def forward(self, x):
         x = F.sigmoid(self.fc1(x))
@@ -44,13 +49,18 @@ class Net(nn.Module):
 feature_dim = trainset.feature_dim()
 print ('feature_dim: ',(feature_dim))
 net = Net(feature_dim)
+for f in net.parameters():
+    print ('param size:', f.data.size())
+    print ('param norm: ', torch.norm(f.data, 2))
 net.cuda(gpu_id)
+
+
 
 import torch.optim as optim
 
 criterion = nn.BCELoss()
 #optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-optimizer = optim.SGD(net.parameters(), lr=0.1)
+optimizer = optim.SGD(net.parameters(), lr=0.001)
 
 print('Beginning Training')
 
