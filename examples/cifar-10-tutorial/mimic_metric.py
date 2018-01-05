@@ -1,7 +1,10 @@
+import torch
+import torchvision
 from sklearn.metrics import roc_auc_score
+import numpy as np
 
 def AUCAccuracy(outputs, labels):
-	'''Compute the AUC and accuracy for each sample.
+    '''Compute the AUC and accuracy for each sample.
         Convert tensor to numpy for computation
         Args:
             outputs (Variable): predictions, one row per sample (after sigmoid)
@@ -9,13 +12,13 @@ def AUCAccuracy(outputs, labels):
         Returns:
             a tensor of floats, one per sample
     '''
-    p_np = outputs.data.numpy()
-    y_np = labels.data.numpy()
+    p_np = outputs.data.cpu().numpy()
+    y_np = labels.data.cpu().numpy()
        
     pred_p_np = (p_np > 0.5).astype(np.float32)
-        
+ 
     # accuracy = tensor.from_numpy((pred_x_np == y_np).astype(np.float32)) # still a matrix
-    accuracy = ((pred_o_np == y_np).astype(np.float32)) # still a matrix
+    accuracy = ((pred_p_np == y_np).astype(np.float32)) # still a matrix
     accuracy = np.sum(accuracy)/(accuracy.shape[0]*accuracy.shape[1])
     if y_np.shape[0] < 1000: # too small number, no need for AUC
         macro_auc = 0.0

@@ -17,8 +17,8 @@ class MIMICDataset(Dataset):
         Args:
             csv_file (string): Path to the csv file.
         """
-        self.mimic_features = np.genfromtxt(feature_csv_file, delimiter = ',')
-        self.mimic_labels = np.genfromtxt(label_csv_file, delimiter = ',')
+        self.mimic_features = np.genfromtxt(feature_csv_file, dtype=np.float32, delimiter = ',')
+        self.mimic_labels = np.genfromtxt(label_csv_file, dtype=np.float32, delimiter = ',')
 
     def __len__(self):
         return len(self.mimic_features)
