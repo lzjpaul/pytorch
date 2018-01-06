@@ -47,7 +47,9 @@ class Net(nn.Module):
         return x
 
 feature_dim = trainset.feature_dim()
+label_dim = trainset.label_dim()
 print ('feature_dim: ',(feature_dim))
+print ('label_dim: ',(label_dim))
 net = Net(feature_dim)
 for f in net.parameters():
     print ('param size:', f.data.size())
@@ -60,7 +62,7 @@ import torch.optim as optim
 
 criterion = nn.BCELoss()
 #optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-optimizer = optim.SGD(net.parameters(), lr=0.001)
+optimizer = optim.SGD(net.parameters(), lr=float(0.001*label_dim))
 
 print('Beginning Training')
 
@@ -83,6 +85,17 @@ for epoch in range(max_epoch):  # loop over the dataset multiple times
         loss = criterion(outputs, labels)
         accuracy = AUCAccuracy(outputs, labels)[0]
         loss.backward()
+        ### print norm
+        '''
+        for f in net.parameters():
+            f.grad.data.div_(float(1./label_dim))
+        
+        for f in net.parameters():
+            print ('param size:', f.data.size())
+            print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
+            print ('0.001 * label_dim * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.001 * label_dim))
+        '''
+        ## print norm
         optimizer.step()
         # print statistics
         running_loss += loss.data[0]

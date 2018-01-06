@@ -29,3 +29,6 @@ class MIMICDataset(Dataset):
 
     def feature_dim(self):
         return self.mimic_features.shape[1]
+
+    def label_dim(self):
+        return self.mimic_labels.shape[1]
