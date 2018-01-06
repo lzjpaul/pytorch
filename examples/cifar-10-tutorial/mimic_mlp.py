@@ -10,14 +10,13 @@ from init_linear import InitLinear
 '''
 (0) dataset is try_dataset
 (1) print shape and norm of the parameters
-(2) print parameter names
 '''
 ########################################################################
-# trainset = MIMICDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv')
-trainset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
+trainset = MIMICDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv')
+# trainset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=10, shuffle=True)
-# testset = MIMICDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv')
-testset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
+testset = MIMICDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv')
+# testset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
 testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=True)
 print ('test bath_size: ',len(testset))
 ########################################################################
@@ -87,10 +86,6 @@ for epoch in range(max_epoch):  # loop over the dataset multiple times
         accuracy = AUCAccuracy(outputs, labels)[0]
         loss.backward()
         ### print norm
-        for name, param in net.named_parameters():
-            print ("param name: ", name)
-            print ("param size: ", param.size())
-            print ("")
         '''
         for f in net.parameters():
             f.grad.data.div_(float(1./label_dim))
