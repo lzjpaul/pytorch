@@ -15,3 +15,7 @@ conda update pytorch torchvision
 1-6:
 (1) the loss function and the backward grad !!! is /(batch_size * label_class)
 (2) RNN uses GPU: model, inputs and targets
+
+1-15:
+(1) lda_regularizer.py & mimic_mlp_lda.py: LDA_regularization / (label_dim * sample_num) 
+(2) the wight shape is inverse to the singa
