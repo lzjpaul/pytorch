@@ -42,11 +42,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     ########################################################################
-    # trainset = MIMICDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv')
-    trainset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
+    trainset = MIMICDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv')
+    # trainset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=10, shuffle=True)
-    # testset = MIMICDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv')
-    testset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
+    testset = MIMICDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv')
+    # testset = MIMICDataset(feature_csv_file='data-repository/feature_matrix_try.csv', label_csv_file='data-repository/result_matrix_try.csv')
     testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=True)
     print ('test bath_size: ',len(testset))
     ########################################################################
