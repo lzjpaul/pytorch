@@ -22,3 +22,4 @@ conda update pytorch torchvision
 
 1-16:
 (1) test batchsize needs to be the same as train batchsize
+(2) adding weight decay manually!!

@@ -82,8 +82,8 @@ if __name__ == '__main__':
         net.cuda(gpu_id)
 
     criterion = nn.BCELoss()
-    #optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    optimizer = optim.SGD(net.parameters(), lr=0.001)
+    # optimizer = optim.SGD(net.parameters(), lr=0.001)
+    optimizer = optim.Adam(net.parameters(), lr=0.001)
     # hyper parameters
     alpha = 1 + 0.05
     hyperpara = [alpha]
