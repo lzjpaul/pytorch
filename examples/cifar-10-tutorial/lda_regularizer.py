@@ -78,15 +78,22 @@ class LDARegularizer():
             # self.reg_grad_w = np.sum(self.responsibility*self.reg_lambda, axis=1).reshape(self.w_array.shape) * self.w_array
             self.reg_grad_w = self.calcRegGrad()
         reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w/float(trainnum * labelnum))).float()
-        if gpu_id >= 0:
-            reg_grad_w_dev.cuda(gpu_id)
-            param.grad.data.cuda(gpu_id)
+        # if gpu_id >= 0:
+        #     print ('before reg_grad_w_dev: ', reg_grad_w_dev)
+        #     reg_grad_w_dev.cuda(gpu_id)
+        #     print ('after reg_grad_w_dev: ', reg_grad_w_dev)
+        #     print ('before param.grad.data: ', param.grad.data)
+        #     param.grad.data.cuda(gpu_id)
+        #     print ('after param.grad.data: ', param.grad.data)
         if (epoch == 0 and step < 50) or step % self.ldauptfreq == 0:
             print ("step: ", step)
             print ("name: ", name)
             print ("data grad l2 norm: ", np.linalg.norm(param.grad.data.cpu().numpy()))
             print ("reg_grad_w_dev l2 norm: ", np.linalg.norm(reg_grad_w_dev.cpu().numpy()))
-        param.grad.data.add_(1.0, reg_grad_w_dev) # here3
+        if gpu_id >= 0:
+            param.grad.data.add_(1.0, reg_grad_w_dev.cuda(gpu_id)) # here3
+        else:
+            param.grad.data.add_(1.0, reg_grad_w_dev) # here3
         if (epoch == 0 and step < 50) or step % self.ldauptfreq == 0:
             print ("delta w norm: ", np.linalg.norm(param.grad.data.cpu().numpy()))
             print ("w norm: ", np.linalg.norm(param.data.cpu().numpy()))

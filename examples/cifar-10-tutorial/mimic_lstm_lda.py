@@ -17,8 +17,9 @@ import argparse
 import torch.autograd as autograd
 
 class LSTMNet(nn.Module):
-    def __init__(self, batch_size, seq_lenth, feature_dim, hidden_dim, label_dim):
+    def __init__(self, gpu_id, batch_size, seq_lenth, feature_dim, hidden_dim, label_dim):
         super(LSTMNet, self).__init__()
+        self.gpu_id = gpu_id
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.seq_lenth = seq_lenth
@@ -28,7 +29,11 @@ class LSTMNet(nn.Module):
 
     def init_hidden(self):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
+        if self.gpu_id >= 0:
+            return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda(self.gpu_id)),
+                autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda(self.gpu_id)))
+        else:
+            return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
                 autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)))
     # inputs: (batch_size, seq, feature)
     def forward(self, inputs):
@@ -53,9 +58,11 @@ if __name__ == '__main__':
 
     ########################################################################
     # trainset = MIMICLSTMDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv', timepoint=args.timepoint)
+    # trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
     trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/train_x_seq.csv', label_csv_file='sequence_data_repository/train_y_seq.csv', timepoint=args.timepoint)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batchsize, shuffle=True)
     # testset = MIMICLSTMDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv', timepoint=args.timepoint)
+    # testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
     testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/test_x_seq.csv', label_csv_file='sequence_data_repository/test_y_seq.csv', timepoint=args.timepoint)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.batchsize, shuffle=True)
     ########################################################################
@@ -73,7 +80,7 @@ if __name__ == '__main__':
     label_dim = trainset.label_dim()
     print ('feature_dim: ',(feature_dim))
     print ('label_dim: ',(label_dim))
-    net = LSTMNet(batch_size=args.batchsize, seq_lenth=args.timepoint, feature_dim=feature_dim, hidden_dim=args.hiddendim, label_dim=label_dim)
+    net = LSTMNet(gpu_id=gpu_id, batch_size=args.batchsize, seq_lenth=args.timepoint, feature_dim=feature_dim, hidden_dim=args.hiddendim, label_dim=label_dim)
     for name, param in net.named_parameters():
         print ('param name: ', name)
         print ('param size:', param.data.size())
