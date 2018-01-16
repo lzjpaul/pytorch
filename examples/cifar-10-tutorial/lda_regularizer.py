@@ -77,7 +77,6 @@ class LDARegularizer():
             self.calcResponsibility()
             # self.reg_grad_w = np.sum(self.responsibility*self.reg_lambda, axis=1).reshape(self.w_array.shape) * self.w_array
             self.reg_grad_w = self.calcRegGrad()
-        print ('trainnum: ', trainnum)
         reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w/float(trainnum * labelnum))).float()
         if gpu_id >= 0:
             reg_grad_w_dev.cuda(gpu_id)

@@ -14,8 +14,6 @@ def AUCAccuracy(outputs, labels):
     '''
     p_np = outputs
     y_np = labels
-    print ('p_np shape: ', p_np.shape)
-    print ('y_np shape: ', y_np.shape)
        
     pred_p_np = (p_np > 0.5).astype(np.float32)
  

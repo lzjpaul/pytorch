@@ -53,10 +53,10 @@ if __name__ == '__main__':
 
     ########################################################################
     # trainset = MIMICLSTMDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv', timepoint=args.timepoint)
-    trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq.csv', label_csv_file='sequence_data_repository/try_y_seq.csv', timepoint=args.timepoint)
+    trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/train_x_seq.csv', label_csv_file='sequence_data_repository/train_y_seq.csv', timepoint=args.timepoint)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batchsize, shuffle=True)
     # testset = MIMICLSTMDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv', timepoint=args.timepoint)
-    testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq.csv', label_csv_file='sequence_data_repository/try_y_seq.csv', timepoint=args.timepoint)
+    testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/test_x_seq.csv', label_csv_file='sequence_data_repository/test_y_seq.csv', timepoint=args.timepoint)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.batchsize, shuffle=True)
     ########################################################################
     # Let us show some of the training images, for fun.
@@ -165,6 +165,8 @@ if __name__ == '__main__':
             loss = criterion(outputs, labels)
             outputs_list.extend(list(outputs.data.cpu().numpy()))
             labels_list.extend(list(labels.data.cpu().numpy()))
+        print ('test outputs_list length: ', len(outputs_list))
+        print ('test labels_list length: ', len(labels_list))
         metrics = AUCAccuracy(np.array(outputs_list), np.array(labels_list))
         accuracy, macro_auc, micro_auc = metrics[0], metrics[1], metrics[2]
         print ('test loss (last minibatch) = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
