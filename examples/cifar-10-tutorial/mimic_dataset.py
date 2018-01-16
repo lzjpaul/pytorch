@@ -32,3 +32,28 @@ class MIMICDataset(Dataset):
 
     def label_dim(self):
         return self.mimic_labels.shape[1]
+
+class MIMICLSTMDataset(Dataset):
+    """LSTM version of MIMIC dataset."""
+
+    def __init__(self, feature_csv_file, label_csv_file, timepoint):
+        """
+        Args:
+            csv_file (string): Path to the csv file.
+        """
+        self.mimic_features = np.genfromtxt(feature_csv_file, dtype=np.float32, delimiter = ',')
+        self.mimic_labels = np.genfromtxt(label_csv_file, dtype=np.float32, delimiter = ',')
+        self.timepoint = timepoint
+
+    def __len__(self):
+        return len(self.mimic_features)
+
+    def __getitem__(self, idx):
+        sample = {'features': self.mimic_features[idx], 'label': self.mimic_labels[idx]}
+        return sample
+
+    def feature_dim(self):
+        return int(self.mimic_features.shape[1] / self.timepoint)
+
+    def label_dim(self):
+        return self.mimic_labels.shape[1]

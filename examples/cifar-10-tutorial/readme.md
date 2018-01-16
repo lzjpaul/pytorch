@@ -19,3 +19,6 @@ conda update pytorch torchvision
 1-15:
 (1) lda_regularizer.py & mimic_mlp_lda.py: LDA_regularization / (label_dim * sample_num) 
 (2) the wight shape is inverse to the singa
+
+1-16:
+(1) test batchsize needs to be the same as train batchsize
