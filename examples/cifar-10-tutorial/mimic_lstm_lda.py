@@ -23,22 +23,23 @@ class LSTMNet(nn.Module):
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.seq_lenth = seq_lenth
+        self.feature_dim = feature_dim
         self.lstm = nn.LSTM(input_size=feature_dim, hidden_size=hidden_dim, batch_first=True)
         self.fc1 = nn.Linear(hidden_dim, label_dim)
-        self.hidden = self.init_hidden()
+        # self.hidden = self.init_hidden()
 
-    def init_hidden(self):
+    def init_hidden(self, batch_size):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         if self.gpu_id >= 0:
-            return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda(self.gpu_id)),
-                autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda(self.gpu_id)))
+            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)),
+                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)))
         else:
-            return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
-                autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)))
+            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)),
+                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)))
     # inputs: (batch_size, seq, feature)
     def forward(self, inputs):
         lstm_out, self.hidden = self.lstm(
-            inputs.view(self.batch_size, self.seq_lenth, -1), self.hidden)
+            inputs.view(-1, self.seq_lenth, self.feature_dim), self.hidden)
         x = F.sigmoid(self.fc1(lstm_out[:, -1, :]))
         return x
 
@@ -49,6 +50,7 @@ if __name__ == '__main__':
     parser.add_argument('-topicnum', type=int, help='topic_number')
     parser.add_argument('-hiddendim', type=int, help='hidden dimension')
     parser.add_argument('-timepoint', type=int, help='number of time points')
+    parser.add_argument('-weightdecay', type=float, help='weight decay value')
     parser.add_argument('-ldauptfreq', type=int, help='lda update frequency, in steps')
     parser.add_argument('-paramuptfreq', type=int, help='parameter update frequency, in steps')
     parser.add_argument('-batchsize', type=int, help='batchsize')
@@ -71,6 +73,8 @@ if __name__ == '__main__':
 
     gpu_id = args.gpuid
     print ('gpu_id', gpu_id)
+    
+    print ('weight_decay', args.weightdecay)
 
     # get some random training images
     dataiter = iter(trainloader)
@@ -124,7 +128,7 @@ if __name__ == '__main__':
             # zero the parameter gradients
             optimizer.zero_grad()
             # Also, we need to clear out the hidden state of the LSTM.
-            net.hidden = net.init_hidden()
+            net.hidden = net.init_hidden(features.shape[0])
             # forward + backward + optimize
             outputs = net(features)
             loss = criterion(outputs, labels)
@@ -150,6 +154,9 @@ if __name__ == '__main__':
                 # if name == 'weight':
                 if name == 'lstm.weight_ih_l0':
                     lda_regularizer_instance.apply(gpu_id, len(trainset), label_dim, epoch, param, name, i)
+                else:
+                    if args.weightdecay != 0:
+                        param.grad.data.add_(float(args.weightdecay), param.data)
             ## print norm
             optimizer.step()
             # print statistics
@@ -167,6 +174,7 @@ if __name__ == '__main__':
                 features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
             else:
                 features, labels = Variable(features), Variable(labels)
+            net.hidden = net.init_hidden(features.shape[0])
             outputs = net(features)
             ## this has no backward??
             loss = criterion(outputs, labels)

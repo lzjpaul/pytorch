@@ -22,4 +22,8 @@ conda update pytorch torchvision
 
 1-16:
 (1) test batchsize needs to be the same as train batchsize
-(2) adding weight decay manually!!
+
+1-17:
+(1) adding weight decay manually!!
+(2) deal with the scenario that the batchsize can not be divided wholy (init_hidden and inputs can not use batchsize)
+(3) init_state()
