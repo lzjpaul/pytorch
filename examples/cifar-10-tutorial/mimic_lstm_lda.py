@@ -114,7 +114,7 @@ if __name__ == '__main__':
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print (st)
 
-    max_epoch = 2000
+    max_epoch = args.maxepoch
     # training
     for epoch in range(max_epoch):  # loop over the dataset multiple times
         running_loss = 0.0

@@ -26,4 +26,8 @@ conda update pytorch torchvision
 1-17:
 (1) adding weight decay manually!!
 (2) deal with the scenario that the batchsize can not be divided wholy (init_hidden and inputs can not use batchsize)
-(3) init_state()
+(3) init_state() -- for tesing also!
+
+yk:
+(1) batchsize: 10
+(2) Adam
