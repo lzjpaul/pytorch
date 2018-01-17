@@ -55,22 +55,17 @@ if __name__ == '__main__':
     parser.add_argument('-paramuptfreq', type=int, help='parameter update frequency, in steps')
     parser.add_argument('-batchsize', type=int, help='batchsize')
     parser.add_argument('-gpuid', type=int, help='gpuid')
-    parser.add_argument('-trainxpath', type=str, help='trainx path')
-    parser.add_argument('-trainypath', type=str, help='trainy path')
-    parser.add_argument('-testxpath', type=str, help='testx path')
-    parser.add_argument('-testypath', type=str, help='testy path')
-    parser.add_argument('-phipath', type=str, help='phi path')
     #parser.add_argument('-resultpath', type=str, help='result path')
     args = parser.parse_args()
 
     ########################################################################
     # trainset = MIMICLSTMDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv', timepoint=args.timepoint)
-    # trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
-    trainset = MIMICLSTMDataset(feature_csv_file=args.trainxpath, label_csv_file=args.trainypath, timepoint=args.timepoint)
+    trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_99.csv', label_csv_file='sequence_data_repository/try_y_seq_99.csv', timepoint=args.timepoint)
+    # trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/train_x_seq.csv', label_csv_file='sequence_data_repository/train_y_seq.csv', timepoint=args.timepoint)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batchsize, shuffle=True)
     # testset = MIMICLSTMDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv', timepoint=args.timepoint)
-    # testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
-    testset = MIMICLSTMDataset(feature_csv_file=args.testxpath, label_csv_file=args.testypath, timepoint=args.timepoint)
+    testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_99.csv', label_csv_file='sequence_data_repository/try_y_seq_99.csv', timepoint=args.timepoint)
+    # testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/test_x_seq.csv', label_csv_file='sequence_data_repository/test_y_seq.csv', timepoint=args.timepoint)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.batchsize, shuffle=True)
     ########################################################################
     # Let us show some of the training images, for fun.
@@ -108,7 +103,7 @@ if __name__ == '__main__':
     word_num = feature_dim
     ldapara = [doc_num, topic_num, word_num]
     theta = [1.0/ldapara[1] for _ in range(ldapara[1])]
-    phi = np.genfromtxt(args.phipath, delimiter=',')
+    phi = np.genfromtxt('data-repository/phi.csv', delimiter=',')
     phi = np.transpose(phi)
     uptfreq = [args.ldauptfreq, args.paramuptfreq]
     lda_regularizer_instance = LDARegularizer(hyperpara=hyperpara, ldapara=ldapara, theta=theta, phi=phi, uptfreq=uptfreq)
@@ -119,7 +114,7 @@ if __name__ == '__main__':
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print (st)
 
-    max_epoch = args.maxepoch
+    max_epoch = 10
     # training
     for epoch in range(max_epoch):  # loop over the dataset multiple times
         running_loss = 0.0

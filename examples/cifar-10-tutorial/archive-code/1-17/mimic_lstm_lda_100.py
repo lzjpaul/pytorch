@@ -23,23 +23,22 @@ class LSTMNet(nn.Module):
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.seq_lenth = seq_lenth
-        self.feature_dim = feature_dim
         self.lstm = nn.LSTM(input_size=feature_dim, hidden_size=hidden_dim, batch_first=True)
         self.fc1 = nn.Linear(hidden_dim, label_dim)
-        # self.hidden = self.init_hidden()
+        self.hidden = self.init_hidden()
 
-    def init_hidden(self, batch_size):
+    def init_hidden(self):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         if self.gpu_id >= 0:
-            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)),
-                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)))
+            return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda(self.gpu_id)),
+                autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim).cuda(self.gpu_id)))
         else:
-            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)),
-                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)))
+            return (autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
+                autograd.Variable(torch.zeros(1, self.batch_size, self.hidden_dim)))
     # inputs: (batch_size, seq, feature)
     def forward(self, inputs):
         lstm_out, self.hidden = self.lstm(
-            inputs.view(-1, self.seq_lenth, self.feature_dim), self.hidden)
+            inputs.view(self.batch_size, self.seq_lenth, -1), self.hidden)
         x = F.sigmoid(self.fc1(lstm_out[:, -1, :]))
         return x
 
@@ -50,27 +49,21 @@ if __name__ == '__main__':
     parser.add_argument('-topicnum', type=int, help='topic_number')
     parser.add_argument('-hiddendim', type=int, help='hidden dimension')
     parser.add_argument('-timepoint', type=int, help='number of time points')
-    parser.add_argument('-weightdecay', type=float, help='weight decay value')
     parser.add_argument('-ldauptfreq', type=int, help='lda update frequency, in steps')
     parser.add_argument('-paramuptfreq', type=int, help='parameter update frequency, in steps')
     parser.add_argument('-batchsize', type=int, help='batchsize')
     parser.add_argument('-gpuid', type=int, help='gpuid')
-    parser.add_argument('-trainxpath', type=str, help='trainx path')
-    parser.add_argument('-trainypath', type=str, help='trainy path')
-    parser.add_argument('-testxpath', type=str, help='testx path')
-    parser.add_argument('-testypath', type=str, help='testy path')
-    parser.add_argument('-phipath', type=str, help='phi path')
     #parser.add_argument('-resultpath', type=str, help='result path')
     args = parser.parse_args()
 
     ########################################################################
     # trainset = MIMICLSTMDataset(feature_csv_file='data-repository/train_x.csv', label_csv_file='data-repository/train_y.csv', timepoint=args.timepoint)
-    # trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
-    trainset = MIMICLSTMDataset(feature_csv_file=args.trainxpath, label_csv_file=args.trainypath, timepoint=args.timepoint)
+    trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
+    # trainset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/train_x_seq.csv', label_csv_file='sequence_data_repository/train_y_seq.csv', timepoint=args.timepoint)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batchsize, shuffle=True)
     # testset = MIMICLSTMDataset(feature_csv_file='data-repository/test_x.csv', label_csv_file='data-repository/test_y.csv', timepoint=args.timepoint)
-    # testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
-    testset = MIMICLSTMDataset(feature_csv_file=args.testxpath, label_csv_file=args.testypath, timepoint=args.timepoint)
+    testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/try_x_seq_100.csv', label_csv_file='sequence_data_repository/try_y_seq_100.csv', timepoint=args.timepoint)
+    # testset = MIMICLSTMDataset(feature_csv_file='sequence_data_repository/test_x_seq.csv', label_csv_file='sequence_data_repository/test_y_seq.csv', timepoint=args.timepoint)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.batchsize, shuffle=True)
     ########################################################################
     # Let us show some of the training images, for fun.
@@ -78,8 +71,6 @@ if __name__ == '__main__':
 
     gpu_id = args.gpuid
     print ('gpu_id', gpu_id)
-    
-    print ('weight_decay', args.weightdecay)
 
     # get some random training images
     dataiter = iter(trainloader)
@@ -108,7 +99,7 @@ if __name__ == '__main__':
     word_num = feature_dim
     ldapara = [doc_num, topic_num, word_num]
     theta = [1.0/ldapara[1] for _ in range(ldapara[1])]
-    phi = np.genfromtxt(args.phipath, delimiter=',')
+    phi = np.genfromtxt('data-repository/phi.csv', delimiter=',')
     phi = np.transpose(phi)
     uptfreq = [args.ldauptfreq, args.paramuptfreq]
     lda_regularizer_instance = LDARegularizer(hyperpara=hyperpara, ldapara=ldapara, theta=theta, phi=phi, uptfreq=uptfreq)
@@ -119,7 +110,7 @@ if __name__ == '__main__':
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print (st)
 
-    max_epoch = args.maxepoch
+    max_epoch = 2
     # training
     for epoch in range(max_epoch):  # loop over the dataset multiple times
         running_loss = 0.0
@@ -133,7 +124,7 @@ if __name__ == '__main__':
             # zero the parameter gradients
             optimizer.zero_grad()
             # Also, we need to clear out the hidden state of the LSTM.
-            net.hidden = net.init_hidden(features.shape[0])
+            net.hidden = net.init_hidden()
             # forward + backward + optimize
             outputs = net(features)
             loss = criterion(outputs, labels)
@@ -159,9 +150,6 @@ if __name__ == '__main__':
                 # if name == 'weight':
                 if name == 'lstm.weight_ih_l0':
                     lda_regularizer_instance.apply(gpu_id, len(trainset), label_dim, epoch, param, name, i)
-                else:
-                    if args.weightdecay != 0:
-                        param.grad.data.add_(float(args.weightdecay), param.data)
             ## print norm
             optimizer.step()
             # print statistics
@@ -179,7 +167,6 @@ if __name__ == '__main__':
                 features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
             else:
                 features, labels = Variable(features), Variable(labels)
-            net.hidden = net.init_hidden(features.shape[0])
             outputs = net(features)
             ## this has no backward??
             loss = criterion(outputs, labels)
