@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import argparse
 import torch.autograd as autograd
+from myadam import MyAdam
 
 class LSTMNet(nn.Module):
     def __init__(self, gpu_id, batch_size, seq_lenth, feature_dim, hidden_dim, label_dim):
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     print ('gpu_id', gpu_id)
     
     print ('weight_decay', args.weightdecay)
-    print ('learning rate', args.lr)
+    print ('no use learning rate', args.lr)
     # get some random training images
     dataiter = iter(trainloader)
     features, labels = dataiter.next()
@@ -99,14 +100,15 @@ if __name__ == '__main__':
         net.cuda(gpu_id)
 
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(net.parameters(), lr=float(args.lr), momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=0.001)
+    # optimizer = optim.SGD(net.parameters(), lr=float(args.lr), momentum=0.9)
+    optimizer = MyAdam(net.parameters(), lr=0.001)
     # hyper parameters
-    alpha = 1 + 0.05
-    hyperpara = [alpha]
     doc_num = 4 * args.hiddendim # hard-code, number of hidden units 
     topic_num = args.topicnum
     word_num = feature_dim
+    alpha = 1 + 1.0 / (topic_num)
+    hyperpara = [alpha]
+    print ('alpha: ', alpha)
     ldapara = [doc_num, topic_num, word_num]
     theta = [1.0/ldapara[1] for _ in range(ldapara[1])]
     phi = np.genfromtxt(args.phipath, delimiter=',')
@@ -164,17 +166,18 @@ if __name__ == '__main__':
                     if args.weightdecay != 0:
                         param.grad.data.add_(float(args.weightdecay), param.data)
             ## print norm
-            optimizer.step()
+            optimizer.step(epoch=epoch, batch_iter=i, ldauptfreq=args.ldauptfreq, gpu_id=gpu_id)
             # print statistics
             running_loss += loss.data[0]
             running_accuracy += accuracy
-        print ('maximum i: ', i)
+        print ('maximum training i: ', i)
         print('epoch: %d, training loss =  %f, training accuracy =  %f'%(epoch, running_loss / (i+1), running_accuracy / (i+1)))
 
         # test
         outputs_list = []
         labels_list = []
-        for data in testloader:
+        test_loss = 0.0
+        for i, data in enumerate(testloader, 0): 
             features, labels = data['features'], data['label']
             if gpu_id >= 0:
                 features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
@@ -184,15 +187,17 @@ if __name__ == '__main__':
             outputs = net(features)
             ## this has no backward??
             loss = criterion(outputs, labels)
+            test_loss += loss.data[0]
             outputs_list.extend(list(outputs.data.cpu().numpy()))
             labels_list.extend(list(labels.data.cpu().numpy()))
         print ('test outputs_list length: ', len(outputs_list))
         print ('test labels_list length: ', len(labels_list))
         metrics = AUCAccuracy(np.array(outputs_list), np.array(labels_list))
         accuracy, macro_auc, micro_auc = metrics[0], metrics[1], metrics[2]
-        print ('test loss (last minibatch) = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
+        print ('maximum test i: ', i)
+        print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(test_loss / (i+1), accuracy, macro_auc, micro_auc))
         if epoch == (max_epoch - 1):
-            print ('final test loss (last minibatch) = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
+            print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(test_loss / (i+1), accuracy, macro_auc, micro_auc))
 
     done = time.time()
     do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
