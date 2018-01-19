@@ -15,7 +15,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 import argparse
 import torch.autograd as autograd
-
+'''
+(1) print differnt files names and shape
+'''
 class LSTMNet(nn.Module):
     def __init__(self, gpu_id, batch_size, seq_lenth, feature_dim, hidden_dim, label_dim):
         super(LSTMNet, self).__init__()
@@ -87,8 +89,12 @@ if __name__ == '__main__':
 
     feature_dim = trainset.feature_dim()
     label_dim = trainset.label_dim()
-    print ('feature_dim: ',(feature_dim))
-    print ('label_dim: ',(label_dim))
+    print ('len(trainset): ', len(trainset))
+    print ('train feature dim: ', trainset.feature_dim())
+    print ('len(testset): ', len(testset))
+    print ('test feature dim: ', testset.feature_dim())
+    print ('train label dim: ', trainset.label_dim())
+    print ('test label dim: ', testset.label_dim())
     net = LSTMNet(gpu_id=gpu_id, batch_size=args.batchsize, seq_lenth=args.timepoint, feature_dim=feature_dim, hidden_dim=args.hiddendim, label_dim=label_dim)
     for name, param in net.named_parameters():
         print ('param name: ', name)
@@ -98,8 +104,8 @@ if __name__ == '__main__':
         net.cuda(gpu_id)
 
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=0.001)
+    # optimizer = optim.SGD(net.parameters(), lr=0.001)
+    optimizer = optim.Adam(net.parameters(), lr=0.001)
     # hyper parameters
     alpha = 1 + 0.05
     hyperpara = [alpha]
@@ -110,6 +116,7 @@ if __name__ == '__main__':
     theta = [1.0/ldapara[1] for _ in range(ldapara[1])]
     phi = np.genfromtxt(args.phipath, delimiter=',')
     phi = np.transpose(phi)
+    print ('phi shape: ', phi.shape)
     uptfreq = [args.ldauptfreq, args.paramuptfreq]
     lda_regularizer_instance = LDARegularizer(hyperpara=hyperpara, ldapara=ldapara, theta=theta, phi=phi, uptfreq=uptfreq)
     # hyper parameters

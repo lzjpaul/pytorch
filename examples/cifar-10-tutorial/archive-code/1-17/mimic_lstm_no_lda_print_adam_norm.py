@@ -15,7 +15,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 import argparse
 import torch.autograd as autograd
-
+from myadam import MyAdam
+'''
+(1) no lda regularization
+(2) my adam norm
+'''
 class LSTMNet(nn.Module):
     def __init__(self, gpu_id, batch_size, seq_lenth, feature_dim, hidden_dim, label_dim):
         super(LSTMNet, self).__init__()
@@ -87,7 +91,10 @@ if __name__ == '__main__':
 
     feature_dim = trainset.feature_dim()
     label_dim = trainset.label_dim()
-    print ('feature_dim: ',(feature_dim))
+    print ('len(trainset): ', len(trainset))
+    print ('len(testset):', len(testset))
+    print('trainset.feature_dim():', trainset.feature_dim())
+    print ('testset.feature_dim(): ', testset.feature_dim())
     print ('label_dim: ',(label_dim))
     net = LSTMNet(gpu_id=gpu_id, batch_size=args.batchsize, seq_lenth=args.timepoint, feature_dim=feature_dim, hidden_dim=args.hiddendim, label_dim=label_dim)
     for name, param in net.named_parameters():
@@ -98,8 +105,8 @@ if __name__ == '__main__':
         net.cuda(gpu_id)
 
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=0.001)
+    # optimizer = optim.SGD(net.parameters(), lr=0.001)
+    optimizer = MyAdam(net.parameters(), lr=0.001)
     # hyper parameters
     alpha = 1 + 0.05
     hyperpara = [alpha]
@@ -125,6 +132,7 @@ if __name__ == '__main__':
         running_loss = 0.0
         running_accuracy = 0.0
         for i, data in enumerate(trainloader, 0):
+            print ('step: ', i)
             features, labels = data['features'], data['label']
             if gpu_id >= 0:
                 features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
@@ -152,12 +160,13 @@ if __name__ == '__main__':
             # param name:  lstm.weight_ih_l0
             # param size:  torch.Size([24, 6])
             for name, param in net.named_parameters():
-                # print ("param name: ", name)
-                # print ("param size: ", param.size())
+                print ("param name: ", name)
+                print ("param size: ", param.size())
+                print ('param norm: ', np.linalg.norm(param.data.cpu().numpy()))
                 # print ("")
                 # print ("trainset number: ", len(trainset))
                 # if name == 'weight':
-                if name == 'lstm.weight_ih_l0':
+                if name == 'weight':
                     lda_regularizer_instance.apply(gpu_id, len(trainset), label_dim, epoch, param, name, i)
                 else:
                     if args.weightdecay != 0:
