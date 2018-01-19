@@ -15,9 +15,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import argparse
 import torch.autograd as autograd
-'''
-(1) no lda regularization
-'''
+
 class LSTMNet(nn.Module):
     def __init__(self, gpu_id, batch_size, seq_lenth, feature_dim, hidden_dim, label_dim):
         super(LSTMNet, self).__init__()
@@ -52,6 +50,7 @@ if __name__ == '__main__':
     parser.add_argument('-topicnum', type=int, help='topic_number')
     parser.add_argument('-hiddendim', type=int, help='hidden dimension')
     parser.add_argument('-timepoint', type=int, help='number of time points')
+    parser.add_argument('-lr', type=float, help='learning rate')
     parser.add_argument('-weightdecay', type=float, help='weight decay value')
     parser.add_argument('-ldauptfreq', type=int, help='lda update frequency, in steps')
     parser.add_argument('-paramuptfreq', type=int, help='parameter update frequency, in steps')
@@ -82,7 +81,7 @@ if __name__ == '__main__':
     print ('gpu_id', gpu_id)
     
     print ('weight_decay', args.weightdecay)
-
+    print ('learning rate', args.lr)
     # get some random training images
     dataiter = iter(trainloader)
     features, labels = dataiter.next()
@@ -100,8 +99,8 @@ if __name__ == '__main__':
         net.cuda(gpu_id)
 
     criterion = nn.BCELoss()
-    # optimizer = optim.SGD(net.parameters(), lr=0.001)
-    optimizer = optim.Adam(net.parameters(), lr=0.001)
+    optimizer = optim.SGD(net.parameters(), lr=float(args.lr), momentum=0.9)
+    # optimizer = optim.Adam(net.parameters(), lr=0.001)
     # hyper parameters
     alpha = 1 + 0.05
     hyperpara = [alpha]
@@ -159,6 +158,7 @@ if __name__ == '__main__':
                 # print ("")
                 # print ("trainset number: ", len(trainset))
                 # if name == 'weight':
+                # if name == 'lstm.weight_ih_l0':
                 if name == 'weight':
                     lda_regularizer_instance.apply(gpu_id, len(trainset), label_dim, epoch, param, name, i)
                 else:

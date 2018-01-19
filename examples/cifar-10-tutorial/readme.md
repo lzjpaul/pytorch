@@ -31,3 +31,6 @@ conda update pytorch torchvision
 yk:
 (1) batchsize: 10
 (2) Adam
+
+1-19:
+(1) change back to SGD

@@ -50,6 +50,7 @@ if __name__ == '__main__':
     parser.add_argument('-topicnum', type=int, help='topic_number')
     parser.add_argument('-hiddendim', type=int, help='hidden dimension')
     parser.add_argument('-timepoint', type=int, help='number of time points')
+    parser.add_argument('-lr', type=float, help='learning rate')
     parser.add_argument('-weightdecay', type=float, help='weight decay value')
     parser.add_argument('-ldauptfreq', type=int, help='lda update frequency, in steps')
     parser.add_argument('-paramuptfreq', type=int, help='parameter update frequency, in steps')
@@ -80,7 +81,7 @@ if __name__ == '__main__':
     print ('gpu_id', gpu_id)
     
     print ('weight_decay', args.weightdecay)
-
+    print ('learning rate', args.lr)
     # get some random training images
     dataiter = iter(trainloader)
     features, labels = dataiter.next()
@@ -98,7 +99,7 @@ if __name__ == '__main__':
         net.cuda(gpu_id)
 
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(net.parameters(), lr=float(args.lr), momentum=0.9)
     # optimizer = optim.Adam(net.parameters(), lr=0.001)
     # hyper parameters
     alpha = 1 + 0.05

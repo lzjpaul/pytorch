@@ -64,6 +64,7 @@ class MyAdam(Adam):
 
                 if group['weight_decay'] != 0:
                     grad = grad.add(group['weight_decay'], p.data)
+                print ('group[weight_decay]:', group['weight_decay'])
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
