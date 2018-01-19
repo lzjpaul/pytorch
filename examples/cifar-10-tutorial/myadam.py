@@ -1,5 +1,6 @@
 import math
 import torch
+import torch
 import numpy as np
 from torch.optim.adam import Adam
 
@@ -21,14 +22,14 @@ class MyAdam(Adam):
     .. _Adam\: A Method for Stochastic Optimization:
         https://arxiv.org/abs/1412.6980
     """
-
+    '''
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
                  weight_decay=0):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay)
         super(Adam, self).__init__(params, defaults)
-
-    def step(self, closure=None):
+    '''
+    def step(self, epoch, batch_iter, ldauptfreq, gpu_id, closure=None):
         """Performs a single optimization step.
 
         Arguments:
@@ -64,7 +65,6 @@ class MyAdam(Adam):
 
                 if group['weight_decay'] != 0:
                     grad = grad.add(group['weight_decay'], p.data)
-                print ('group[weight_decay]:', group['weight_decay'])
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
@@ -75,9 +75,13 @@ class MyAdam(Adam):
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
                 step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
-                ## print update proportion
-                print ('update value: ', np.linalg.norm(torch.zeros(p.data.size()).cuda(1).addcdiv_(-step_size, exp_avg, denom).cpu().numpy()))
-                ## print update proportion
+                # print update proportion
+                if (epoch == 0 and batch_iter < 50) or batch_iter % ldauptfreq == 0:
+                    print ('batch_iter: ', batch_iter)
+                    print ('param size: ', p.data.size())
+                    print ('param norm first: ', np.linalg.norm(p.data.cpu().numpy()))
+                    print ('update value second: ', np.linalg.norm(torch.zeros(p.data.size()).cuda(gpu_id).addcdiv_(-step_size, exp_avg, denom).cpu().numpy()))
+                # print update proportion
                 p.data.addcdiv_(-step_size, exp_avg, denom)
 
         return loss
