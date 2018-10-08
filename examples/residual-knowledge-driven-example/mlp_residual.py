@@ -4,11 +4,11 @@
 # MNIST dataset: https://github.com/pytorch/examples/blob/master/mnist/main.py
 ######################################################################
 # TODO
-# 1) CrossEntropyLoss --> BCELoss
+# 1) CrossEntropyLoss/BCELoss + softmax layer + metrix
 # 2) mimic_metric (accuracy) --> MNIST?
 # 3) optimizer --> healthcare??
 # 4) Dataset
-
+# 5) MNIST function runs for onece
 import math
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
@@ -79,7 +79,8 @@ class ResNetMLP(nn.Module):
         # print (x.shape)
         x = F.sigmoid(self.fc1(x))
         x = self.layer1(x)
-        x = F.sigmoid(self.fc2(x))
+        # x = F.sigmoid(self.fc2(x)) # ??? softmax
+        x = F.log_softmax(self.fc2(x), dim=1)
         return x
 
 def resnetmlp3(dim_vec, pretrained=False, **kwargs):
@@ -182,6 +183,16 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
             output = model(data)
             loss = F.nll_loss(output, target)
             loss.backward()
+            ### print norm
+            '''
+            print ('batch_idx', batch_idx) 
+            for name, f in model.named_parameters():
+                print ('param name: ', name)
+                print ('param size:', f.data.size())
+                print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
+                print ('lr 1. * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.))
+            '''
+            ### print norm
             optimizer.step()
             if batch_idx % 10 == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -245,7 +256,7 @@ if __name__ == '__main__':
     print ('gpu_id', gpu_id)
 
     # Initialize the model for this run
-    dim_vec = [28*28, 1000, 10] # [input_dim, hidden_dim, output_dim]
+    dim_vec = [28*28, 100, 10] # [input_dim, hidden_dim, output_dim]
     model_ft = initialize_model(args.modelname, dim_vec, use_pretrained=False)
 
     # Print the model we just instantiated
@@ -287,7 +298,8 @@ if __name__ == '__main__':
             print("\t",name)
 
     # Observe that all parameters are being optimized
-    optimizer_ft = optim.SGD(params_to_update, lr=0.001, momentum=0.9) ## correct for Helathcare or MNIST????
+    optimizer_ft = optim.SGD(params_to_update, lr=0.01, momentum=0.9) ## correct for Helathcare or MNIST????
+    # optimizer_ft = optim.Adam(params_to_update, lr=0.01) ## correct for Helathcare or MNIST????
 
     ######################################################################
     # Run Training and Validation Step
