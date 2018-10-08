@@ -54,8 +54,9 @@ class ResNetMLP(nn.Module):
 
 
         # ??? do I need this?
-        for m in self.modules():
-            print ('self.modules():')
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
             print (m)
             if isinstance(m, nn.Conv2d):
                 print ('initialization using kaiming_normal_')
@@ -74,6 +75,8 @@ class ResNetMLP(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        # print('x shape')
+        # print (x.shape)
         x = F.sigmoid(self.fc1(x))
         x = self.layer1(x)
         x = F.sigmoid(self.fc2(x))
@@ -123,6 +126,9 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
 
         # Iterate over training data.
         for inputs, labels in train_loader:
+            inputs = inputs.reshape((inputs.shape[0],-1))
+            print('inputs shape:')
+            print(inputs.shape)
             inputs = inputs.to(device)
             labels = labels.to(device)
             # zero the parameter gradients
@@ -144,6 +150,7 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
 
         # Iterate over test data.
         for inputs, labels in test_loader:
+            inputs = inputs.reshape((inputs.shape[0],-1))
             inputs = inputs.to(device)
             labels = labels.to(device)
             # forward
@@ -167,6 +174,9 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
         # Iterate over training data.
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
+            data = data.reshape((data.shape[0],-1))
+            # print('data shape:')
+            # print(data.shape)
             data, target = data.cuda(gpu_id), target.cuda(gpu_id)
             optimizer.zero_grad()
             output = model(data)
@@ -184,6 +194,7 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
         correct = 0
         with torch.no_grad():
             for data, target in test_loader:
+                data = data.reshape((data.shape[0],-1))
                 data, target = data.cuda(gpu_id), target.cuda(gpu_id)
                 output = model(data)
                 test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
@@ -238,6 +249,7 @@ if __name__ == '__main__':
     model_ft = initialize_model(args.modelname, dim_vec, use_pretrained=False)
 
     # Print the model we just instantiated
+    print('model:')
     print(model_ft)
 
     ######################################################################
