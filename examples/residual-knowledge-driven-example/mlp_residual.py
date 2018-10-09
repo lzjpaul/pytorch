@@ -2,6 +2,7 @@
 # pytorch vision: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
 # https://github.com/lzjpaul/pytorch/blob/LDA-regularization/examples/cifar-10-tutorial/mimic_mlp_lda.py
 # MNIST dataset: https://github.com/pytorch/examples/blob/master/mnist/main.py
+# inplace: https://blog.csdn.net/theonegis/article/details/81195065
 ######################################################################
 # TODO
 # 1) CrossEntropyLoss/BCELoss + softmax layer + metrix
@@ -29,11 +30,14 @@ class BasicResMLPBlock(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super(BasicResMLPBlock, self).__init__()
         self.fc1 = InitLinear(input_dim, hidden_dim)
+        # self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         residual = x
+        # out = self.fc1(x)
+        # out = self.sigmoid(out)
         out = F.sigmoid(self.fc1(x))
-        out += residual
+        out = out + residual
         return out
 
 class BasicMLPBlock(nn.Module):
@@ -185,13 +189,13 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
             loss = F.nll_loss(output, target)
             loss.backward()
             ### print norm
-            '''
+            ''' 
             print ('batch_idx', batch_idx) 
             for name, f in model.named_parameters():
                 print ('param name: ', name)
                 print ('param size:', f.data.size())
                 print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
-                print ('lr 1. * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.))
+                print ('lr 0.01 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             '''
             ### print norm
             optimizer.step()
