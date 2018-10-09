@@ -9,6 +9,7 @@
 # 3) optimizer --> healthcare??
 # 4) Dataset
 # 5) MNIST function runs for onece
+# 6) adding seed for mini-batches?
 import math
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
@@ -80,7 +81,7 @@ class ResNetMLP(nn.Module):
         x = F.sigmoid(self.fc1(x))
         x = self.layer1(x)
         # x = F.sigmoid(self.fc2(x)) # ??? softmax
-        x = F.log_softmax(self.fc2(x), dim=1)
+        x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
         return x
 
 def resnetmlp3(dim_vec, pretrained=False, **kwargs):
