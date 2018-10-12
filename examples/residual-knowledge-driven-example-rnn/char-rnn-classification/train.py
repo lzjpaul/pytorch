@@ -1,9 +1,13 @@
+## different from MIMIC-III
+## (1) batch_first
+
 import torch
 from data import *
 from model import *
 import random
 import time
 import math
+import sys
 
 n_hidden = 128
 n_epochs = 100000
@@ -26,21 +30,44 @@ def randomTrainingPair():
     line_tensor = Variable(lineToTensor(line))
     return category, line, category_tensor, line_tensor
 
-rnn = RNN(n_letters, n_hidden, n_categories)
+model_type = sys.argv[1]
+gpu_id = 1
+batch_first = False ## ??? batch_first
+learning_rate = float(sys.argv[2])
+if model_type == 'originrnn':
+    rnn = OriginRNN(n_letters, n_hidden, n_categories)
+elif model_type == 'rnn3':
+    blocks = 3
+    rnn = ResNetRNN(gpu_id, BasicRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
+    rnn = rnn.cuda(gpu_id)
+elif model_type == 'resrnn3':
+    print ('not implemented yet')
+else:
+    print ('Please specify one type model')
+
 optimizer = torch.optim.SGD(rnn.parameters(), lr=learning_rate)
 criterion = nn.NLLLoss()
 
-def train(category_tensor, line_tensor):
-    hidden = rnn.initHidden()
-    optimizer.zero_grad()
+def train(model_type, batch_size, category_tensor, line_tensor):
+    if model_type == 'originrnn':
+        hidden = rnn.initHidden()
+        optimizer.zero_grad()
 
-    for i in range(line_tensor.size()[0]):
-        output, hidden = rnn(line_tensor[i], hidden)
+        for i in range(line_tensor.size()[0]):
+            output, hidden = rnn(line_tensor[i], hidden)
 
-    loss = criterion(output, category_tensor)
-    loss.backward()
+        loss = criterion(output, category_tensor)
+        loss.backward()
 
-    optimizer.step()
+        optimizer.step()
+    elif model_type == 'rnn3':
+        rnn.init_hidden(batch_size)
+        optimizer.zero_grad()
+        output = rnn(line_tensor)
+        loss = criterion(output, category_tensor)
+
+        loss.backward()
+        optimizer.step()
 
     return output, loss.item()
 
@@ -59,7 +86,14 @@ start = time.time()
 
 for epoch in range(1, n_epochs + 1):
     category, line, category_tensor, line_tensor = randomTrainingPair()
-    output, loss = train(category_tensor, line_tensor)
+    if model_type == 'rnn3': 
+        category_tensor, line_tensor = category_tensor.cuda(gpu_id), line_tensor.cuda(gpu_id)
+    if batch_first:
+        batch_size = line_tensor.size()[0]
+    else:
+        batch_size = line_tensor.size()[1]
+    # print ('batch_size', batch_size)
+    output, loss = train(model_type, batch_size, category_tensor, line_tensor)
     current_loss += loss
 
     # Print epoch number, loss, name and guess
@@ -74,4 +108,5 @@ for epoch in range(1, n_epochs + 1):
         current_loss = 0
 
 torch.save(rnn, 'char-rnn-classification.pt')
-
+# python train.py rnn3 0.005
+# python train.py originrnn 0.005
