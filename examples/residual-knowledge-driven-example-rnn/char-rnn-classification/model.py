@@ -54,13 +54,11 @@ class BasicRNNBlock(nn.Module):
 
     def init_hidden(self, batch_size):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        print ('init BasicRNNBlock')
+        # print ('init BasicRNNBlock')
         if self.gpu_id >= 0:
-            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)),
-                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)))
+            return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id))
         else:
-            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)),
-                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)))
+            return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim))
     ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
     ### ??? !! rnn_out return [:, -1, :]
     def forward(self, x):
@@ -86,13 +84,11 @@ class BasicResRNNBlock(nn.Module):
 
     def init_hidden(self, batch_size):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        print ('init BasicRNNBlock')
+        # print ('init BasicRNNBlock')
         if self.gpu_id >= 0:
-            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)),
-                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)))
+            return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id))
         else:
-            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)),
-                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)))
+            return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim))
     ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
     ### ??? !! rnn_out return [:, -1, :]
     def forward(self, x):
@@ -123,22 +119,19 @@ class ResNetRNN(nn.Module):
 
         # ??? do I need this?
         for idx, m in enumerate(self.modules()):
-            print ('idx and self.modules():')
-            print (idx)
-            print (m)
+            # print ('idx and self.modules():')
+            # print (idx)
+            # print (m)
             if isinstance(m, nn.Conv2d):
-                print ('initialization using kaiming_normal_')
+                # print ('initialization using kaiming_normal_')
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            # elif isinstance(m, nn.BatchNorm2d):
-            #    nn.init.constant_(m.weight, 1)
-            #    nn.init.constant_(m.bias, 0)
 
     def init_hidden(self, batch_size):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         for idx, m in enumerate(self.modules()):
-            print ('idx and self.modules():')
-            print (idx)
-            print (m)
+            # print ('idx and self.modules():')
+            # print (idx)
+            # print (m)
             if isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock):
                 m.hidden = m.init_hidden(batch_size)
 
@@ -152,12 +145,9 @@ class ResNetRNN(nn.Module):
     def forward(self, x):
         if self.batch_first:
             batch_size = x.size()[0]
-            x, self.hidden = self.rnn1(
-                x.view(batch_size, -1, self.input_dim), self.hidden)
         else:
             batch_size = x.size()[1]
-            x, self.hidden = self.rnn1(
-                x.view(-1, batch_size, self.input_dim), self.hidden)
+        x = self.rnn1(x)
         x = self.layer1(x)
         ## ?? softmax loss
         if self.batch_first:

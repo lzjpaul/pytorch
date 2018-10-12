@@ -1,6 +1,7 @@
 # refer to pytorch LDA MLP and resnet
-# pytorch vision: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
 # https://github.com/lzjpaul/pytorch/blob/LDA-regularization/examples/cifar-10-tutorial/mimic_mlp_lda.py
+# pytorch vision: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
+# resnet: https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 # MNIST dataset: https://github.com/pytorch/examples/blob/master/mnist/main.py
 # inplace: https://blog.csdn.net/theonegis/article/details/81195065
 ######################################################################
