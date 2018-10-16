@@ -1,4 +1,5 @@
 ## different from MIMIC-III
+## https://github.com/spro/practical-pytorch/tree/master/char-rnn-classification
 ## (1) batch_first
 
 import torch
@@ -60,7 +61,7 @@ def train(model_type, batch_size, category_tensor, line_tensor):
         loss.backward()
 
         optimizer.step()
-    elif model_type == 'rnn3':
+    else:
         rnn.init_hidden(batch_size)
         optimizer.zero_grad()
         output = rnn(line_tensor)
@@ -86,7 +87,7 @@ start = time.time()
 
 for epoch in range(1, n_epochs + 1):
     category, line, category_tensor, line_tensor = randomTrainingPair()
-    if model_type == 'rnn3': 
+    if model_type != 'originrnn': 
         category_tensor, line_tensor = category_tensor.cuda(gpu_id), line_tensor.cuda(gpu_id)
     if batch_first:
         batch_size = line_tensor.size()[0]
