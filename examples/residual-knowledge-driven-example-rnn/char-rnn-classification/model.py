@@ -84,7 +84,7 @@ class BasicResRNNBlock(nn.Module):
 
     def init_hidden(self, batch_size):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        # print ('init BasicRNNBlock')
+        # print ('init BasicResRNNBlock')
         if self.gpu_id >= 0:
             return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id))
         else:
@@ -123,16 +123,17 @@ class ResNetRNN(nn.Module):
             # print (idx)
             # print (m)
             if isinstance(m, nn.Conv2d):
-                # print ('initialization using kaiming_normal_')
+                print ('initialization using kaiming_normal_')
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 
     def init_hidden(self, batch_size):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         for idx, m in enumerate(self.modules()):
-            # print ('idx and self.modules():')
-            # print (idx)
-            # print (m)
+            # print ('init hidden idx and self.modules():')
+            # print ('init hidden idx: ', idx)
+            # print ('init hidden m: ', m)
             if isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock):
+                # print ('isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock)')
                 m.hidden = m.init_hidden(batch_size)
 
     def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first):

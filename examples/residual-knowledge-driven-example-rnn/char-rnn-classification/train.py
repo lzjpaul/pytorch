@@ -94,6 +94,7 @@ for epoch in range(1, n_epochs + 1):
     else:
         batch_size = line_tensor.size()[1]
     # print ('batch_size', batch_size)
+    # print ('epoch: ', epoch)
     output, loss = train(model_type, batch_size, category_tensor, line_tensor)
     current_loss += loss
 
@@ -108,6 +109,7 @@ for epoch in range(1, n_epochs + 1):
         all_losses.append(current_loss / plot_every)
         current_loss = 0
 
+print ('all_losses: ', all_losses)
 torch.save(rnn, 'char-rnn-classification.pt')
 # python train.py rnn3 0.005
 # python train.py originrnn 0.005
