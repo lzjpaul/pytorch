@@ -3,6 +3,7 @@
 ## https://github.com/spro/practical-pytorch/tree/master/char-rnn-classification
 ## https://github.com/lzjpaul/pytorch/blob/LDA-regularization/examples/cifar-10-tutorial/mimic_lstm_lda.py
 ## https://github.com/lzjpaul/pytorch/blob/residual-knowledge-driven/examples/residual-knowledge-driven-example/mlp_residual.py
+## https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html#sphx-glr-beginner-nlp-sequence-models-tutorial-py
 
 ## Attention
 ## (1) batch_size are passed to the functions
@@ -75,7 +76,7 @@ class BasicRNNBlock(nn.Module):
 class BasicResRNNBlock(nn.Module):
     # no seq_length ?? batch_fist not true ??
     def __init__(self, gpu_id, input_dim, hidden_dim, batch_first):
-        super(BasicRNNBlock, self).__init__()
+        super(BasicResRNNBlock, self).__init__()
         self.gpu_id = gpu_id # return init_hidden ...
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -92,14 +93,17 @@ class BasicResRNNBlock(nn.Module):
     ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
     ### ??? !! rnn_out return [:, -1, :]
     def forward(self, x):
+        residual = x
         if self.batch_first:
             batch_size = x.size()[0]
             rnn_out, self.hidden = self.rnn(
                 x.view(batch_size, -1, self.input_dim), self.hidden)
+            rnn_out = rnn_out + residual.view(batch_size, -1, self.input_dim)
         else:
             batch_size = x.size()[1]
             rnn_out, self.hidden = self.rnn(
                 x.view(-1, batch_size, self.input_dim), self.hidden)
+            rnn_out = rnn_out + residual.view(-1, batch_size, self.input_dim)
         return rnn_out
 
 class ResNetRNN(nn.Module):

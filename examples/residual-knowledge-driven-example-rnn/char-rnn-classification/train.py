@@ -9,6 +9,7 @@ import random
 import time
 import math
 import sys
+import numpy as np
 
 n_hidden = 128
 n_epochs = 100000
@@ -32,7 +33,7 @@ def randomTrainingPair():
     return category, line, category_tensor, line_tensor
 
 model_type = sys.argv[1]
-gpu_id = 1
+gpu_id = 0
 batch_first = False ## ??? batch_first
 learning_rate = float(sys.argv[2])
 if model_type == 'originrnn':
@@ -68,6 +69,15 @@ def train(model_type, batch_size, category_tensor, line_tensor):
         loss = criterion(output, category_tensor)
 
         loss.backward()
+        ### print norm
+
+        for name, f in rnn.named_parameters():
+            print ('param name: ', name)
+            print ('param size:', f.data.size())
+            print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
+            print ('lr 0.005 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.005))
+
+        ### print norm
         optimizer.step()
 
     return output, loss.item()
