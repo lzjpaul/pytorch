@@ -34,7 +34,7 @@ def randomTrainingPair():
 
 model_type = sys.argv[1]
 gpu_id = 0
-batch_first = False ## ??? batch_first
+batch_first = False ## need to set this as argument ??? batch_first
 learning_rate = float(sys.argv[2])
 if model_type == 'originrnn':
     rnn = OriginRNN(n_letters, n_hidden, n_categories)
@@ -43,7 +43,9 @@ elif model_type == 'rnn3':
     rnn = ResNetRNN(gpu_id, BasicRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
     rnn = rnn.cuda(gpu_id)
 elif model_type == 'resrnn3':
-    print ('not implemented yet')
+    blocks = 3
+    rnn = ResNetRNN(gpu_id, BasicResRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
+    rnn = rnn.cuda(gpu_id)
 else:
     print ('Please specify one type model')
 
@@ -70,13 +72,13 @@ def train(model_type, batch_size, category_tensor, line_tensor):
 
         loss.backward()
         ### print norm
-
+        '''
         for name, f in rnn.named_parameters():
             print ('param name: ', name)
             print ('param size:', f.data.size())
             print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
             print ('lr 0.005 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.005))
-
+        '''
         ### print norm
         optimizer.step()
 
@@ -122,4 +124,5 @@ for epoch in range(1, n_epochs + 1):
 print ('all_losses: ', all_losses)
 torch.save(rnn, 'char-rnn-classification.pt')
 # python train.py rnn3 0.005
+# python train.py resrnn3 0.005
 # python train.py originrnn 0.005
