@@ -1,6 +1,8 @@
 ## different from MIMIC-III
 ## https://github.com/spro/practical-pytorch/tree/master/char-rnn-classification
-## (1) batch_first
+## next step:
+## (1) batch_first set as argument
+## (2) # of blocks: set as argument
 
 import torch
 from data import *
@@ -36,14 +38,15 @@ model_type = sys.argv[1]
 gpu_id = 0
 batch_first = False ## need to set this as argument ??? batch_first
 learning_rate = float(sys.argv[2])
+print ('learning_rate', learning_rate)
 if model_type == 'originrnn':
     rnn = OriginRNN(n_letters, n_hidden, n_categories)
 elif model_type == 'rnn3':
-    blocks = 3
+    blocks = 15
     rnn = ResNetRNN(gpu_id, BasicRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
     rnn = rnn.cuda(gpu_id)
 elif model_type == 'resrnn3':
-    blocks = 3
+    blocks = 15
     rnn = ResNetRNN(gpu_id, BasicResRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
     rnn = rnn.cuda(gpu_id)
 else:
@@ -98,6 +101,7 @@ def timeSince(since):
 start = time.time()
 
 for epoch in range(1, n_epochs + 1):
+    # print ('epoch: ', epoch)
     category, line, category_tensor, line_tensor = randomTrainingPair()
     if model_type != 'originrnn': 
         category_tensor, line_tensor = category_tensor.cuda(gpu_id), line_tensor.cuda(gpu_id)

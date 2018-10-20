@@ -21,6 +21,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from init_linear import InitLinear
 import torch.autograd as autograd
+import numpy as np
 
 class OriginRNN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -62,7 +63,9 @@ class BasicRNNBlock(nn.Module):
             return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim))
     ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
     ### ??? !! rnn_out return [:, -1, :]
+    ## actually, this is useless of the input x is already organized according to batch_first
     def forward(self, x):
+        print ('x norm: ', np.linalg.norm(x.data.cpu().numpy()))
         if self.batch_first:
             batch_size = x.size()[0]
             rnn_out, self.hidden = self.rnn(
@@ -71,6 +74,8 @@ class BasicRNNBlock(nn.Module):
             batch_size = x.size()[1]
             rnn_out, self.hidden = self.rnn(
                 x.view(-1, batch_size, self.input_dim), self.hidden)
+        print ('rnn_out norm: ', np.linalg.norm(rnn_out.data.cpu().numpy()))
+        print ('rnn_out/x ratio: ', np.linalg.norm(rnn_out.data.cpu().numpy())/np.linalg.norm(x.data.cpu().numpy()))
         return rnn_out
 
 class BasicResRNNBlock(nn.Module):
@@ -92,8 +97,10 @@ class BasicResRNNBlock(nn.Module):
             return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim))
     ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
     ### ??? !! rnn_out return [:, -1, :]
+    ## actually, this is useless of the input x is already organized according to batch_first
     def forward(self, x):
         residual = x
+        print ('residual norm: ', np.linalg.norm(residual.data.cpu().numpy()))
         if self.batch_first:
             batch_size = x.size()[0]
             rnn_out, self.hidden = self.rnn(
@@ -104,6 +111,8 @@ class BasicResRNNBlock(nn.Module):
             rnn_out, self.hidden = self.rnn(
                 x.view(-1, batch_size, self.input_dim), self.hidden)
             rnn_out = rnn_out + residual.view(-1, batch_size, self.input_dim)
+        print ('rnn_out norm: ', np.linalg.norm(rnn_out.data.cpu().numpy()))
+        print ('rnn_out/residual ratio: ', np.linalg.norm(rnn_out.data.cpu().numpy())/np.linalg.norm(residual.data.cpu().numpy()))
         return rnn_out
 
 class ResNetRNN(nn.Module):
