@@ -46,7 +46,7 @@ elif model_type == 'rnn3':
     rnn = ResNetRNN(gpu_id, BasicRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
     rnn = rnn.cuda(gpu_id)
 elif model_type == 'resrnn3':
-    blocks = 15
+    blocks = 25
     rnn = ResNetRNN(gpu_id, BasicResRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
     rnn = rnn.cuda(gpu_id)
 else:
@@ -75,13 +75,13 @@ def train(model_type, batch_size, category_tensor, line_tensor):
 
         loss.backward()
         ### print norm
-        '''
+        
         for name, f in rnn.named_parameters():
             print ('param name: ', name)
             print ('param size:', f.data.size())
             print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
             print ('lr 0.005 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.005))
-        '''
+        
         ### print norm
         optimizer.step()
 
