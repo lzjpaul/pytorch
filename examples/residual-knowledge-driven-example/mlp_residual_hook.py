@@ -66,10 +66,8 @@ class ResNetMLP(nn.Module):
     def __init__(self, block, input_dim, hidden_dim, output_dim, blocks):
         super(ResNetMLP, self).__init__()
         self.fc1 = InitLinear(input_dim, hidden_dim)
-        self.fc1.register_forward_hook(get_features_hook)
         self.layer1 = self._make_layer(block, hidden_dim, hidden_dim, blocks)
         self.fc2 = InitLinear(hidden_dim, output_dim)
-        self.fc2.register_forward_hook(get_features_hook)
 
 
         # ??? do I need this?
@@ -99,6 +97,7 @@ class ResNetMLP(nn.Module):
         # print('x shape')
         # print (x.shape)
         x = F.sigmoid(self.fc1(x))
+        features.append(x.data)
         print('Inside ' + self.__class__.__name__ + ' forward')
         print ('before blocks size: ', x.data.size())
         print ('before blocks norm: ', x.data.norm())
@@ -150,7 +149,7 @@ def get_features_hook(self, input, output):
     print('input norm:', input[0].data.norm())
     print('output size:', output.data.size())
     print('output norm:', output.data.norm())
-    features.append(input[0].data)
+    features.append(output.data)
 
 
 def train_validate_test_model(model, train_loader, test_loader, criterion, optimizer, max_epoch=25):
@@ -226,6 +225,7 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
             optimizer.zero_grad()
             features.clear()
             print ('data: ', data)
+            print ('data norm: ', data.norm())
             output = model(data)
             loss = F.nll_loss(output, target)
             print ("features length: ", len(features))
