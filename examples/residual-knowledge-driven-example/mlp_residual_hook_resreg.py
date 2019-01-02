@@ -257,6 +257,7 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
                 print ("param size: ", param.size())
                 print ("")
                 if "layer1" in name and "weight" in name:
+                    print ('res_reg param name: ', name)
                     feature_idx = feature_idx + 1
                     res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
                 else:

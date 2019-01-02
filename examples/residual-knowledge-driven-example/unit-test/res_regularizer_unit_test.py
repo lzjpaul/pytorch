@@ -21,6 +21,7 @@ def calcRegGrad(reg_lambda, feature_correlation, w_array):
     print ('2 * reg_lambda * np.exp(correlation_diff_matrix):\n', 2 * reg_lambda * np.exp(correlation_diff_matrix))
     reg_grad_w = 2 * reg_lambda * np.exp(correlation_diff_matrix) * w_array
     print ('w_array:\n ', w_array)
+    print ('(2 * reg_lambda * np.exp(correlation_diff_matrix)).dot(w_array):\n ', (2 * reg_lambda * np.exp(correlation_diff_matrix)).dot(w_array))
     print ("reg_grad_w:\n ", reg_grad_w)
     return reg_grad_w
 
