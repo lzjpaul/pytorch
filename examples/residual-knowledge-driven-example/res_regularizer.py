@@ -30,8 +30,10 @@ class ResRegularizer():
 
 
     def apply(self, gpu_id, features, feature_idx, reg_lambda, epoch, param, name, step):
+        print ("feature_idx: ", feature_idx)
         self.feature_matrix = features[feature_idx].data.cpu().numpy()
         print ("self.feature_matrix shape: ", self.feature_matrix.shape)
+        print ("self.feature_matrix norm: ", np.linalg.norm(self.feature_matrix))
         self.reg_lambda = reg_lambda
         print ("self.reg_lambda: ", self.reg_lambda)
         self.w_array = param.data.cpu().numpy()

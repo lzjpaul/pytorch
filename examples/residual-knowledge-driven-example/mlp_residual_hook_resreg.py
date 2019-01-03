@@ -262,6 +262,8 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
                     res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
                 else:
                     if weightdecay != 0:
+                        print ('weightdecay name: ', name)
+                        print ('weightdecay: ', weightdecay)
                         param.grad.data.add_(float(weightdecay), param.data)
 
             ### print norm
