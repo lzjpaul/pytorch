@@ -41,16 +41,16 @@ class BasicResMLPBlock(nn.Module):
         # self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        print('Inside ' + self.__class__.__name__ + ' forward')
-        print ('input size: ', x.data.size())
-        print ('inpit norm: ', x.data.norm())
+        # print('Inside ' + self.__class__.__name__ + ' forward')
+        # print ('input size: ', x.data.size())
+        # print ('inpit norm: ', x.data.norm())
         residual = x
         # out = self.fc1(x)
         # out = self.sigmoid(out)
         out = F.sigmoid(self.fc1(x))
         out = out + residual
-        print ('out size: ', out.data.size())
-        print ('out norm: ', out.data.norm())
+        # print ('out size: ', out.data.size())
+        # print ('out norm: ', out.data.norm())
         return out
 
 class BasicMLPBlock(nn.Module):
@@ -59,12 +59,12 @@ class BasicMLPBlock(nn.Module):
         self.fc1 = InitLinear(input_dim, hidden_dim)
 
     def forward(self, x):
-        print('Inside ' + self.__class__.__name__ + ' forward')
-        print ('input size: ', x.data.size())
-        print ('inpit norm: ', x.data.norm())
+        # print('Inside ' + self.__class__.__name__ + ' forward')
+        # print ('input size: ', x.data.size())
+        # print ('inpit norm: ', x.data.norm())
         out = F.sigmoid(self.fc1(x))
-        print ('out size: ', out.data.size())
-        print ('out norm: ', out.data.norm())
+        # print ('out size: ', out.data.size())
+        # print ('out norm: ', out.data.norm())
         return out
 
 
@@ -104,12 +104,12 @@ class ResNetMLP(nn.Module):
         # print (x.shape)
         x = F.sigmoid(self.fc1(x))
         features.append(x.data)
-        print('Inside ' + self.__class__.__name__ + ' forward')
-        print ('before blocks size: ', x.data.size())
-        print ('before blocks norm: ', x.data.norm())
+        # print('Inside ' + self.__class__.__name__ + ' forward')
+        # print ('before blocks size: ', x.data.size())
+        # print ('before blocks norm: ', x.data.norm())
         x = self.layer1(x)
-        print ('after blocks size: ', x.data.size())
-        print ('after blocks norm: ', x.data.norm())
+        # print ('after blocks size: ', x.data.size())
+        # print ('after blocks norm: ', x.data.norm())
         # x = F.sigmoid(self.fc2(x)) # ??? softmax
         x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
         return x
@@ -144,6 +144,7 @@ def mlp3(dim_vec, pretrained=False, **kwargs):
 def get_features_hook(self, input, output):
     # input is a tuple of packed inputs
     # output is a Tensor. output.data is the Tensor we are interested
+    '''
     print('Inside ' + self.__class__.__name__ + ' forward hook')
     print('')
     print('input: ', input)
@@ -155,6 +156,7 @@ def get_features_hook(self, input, output):
     print('input norm:', input[0].data.norm())
     print('output size:', output.data.size())
     print('output norm:', output.data.norm())
+    '''
     features.append(output.data)
 
 '''
@@ -233,37 +235,37 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
             data, target = data.cuda(gpu_id), target.cuda(gpu_id)
             optimizer.zero_grad()
             features.clear()
-            print ('data: ', data)
-            print ('data norm: ', data.norm())
+            # print ('data: ', data)
+            # print ('data norm: ', data.norm())
             output = model(data)
             loss = F.nll_loss(output, target)
-            print ("features length: ", len(features))
-            for feature in features:
-                print ("feature size: ", feature.data.size())
-                print ("feature norm: ", feature.data.norm())
+            # print ("features length: ", len(features))
+            # for feature in features:
+                # print ("feature size: ", feature.data.size())
+                # print ("feature norm: ", feature.data.norm())
             loss.backward()
             ### print norm
             
-            print ('batch_idx', batch_idx) 
-            for name, f in model.named_parameters():
-                print ('param name: ', name)
-                print ('param size:', f.data.size())
-                print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
-                print ('lr 0.01 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
+            # print ('batch_idx', batch_idx) 
+            # for name, f in model.named_parameters():
+                # print ('param name: ', name)
+                # print ('param size:', f.data.size())
+                # print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
+                # print ('lr 0.01 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             
             feature_idx = -1 # which feature to use for regularization
             for name, param in model.named_parameters():
-                print ("param name: ", name)
-                print ("param size: ", param.size())
-                print ("")
+                # print ("param name: ", name)
+                # print ("param size: ", param.size())
+                # print ("")
                 if "layer1" in name and "weight" in name:
-                    print ('res_reg param name: ', name)
+                    # print ('res_reg param name: ', name)
                     feature_idx = feature_idx + 1
                     res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
                 else:
                     if weightdecay != 0:
-                        print ('weightdecay name: ', name)
-                        print ('weightdecay: ', weightdecay)
+                        # print ('weightdecay name: ', name)
+                        # print ('weightdecay: ', weightdecay)
                         param.grad.data.add_(float(weightdecay), param.data)
 
             ### print norm
