@@ -31,6 +31,8 @@ from torchvision import datasets, models, transforms
 import argparse
 from mimic_metric import *
 import time
+import logging
+
 
 features = []
 
@@ -38,19 +40,19 @@ class BasicResMLPBlock(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super(BasicResMLPBlock, self).__init__()
         self.fc1 = InitLinear(input_dim, hidden_dim)
-        # self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        # print('Inside ' + self.__class__.__name__ + ' forward')
-        # print ('input size: ', x.data.size())
-        # print ('inpit norm: ', x.data.norm())
+        logger = logging.getLogger('res_reg')
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size: ')
+        logger.debug (x.data.size())
+        logger.debug ('inpit norm: %f', x.data.norm())
         residual = x
-        # out = self.fc1(x)
-        # out = self.sigmoid(out)
         out = F.sigmoid(self.fc1(x))
         out = out + residual
-        # print ('out size: ', out.data.size())
-        # print ('out norm: ', out.data.norm())
+        logger.debug ('out size: ')
+        logger.debug (out.data.size())
+        logger.debug ('out norm: %f', out.data.norm())
         return out
 
 class BasicMLPBlock(nn.Module):
@@ -59,12 +61,15 @@ class BasicMLPBlock(nn.Module):
         self.fc1 = InitLinear(input_dim, hidden_dim)
 
     def forward(self, x):
-        # print('Inside ' + self.__class__.__name__ + ' forward')
-        # print ('input size: ', x.data.size())
-        # print ('inpit norm: ', x.data.norm())
+        logger = logging.getLogger('res_reg')
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size:')
+        logger.debug (x.data.size())
+        logger.debug ('inpit norm: %f', x.data.norm())
         out = F.sigmoid(self.fc1(x))
-        # print ('out size: ', out.data.size())
-        # print ('out norm: ', out.data.norm())
+        logger.debug ('out size: ')
+        logger.debug (out.data.size())
+        logger.debug ('out norm: %f', out.data.norm())
         return out
 
 
@@ -75,66 +80,69 @@ class ResNetMLP(nn.Module):
         self.layer1 = self._make_layer(block, hidden_dim, hidden_dim, blocks)
         self.fc2 = InitLinear(hidden_dim, output_dim)
 
-
+        logger = logging.getLogger('res_reg')
         # ??? do I need this?
         for idx, m in enumerate(self.modules()):
-            print ('idx and self.modules():')
-            print (idx)
-            print (m)
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
             if isinstance(m, nn.Conv2d):
-                print ('initialization using kaiming_normal_')
+                logger.info ('initialization using kaiming_normal_')
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             # elif isinstance(m, nn.BatchNorm2d):
             #    nn.init.constant_(m.weight, 1)
             #    nn.init.constant_(m.bias, 0)
 
     def _make_layer(self, block, input_dim, hidden_dim, blocks):
+        logger = logging.getLogger('res_reg')
         layers = []
         layers.append(block(input_dim, hidden_dim))
         for i in range(1, blocks):
             layers.append(block(input_dim, hidden_dim))
         for layer in layers:
             layer.register_forward_hook(get_features_hook)
-        print ('layers: ', layers)
-        print ('*layers: ', *layers)
+        logger.info ('layers: ')
+        logger.info (layers)
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        # print('x shape')
-        # print (x.shape)
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
         x = F.sigmoid(self.fc1(x))
         features.append(x.data)
-        # print('Inside ' + self.__class__.__name__ + ' forward')
-        # print ('before blocks size: ', x.data.size())
-        # print ('before blocks norm: ', x.data.norm())
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
         x = self.layer1(x)
-        # print ('after blocks size: ', x.data.size())
-        # print ('after blocks norm: ', x.data.norm())
-        # x = F.sigmoid(self.fc2(x)) # ??? softmax
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
         x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
         return x
 
-def resnetmlp3(dim_vec, pretrained=False, **kwargs):
+def resnetmlp3(blocks, dim_vec, pretrained=False, **kwargs):
     """Constructs a resnetmlp3 model.
 
     Args:
+        blocks: how many residual links
         dim_vec: [input_dim, hidden_dim, output_dim]
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    blocks = 3 # how many residual links
     model = ResNetMLP(BasicResMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
 
-def mlp3(dim_vec, pretrained=False, **kwargs):
+def mlp3(blocks, dim_vec, pretrained=False, **kwargs):
     """Constructs a mlp3 model.
 
     Args:
+        blocks: how many residual links
         dim_vec: [input_dim, hidden_dim, output_dim]
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    blocks = 3 # how many residual links
     model = ResNetMLP(BasicMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
@@ -144,19 +152,22 @@ def mlp3(dim_vec, pretrained=False, **kwargs):
 def get_features_hook(self, input, output):
     # input is a tuple of packed inputs
     # output is a Tensor. output.data is the Tensor we are interested
-    '''
-    print('Inside ' + self.__class__.__name__ + ' forward hook')
-    print('')
-    print('input: ', input)
-    print('input: ', type(input))
-    print('input[0]: ', type(input[0]))
-    print('output: ', type(output))
-    print('')
-    print('input[0] size:', input[0].size())
-    print('input norm:', input[0].data.norm())
-    print('output size:', output.data.size())
-    print('output norm:', output.data.norm())
-    '''
+    
+    logger = logging.getLogger('res_reg')
+    logger.debug('Inside ' + self.__class__.__name__ + ' forward hook')
+    logger.debug('')
+    logger.debug('input: ', input)
+    logger.debug('input: ', type(input))
+    logger.debug('input[0]: ', type(input[0]))
+    logger.debug('output: ', type(output))
+    logger.debug('')
+    logger.debug('input[0] size:')
+    logger.debug(input[0].size())
+    logger.debug('input norm: %f', input[0].data.norm())
+    logger.debug('output size:')
+    logger.debug(output.data.size())
+    logger.debug('output norm: %f', output.data.norm())
+    
     features.append(output.data)
 
 '''
@@ -165,8 +176,8 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
     since = time.time()
     
     for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-        print('-' * 10)
+        logger.debug('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        logger.debug('-' * 10)
         
         if phase == 'train':
             model.train()  # Set model to training mode
@@ -179,8 +190,8 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
         # Iterate over training data.
         for inputs, labels in train_loader:
             inputs = inputs.reshape((inputs.shape[0],-1))
-            print('inputs shape:')
-            print(inputs.shape)
+            logger.debug('inputs shape:')
+            logger.debug(inputs.shape)
             inputs = inputs.to(device)
             labels = labels.to(device)
             # zero the parameter gradients
@@ -198,7 +209,7 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
             running_accuracy += accuracy
             epoch_loss = running_loss / len(dataloaders[phase].dataset) # ???
             epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset) # ???
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc)) # ???
+            print ('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc)) # ???
 
         # Iterate over test data.
         for inputs, labels in test_loader:
@@ -218,7 +229,7 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
 '''
 
 def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_lambda, weightdecay, max_epoch=25):
-    
+    logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda)
     # hyper parameters
     print('Beginning Training')
@@ -230,42 +241,46 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
         model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
             data = data.reshape((data.shape[0],-1))
-            # print('data shape:')
-            # print(data.shape)
+            logger.debug('data shape:')
+            logger.debug(data.shape)
             data, target = data.cuda(gpu_id), target.cuda(gpu_id)
             optimizer.zero_grad()
             features.clear()
-            # print ('data: ', data)
-            # print ('data norm: ', data.norm())
+            logger.debug ('data: ', data)
+            logger.debug ('data norm: %f', data.norm())
             output = model(data)
             loss = F.nll_loss(output, target)
-            # print ("features length: ", len(features))
-            # for feature in features:
-                # print ("feature size: ", feature.data.size())
-                # print ("feature norm: ", feature.data.norm())
+            
+            logger.debug ("features length: %d", len(features))
+            for feature in features:
+                logger.debug ("feature size:")
+                logger.debug (feature.data.size())
+                logger.debug ("feature norm: %f", feature.data.norm())
+            
             loss.backward()
             ### print norm
             
-            # print ('batch_idx', batch_idx) 
-            # for name, f in model.named_parameters():
-                # print ('param name: ', name)
-                # print ('param size:', f.data.size())
-                # print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
-                # print ('lr 0.01 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
+            logger.debug ('batch_idx %d', batch_idx) 
+            for name, f in model.named_parameters():
+                logger.debug ('param name: ' + name)
+                logger.debug ('param size:')
+                logger.debug (f.data.size())
+                logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
+                logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             
             feature_idx = -1 # which feature to use for regularization
             for name, param in model.named_parameters():
-                # print ("param name: ", name)
-                # print ("param size: ", param.size())
-                # print ("")
+                logger.debug ("param name: " +  name)
+                logger.debug ("param size:")
+                logger.debug (param.size())
                 if "layer1" in name and "weight" in name:
-                    # print ('res_reg param name: ', name)
+                    logger.debug ('res_reg param name: '+ name)
                     feature_idx = feature_idx + 1
                     res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
                 else:
                     if weightdecay != 0:
-                        # print ('weightdecay name: ', name)
-                        # print ('weightdecay: ', weightdecay)
+                        logger.debug ('weightdecay name: ' + name)
+                        logger.debug ('weightdecay: %f', weightdecay)
                         param.grad.data.add_(float(weightdecay), param.data)
 
             ### print norm
@@ -296,7 +311,7 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
 
     time_elapsed = time.time() - since
 
-def initialize_model(model_name, dim_vec, use_pretrained=False):
+def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
     # Initialize these variables which will be set in this if statement. Each of these
     #   variables is model specific.
     model_ft = None
@@ -305,13 +320,11 @@ def initialize_model(model_name, dim_vec, use_pretrained=False):
     if model_name == "resnetmlp3":
         """ resnetmlp3
         """
-        model_ft = resnetmlp3(dim_vec, pretrained=use_pretrained)
-        # set_parameter_requires_grad(model_ft, feature_extract) # extracting features, then do not update parameters
+        model_ft = resnetmlp3(blocks, dim_vec, pretrained=use_pretrained)
     elif model_name == "mlp3":
         """ mlp3
         """
-        model_ft = mlp3(dim_vec, pretrained=use_pretrained)
-        # set_parameter_requires_grad(model_ft, feature_extract) # extracting features, then do not update parameters
+        model_ft = mlp3(blocks, dim_vec, pretrained=use_pretrained)
     else:
         print("Invalid model name, exiting...")
         exit()
@@ -322,18 +335,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Residual MLP')
     parser.add_argument('-datadir', type=str, help='data directory')
     parser.add_argument('-modelname', type=str, help='resnetmlp3 or mlp3')
+    parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-batchsize', type=int, help='batch_size')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
     args = parser.parse_args()
-    
+   
+    logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     gpu_id = args.gpuid
-    print ('gpu_id', gpu_id)
+    logger = logging.getLogger('res_reg')
+    logger.info ('#################################')
+    print('gpu_id: ', gpu_id)
 
     # Initialize the model for this run
     dim_vec = [28*28, 100, 10] # [input_dim, hidden_dim, output_dim]
-    model_ft = initialize_model(args.modelname, dim_vec, use_pretrained=False)
+    model_ft = initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
 
     # Print the model we just instantiated
     print('model:')
@@ -393,4 +410,4 @@ if __name__ == '__main__':
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model_MNIST(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, weightdecay, max_epoch=args.maxepoch)
 
-# python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp3 -batchsize 64 -maxepoch 10 -gpuid 1
+# python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
