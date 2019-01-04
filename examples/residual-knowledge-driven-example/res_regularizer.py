@@ -33,7 +33,7 @@ class ResRegularizer():
 
 
     def apply(self, gpu_id, features, feature_idx, reg_lambda, epoch, param, name, step):
-        logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+        logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
         self.feature_matrix = features[feature_idx].data.cpu().numpy()
         logger.info ("feature_idx: %d", feature_idx)

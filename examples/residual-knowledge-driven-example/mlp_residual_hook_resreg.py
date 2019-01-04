@@ -156,10 +156,14 @@ def get_features_hook(self, input, output):
     logger = logging.getLogger('res_reg')
     logger.debug('Inside ' + self.__class__.__name__ + ' forward hook')
     logger.debug('')
-    logger.debug('input: ', input)
-    logger.debug('input: ', type(input))
-    logger.debug('input[0]: ', type(input[0]))
-    logger.debug('output: ', type(output))
+    logger.debug('input:')
+    logger.debug(input)
+    logger.debug('input: ')
+    logger.debug(type(input))
+    logger.debug('input[0]: ')
+    logger.debug(type(input[0]))
+    logger.debug('output: ')
+    logger.debug(type(output))
     logger.debug('')
     logger.debug('input[0] size:')
     logger.debug(input[0].size())
@@ -176,8 +180,8 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
     since = time.time()
     
     for epoch in range(num_epochs):
-        logger.debug('Epoch {}/{}'.format(epoch, num_epochs - 1))
-        logger.debug('-' * 10)
+        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print('-' * 10)
         
         if phase == 'train':
             model.train()  # Set model to training mode
@@ -246,7 +250,8 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
             data, target = data.cuda(gpu_id), target.cuda(gpu_id)
             optimizer.zero_grad()
             features.clear()
-            logger.debug ('data: ', data)
+            logger.debug ('data: ')
+            logger.debug (data)
             logger.debug ('data norm: %f', data.norm())
             output = model(data)
             loss = F.nll_loss(output, target)
@@ -342,7 +347,7 @@ if __name__ == '__main__':
     parser.add_argument('-gpuid', type=int, help='gpuid')
     args = parser.parse_args()
    
-    logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     gpu_id = args.gpuid
     logger = logging.getLogger('res_reg')
     logger.info ('#################################')
