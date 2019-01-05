@@ -232,7 +232,7 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
                 print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
 '''
 
-def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_lambda, weightdecay, max_epoch=25):
+def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_lambda, weightdecay, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda)
     # hyper parameters
@@ -264,30 +264,30 @@ def train_validate_test_resmlp_model_MNIST(model, gpu_id, train_loader, test_loa
             
             loss.backward()
             ### print norm
+            ### when to use res-reg
+            if "reg" in model_name:  
+                logger.debug ('batch_idx %d', batch_idx) 
+                for name, f in model.named_parameters():
+                    logger.debug ('param name: ' + name)
+                    logger.debug ('param size:')
+                    logger.debug (f.data.size())
+                    logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
+                    logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             
-            logger.debug ('batch_idx %d', batch_idx) 
-            for name, f in model.named_parameters():
-                logger.debug ('param name: ' + name)
-                logger.debug ('param size:')
-                logger.debug (f.data.size())
-                logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
-                logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
-            
-            feature_idx = -1 # which feature to use for regularization
-            for name, param in model.named_parameters():
-                logger.debug ("param name: " +  name)
-                logger.debug ("param size:")
-                logger.debug (param.size())
-                if "layer1" in name and "weight" in name:
-                    logger.debug ('res_reg param name: '+ name)
-                    feature_idx = feature_idx + 1
-                    res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
-                else:
-                    if weightdecay != 0:
-                        logger.debug ('weightdecay name: ' + name)
-                        logger.debug ('weightdecay: %f', weightdecay)
-                        param.grad.data.add_(float(weightdecay), param.data)
-
+                feature_idx = -1 # which feature to use for regularization
+                for name, param in model.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight" in name:
+                        logger.debug ('res_reg param name: '+ name)
+                        feature_idx = feature_idx + 1
+                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
+                    else:
+                        if weightdecay != 0:
+                            logger.debug ('weightdecay name: ' + name)
+                            logger.debug ('weightdecay: %f', weightdecay)
+                            param.grad.data.add_(float(weightdecay), param.data)
             ### print norm
             optimizer.step()
             if batch_idx % 10 == 0:
@@ -322,8 +322,8 @@ def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
     model_ft = None
     input_size = 0
 
-    if model_name == "resnetmlp3":
-        """ resnetmlp3
+    if "res" in model_name:
+        """ resnetmlp3 or regresnetmlp3
         """
         model_ft = resnetmlp3(blocks, dim_vec, pretrained=use_pretrained)
     elif model_name == "mlp3":
@@ -347,7 +347,7 @@ if __name__ == '__main__':
     parser.add_argument('-gpuid', type=int, help='gpuid')
     args = parser.parse_args()
    
-    logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     gpu_id = args.gpuid
     logger = logging.getLogger('res_reg')
     logger.info ('#################################')
@@ -413,6 +413,8 @@ if __name__ == '__main__':
     reg_lambda = 0.1 # resreg strength
     weightdecay = 0.1 # other parameters' weight decay
     # Train and evaluate MNIST on resmlp or mlp model
-    train_validate_test_resmlp_model_MNIST(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, weightdecay, max_epoch=args.maxepoch)
+    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, weightdecay, max_epoch=args.maxepoch)
 
+# python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
 # python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
+# python mlp_residual_hook_resreg.py -datadir . -modelname mlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
