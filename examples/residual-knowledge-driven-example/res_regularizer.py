@@ -12,11 +12,20 @@ class ResRegularizer():
         self.reg_lambda = reg_lambda
         print ("self.reg_lambda: ", self.reg_lambda)
     
-    # calc the resposibilities for pj(wi)
+    # calc correlation using one layer 
     def calcCorrelation(self):
         logger = logging.getLogger('res_reg')
         self.feature_correlation = np.corrcoef(self.feature_matrix, rowvar=False)
         logger.debug ("slef.feature_correlation.shape:")
+        logger.debug (self.feature_correlation.shape)
+
+    # calc correlation using two layers 
+    def calcCorrelation_two_layers(self):
+        logger = logging.getLogger('res_reg')
+        feature_dim = self.feature_matrix.shape[1]
+        logger.debug ("using two layers slef.feature_dim: %d", feature_dim)
+        self.feature_correlation = np.corrcoef(self.feature_matrix, self.second_feature_matrix, rowvar=False)[feature_dim:, 0:feature_dim]
+        logger.debug ("using two layers slef.feature_correlation.shape:")
         logger.debug (self.feature_correlation.shape)
 
     # singa: (word_num, doc_num)
@@ -33,9 +42,10 @@ class ResRegularizer():
 
 
     def apply(self, gpu_id, features, feature_idx, reg_lambda, epoch, param, name, step):
-        logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+        # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
         self.feature_matrix = features[feature_idx].data.cpu().numpy()
+        self.second_feature_matrix = features[feature_idx + 1].data.cpu().numpy()
         logger.debug ("feature_idx: %d", feature_idx)
         logger.debug ("self.feature_matrix shape:")
         logger.debug (self.feature_matrix.shape)
@@ -45,7 +55,8 @@ class ResRegularizer():
         self.w_array = param.data.cpu().numpy()
         logger.debug ("self.w_array shape: ")
         logger.debug (self.w_array.shape)
-        self.calcCorrelation()
+        # self.calcCorrelation()
+        self.calcCorrelation_two_layers()
         self.reg_grad_w = self.calcRegGrad()
         reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
         logger.debug ("step: %d", step)
