@@ -288,6 +288,9 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                             logger.debug ('weightdecay name: ' + name)
                             logger.debug ('weightdecay: %f', weightdecay)
                             param.grad.data.add_(float(weightdecay), param.data)
+                            logger.debug ('param norm: %f', np.linalg.norm(param.data.cpu().numpy()))
+                            logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
+                            logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 0.01))
             ### print norm
             optimizer.step()
             if batch_idx % 10 == 0:
