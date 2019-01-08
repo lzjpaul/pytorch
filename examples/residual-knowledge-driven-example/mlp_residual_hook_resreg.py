@@ -344,6 +344,7 @@ if __name__ == '__main__':
     parser.add_argument('-datadir', type=str, help='data directory')
     parser.add_argument('-modelname', type=str, help='resnetmlp3 or mlp3')
     parser.add_argument('-blocks', type=int, help='number of blocks')
+    parser.add_argument('-decay', type=float, help='reg_lambda and weightdecay')
     parser.add_argument('-batchsize', type=int, help='batch_size')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
@@ -397,9 +398,12 @@ if __name__ == '__main__':
     for name,param in model_ft.named_parameters():
         if param.requires_grad == True:
             print("\t",name)
-
+    
     # Observe that all parameters are being optimized
-    optimizer_ft = optim.SGD(params_to_update, lr=0.01, momentum=0.9) ## correct for Helathcare or MNIST????
+    if "reg" in args.modelname:
+        optimizer_ft = optim.SGD(params_to_update, lr=0.01, momentum=0.9) ## correct for Helathcare or MNIST????
+    else:
+        optimizer_ft = optim.SGD(params_to_update, lr=0.01, momentum=0.9, weight_decay=args.decay)
     # optimizer_ft = optim.Adam(params_to_update, lr=0.01) ## correct for Helathcare or MNIST????
 
     ######################################################################
@@ -413,9 +417,9 @@ if __name__ == '__main__':
 
     # Train and evaluate
     # train_validate_test_model(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, max_epoch=args.maxepoch)
-    reg_lambda = 0.1 # resreg strength
     momentum_mu = 0.9 # momentum mu
-    weightdecay = 0.1 # other parameters' weight decay
+    reg_lambda = args.decay # resreg strength
+    weightdecay = args.decay # other parameters' weight decay
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, momentum_mu, dim_vec[1], weightdecay, max_epoch=args.maxepoch)
 
