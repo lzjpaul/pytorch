@@ -232,9 +232,9 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
                 print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
 '''
 
-def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_lambda, weightdecay, max_epoch=25):
+def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_lambda, momentum_mu, hidden_dim, weightdecay, max_epoch=25):
     logger = logging.getLogger('res_reg')
-    res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda)
+    res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda, momentum_mu=momentum_mu, feature_dim=hidden_dim)
     # hyper parameters
     print('Beginning Training')
     since = time.time()
@@ -414,9 +414,10 @@ if __name__ == '__main__':
     # Train and evaluate
     # train_validate_test_model(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, max_epoch=args.maxepoch)
     reg_lambda = 0.1 # resreg strength
+    momentum_mu = 0.9 # momentum mu
     weightdecay = 0.1 # other parameters' weight decay
     # Train and evaluate MNIST on resmlp or mlp model
-    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, weightdecay, max_epoch=args.maxepoch)
+    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, momentum_mu, dim_vec[1], weightdecay, max_epoch=args.maxepoch)
 
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
 # python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
