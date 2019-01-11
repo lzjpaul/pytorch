@@ -292,6 +292,15 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
                             logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 0.01))
             ### print norm
+            ### calculate correlation ###
+            if epoch == 0 and batch_idx < 500:
+                # print("batch_idx: ", batch_idx)
+                # print("features length: ", len(features))
+                logger.info('batch_idx: %d', batch_idx)
+                logger.info('correlation: ')
+                logger.info(np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim])
+                logger.info('Loss: {:.6f}'.format(loss.item()))
+            ### calculate correlation ###
             optimizer.step()
             if batch_idx % 10 == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -301,7 +310,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
         
         # Iterate over train data to get correlation
         # if epoch == (max_epoch-1):
-        if epoch >= 0:
+        if epoch == 0:
             model.eval()
             verify_correlation_avg = np.zeros((hidden_dim, hidden_dim))
             with torch.no_grad():
@@ -312,6 +321,10 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     output = model(data)
                     # print("features length: ", len(features))
                     verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim]
+                    if batch_idx < 100:
+                        logger.info('batch_idx: %d', batch_idx)
+                        logger.info('correlation: ')
+                        logger.info(np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim])
             print ("batch_idx: ", batch_idx)
             verify_correlation_avg = verify_correlation_avg / float(batch_idx + 1)
             
@@ -461,3 +474,4 @@ if __name__ == '__main__':
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
 # python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
 # python mlp_residual_hook_resreg.py -datadir . -modelname mlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_cal_corr_mean_var.py -datadir . -modelname mlp3 -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 16 -gpuid 0

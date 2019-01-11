@@ -122,8 +122,8 @@ class ResNetMLP(nn.Module):
         x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
         return x
 
-def resnetmlp3(blocks, dim_vec, pretrained=False, **kwargs):
-    """Constructs a resnetmlp3 model.
+def resnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
+    """Constructs a resnetmlp model.
 
     Args:
         blocks: how many residual links
@@ -135,8 +135,8 @@ def resnetmlp3(blocks, dim_vec, pretrained=False, **kwargs):
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
 
-def mlp3(blocks, dim_vec, pretrained=False, **kwargs):
-    """Constructs a mlp3 model.
+def mlp(blocks, dim_vec, pretrained=False, **kwargs):
+    """Constructs a mlp model.
 
     Args:
         blocks: how many residual links
@@ -326,23 +326,25 @@ def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
     input_size = 0
 
     if "res" in model_name:
-        """ resnetmlp3 or regresnetmlp3
+        """ resnetmlp or regresnetmlp
         """
-        model_ft = resnetmlp3(blocks, dim_vec, pretrained=use_pretrained)
-    elif model_name == "mlp3":
-        """ mlp3
-        """
-        model_ft = mlp3(blocks, dim_vec, pretrained=use_pretrained)
+        print ("resnetmlp")
+        model_ft = resnetmlp(blocks, dim_vec, pretrained=use_pretrained)
     else:
-        print("Invalid model name, exiting...")
-        exit()
+        """ mlp or regmlp
+        """
+        print ("mlp")
+        model_ft = mlp(blocks, dim_vec, pretrained=use_pretrained)
+    # else:
+    #     print("Invalid model name, exiting...")
+    #     exit()
     
     return model_ft
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Residual MLP')
     parser.add_argument('-datadir', type=str, help='data directory')
-    parser.add_argument('-modelname', type=str, help='resnetmlp3 or mlp3')
+    parser.add_argument('-modelname', type=str, help='resnetmlp or mlp')
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-decay', type=float, help='reg_lambda and weightdecay')
     parser.add_argument('-batchsize', type=int, help='batch_size')
@@ -423,6 +425,7 @@ if __name__ == '__main__':
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, momentum_mu, dim_vec[1], weightdecay, max_epoch=args.maxepoch)
 
-# python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
-# python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
-# python mlp_residual_hook_resreg.py -datadir . -modelname mlp3 -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
+# python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
+# python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
+# python mlp_residual_hook_resreg.py -datadir . -modelname mlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
