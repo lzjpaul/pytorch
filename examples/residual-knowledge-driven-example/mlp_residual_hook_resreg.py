@@ -31,6 +31,7 @@ from torchvision import datasets, models, transforms
 import argparse
 from mimic_metric import *
 import time
+import datetime
 import logging
 
 
@@ -237,7 +238,9 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
     res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda, momentum_mu=momentum_mu, feature_dim=hidden_dim)
     # hyper parameters
     print('Beginning Training')
-    since = time.time()
+    start = time.time()
+    st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+    print(st)
     
     for epoch in range(max_epoch):
 
@@ -316,8 +319,11 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
             
-
-    time_elapsed = time.time() - since
+    done = time.time()
+    do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
+    print(do)
+    elapsed = done - start
+    print(elapsed)
 
 def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
     # Initialize these variables which will be set in this if statement. Each of these
