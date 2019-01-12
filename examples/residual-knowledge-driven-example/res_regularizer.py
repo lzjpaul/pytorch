@@ -34,6 +34,7 @@ class ResRegularizer():
 
     # singa: (word_num, doc_num)
     # pytorch: (doc_num, word_num)
+    '''
     def calcRegGrad(self):
         logger = logging.getLogger('res_reg')
         correlation_abs_matrix = np.abs(self.feature_correlation)
@@ -43,7 +44,8 @@ class ResRegularizer():
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
-    
+     '''
+     
     # calculate regularization using self.correlation_moving_average
     def calcRegGradAvg(self):
         logger = logging.getLogger('res_reg')
@@ -55,8 +57,39 @@ class ResRegularizer():
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
+    # singa: (word_num, doc_num)
+    # pytorch: (doc_num, word_num)
+    def calcRegGradAvg_Exp(self):
+        logger = logging.getLogger('res_reg')
+        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array
+        logger.debug ("reg_grad_w shape:")
+        logger.debug (reg_grad_w.shape)
+        return reg_grad_w
+   
+    # singa: (word_num, doc_num)
+    # pytorch: (doc_num, word_num)
+    def calcRegGradAvg_Linear(self):
+        logger = logging.getLogger('res_reg')
+        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array
+        logger.debug ("reg_grad_w shape:")
+        logger.debug (reg_grad_w.shape)
+        return reg_grad_w
 
-    def apply(self, gpu_id, features, feature_idx, reg_lambda, epoch, param, name, step):
+
+    # singa: (word_num, doc_num)
+    # pytorch: (doc_num, word_num)
+    def calcRegGradAvg_Inverse(self):
+        logger = logging.getLogger('res_reg')
+        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array
+        logger.debug ("reg_grad_w shape:")
+        logger.debug (reg_grad_w.shape)
+        return reg_grad_w
+
+
+    def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, epoch, param, name, step):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
         self.feature_matrix = features[feature_idx].data.cpu().numpy()
@@ -75,7 +108,17 @@ class ResRegularizer():
         self.calcCorrelation_two_layers()
         self.correlation_moving_average = self.momentum_mu * self.correlation_moving_average + (1-self.momentum_mu) * self.feature_correlation
         # self.reg_grad_w = self.calcRegGrad()
-        self.reg_grad_w = self.calcRegGradAvg()
+        if reg_method == 0:
+            self.reg_grad_w = self.calcRegGradAvg()
+        elif reg_method == 1:
+            self.reg_grad_w = self.calcRegGradAvg_Exp()
+        elif reg_method == 2:
+            self.reg_grad_w = self.calcRegGradAvg_Linear()
+        elif reg_method == 3:
+            self.reg_grad_w = self.calcRegGradAvg_Inverse()
+        else:
+            print("Invalid regularization method, exiting...")
+            exit()
         reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
         logger.debug ("step: %d", step)
         logger.debug ("name: " +  name)

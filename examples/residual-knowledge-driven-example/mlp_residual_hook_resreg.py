@@ -233,7 +233,7 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
                 print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
 '''
 
-def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_lambda, momentum_mu, hidden_dim, weightdecay, max_epoch=25):
+def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, reg_lambda, momentum_mu, hidden_dim, weightdecay, firstepochs, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda, momentum_mu=momentum_mu, feature_dim=hidden_dim)
     # hyper parameters
@@ -268,7 +268,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             loss.backward()
             ### print norm
             ### when to use res-reg
-            if "reg" in model_name:  
+            if "reg" in model_name and epoch >= firstepochs:
                 logger.debug ('batch_idx %d', batch_idx) 
                 for name, f in model.named_parameters():
                     logger.debug ('param name: ' + name)
@@ -285,7 +285,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     if "layer1" in name and "weight" in name:
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_lambda, epoch, param, name, batch_idx)
+                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_method, reg_lambda, epoch, param, name, batch_idx)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -297,6 +297,9 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             ### print norm
             optimizer.step()
             if batch_idx % 10 == 0:
+                print('len(data)', len(data))
+                print('len(train_loader.dataset)', len(train_loader.dataset))
+                print('len(train_loader)', len(train_loader)) 
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item()))
@@ -354,6 +357,8 @@ if __name__ == '__main__':
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-decay', type=float, help='reg_lambda and weightdecay')
     parser.add_argument('-batchsize', type=int, help='batch_size')
+    parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
+    parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
@@ -429,7 +434,7 @@ if __name__ == '__main__':
     reg_lambda = args.decay # resreg strength
     weightdecay = args.decay # other parameters' weight decay
     # Train and evaluate MNIST on resmlp or mlp model
-    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, reg_lambda, momentum_mu, dim_vec[1], weightdecay, max_epoch=args.maxepoch)
+    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, max_epoch=args.maxepoch)
 
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
