@@ -1,4 +1,3 @@
-# refer to pytorch LDA MLP and resnet
 # https://github.com/lzjpaul/pytorch/blob/LDA-regularization/examples/cifar-10-tutorial/mimic_mlp_lda.py
 # pytorch vision: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
 # resnet: https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
@@ -241,11 +240,11 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
     start = time.time()
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print(st)
-    
+    pre_train_loss = 0
     for epoch in range(max_epoch):
-
         # Iterate over training data.
         model.train()
+        train_loss = 0
         for batch_idx, (data, target) in enumerate(train_loader):
             data = data.reshape((data.shape[0],-1))
             logger.debug('data shape:')
@@ -258,6 +257,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             logger.debug ('data norm: %f', data.norm())
             output = model(data)
             loss = F.nll_loss(output, target)
+            train_loss += (loss.item() * len(data)) # sum over all samples in the mini-batch
             
             logger.debug ("features length: %d", len(features))
             for feature in features:
@@ -296,13 +296,17 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                             logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 0.01))
             ### print norm
             optimizer.step()
+            '''
             if batch_idx % 10 == 0:
-                print('len(data)', len(data))
-                print('len(train_loader.dataset)', len(train_loader.dataset))
-                print('len(train_loader)', len(train_loader)) 
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item()))
+            '''
+        train_loss /= len(train_loader.dataset)
+        print('epoch: ', epoch)
+        print('train_loss per sample: ', train_loss)
+        print('abs(train_loss - pre_train_loss)', abs(train_loss - pre_train_loss))
+        pre_train_loss = train_loss
 
         # Iterate over test data.
         model.eval()
