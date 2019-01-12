@@ -267,16 +267,15 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             
             loss.backward()
             ### print norm
+            if (epoch == 0 and batch_idx <= 100) or batch_idx % 100 == 0:
+                for name, f in model.named_parameters():
+                    print ('batch_idx: ', batch_idx)
+                    print ('param name: ', name)
+                    print ('param size:', f.data.size())
+                    print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
+                    print ('lr 0.01 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             ### when to use res-reg
             if "reg" in model_name and epoch >= firstepochs:
-                logger.debug ('batch_idx %d', batch_idx) 
-                for name, f in model.named_parameters():
-                    logger.debug ('param name: ' + name)
-                    logger.debug ('param size:')
-                    logger.debug (f.data.size())
-                    logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
-                    logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
-            
                 feature_idx = -1 # which feature to use for regularization
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)

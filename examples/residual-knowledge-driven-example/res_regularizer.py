@@ -88,6 +88,15 @@ class ResRegularizer():
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
+    # singa: (word_num, doc_num)
+    # pytorch: (doc_num, word_num)
+    def calcRegGradAvg_Inverse_Var(self):
+        logger = logging.getLogger('res_reg')
+        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array
+        logger.debug ("reg_grad_w shape:")
+        logger.debug (reg_grad_w.shape)
+        return reg_grad_w
 
     def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, epoch, param, name, step):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
@@ -116,10 +125,18 @@ class ResRegularizer():
             self.reg_grad_w = self.calcRegGradAvg_Linear()
         elif reg_method == 3:
             self.reg_grad_w = self.calcRegGradAvg_Inverse()
+        elif reg_method == 4:
+            self.reg_grad_w = self.calcRegGradAvg_Inverse_Var()
         else:
             print("Invalid regularization method, exiting...")
             exit()
         reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
+        if (epoch == 0 and step <= 100) or step % 100 == 0:
+            print ('step: ', step)
+            print ('name: ', name)
+            print ('w norm: ', np.linalg.norm(param.data.cpu().numpy()))
+            print ('data grad norm: ', np.linalg.norm(param.grad.data.cpu().numpy()))
+            print ('reg_grad_w_dev l2 norm: ', np.linalg.norm(reg_grad_w_dev.cpu().numpy()))
         logger.debug ("step: %d", step)
         logger.debug ("name: " +  name)
         logger.debug ("data grad l2 norm: %f", np.linalg.norm(param.grad.data.cpu().numpy()))
@@ -128,5 +145,7 @@ class ResRegularizer():
             param.grad.data.add_(1.0, reg_grad_w_dev.cuda(gpu_id)) # here3
         else:
             param.grad.data.add_(1.0, reg_grad_w_dev) # here3
+        if (epoch == 0 and step <= 100) or step % 100 == 0:
+            print ('delta w (data grad + reg grad) norm: ', np.linalg.norm(param.grad.data.cpu().numpy()))
         logger.debug ("delta w (data grad + reg grad) norm: %f", np.linalg.norm(param.grad.data.cpu().numpy()))
         logger.debug ("w norm: %f", np.linalg.norm(param.data.cpu().numpy()))
