@@ -310,29 +310,30 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
         
         # Iterate over train data to get correlation
         # if epoch == (max_epoch-1):
-        if epoch == 0:
+        if epoch >= 0:
             model.eval()
             verify_correlation_avg = np.zeros((hidden_dim, hidden_dim))
             with torch.no_grad():
-                for batch_idx, (data, target) in enumerate(train_loader):
+                for batch_idx, (data, target) in enumerate(train_loader_not_shuffled):
                     data = data.reshape((data.shape[0],-1))
                     data, target = data.cuda(gpu_id), target.cuda(gpu_id)
                     features.clear()
                     output = model(data)
                     # print("features length: ", len(features))
+                    # print("len(data): ", len(data))
                     verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim]
                     if batch_idx < 100:
                         logger.info('batch_idx: %d', batch_idx)
                         logger.info('correlation: ')
                         logger.info(np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim])
-            print ("batch_idx: ", batch_idx)
+            # print ("batch_idx: ", batch_idx)
             verify_correlation_avg = verify_correlation_avg / float(batch_idx + 1)
             
 
             model.eval()
             verify_correlation_var_avg = np.zeros((hidden_dim, hidden_dim))
             with torch.no_grad():
-                for batch_idx, (data, target) in enumerate(train_loader):
+                for batch_idx, (data, target) in enumerate(train_loader_not_shuffled):
                     data = data.reshape((data.shape[0],-1))
                     data, target = data.cuda(gpu_id), target.cuda(gpu_id)
                     features.clear()
@@ -341,8 +342,8 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim] - verify_correlation_avg)
             print ("batch_idx: ", batch_idx)
             verify_correlation_var_avg = verify_correlation_var_avg / float(batch_idx + 1) 
-            np.savetxt('verify_correlation_avg_matrix' + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-            np.savetxt('verify_correlation_var_avg_matrix' + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('verify_correlation_avg_matrix_not_shuffled' + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('verify_correlation_var_avg_matrix_not_shuffled' + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
                 
         
         # Iterate over test data.
@@ -425,6 +426,12 @@ if __name__ == '__main__':
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])), batch_size=64, shuffle=True, **kwargs)
+    train_loader_not_shuffled = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.1307,), (0.3081,))
+                       ])), batch_size=64, shuffle=False, **kwargs)
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST('../data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
