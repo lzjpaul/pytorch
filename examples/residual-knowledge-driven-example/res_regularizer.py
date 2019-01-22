@@ -98,6 +98,23 @@ class ResRegularizer():
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
+    # singa: (word_num, doc_num)
+    # pytorch: (doc_num, word_num)
+    def calcRegGradAvg_Gen_Prob(self):
+        logger = logging.getLogger('res_reg')
+        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        correlation_abs_matrix_sum = np.sum(correlation_abs_matrix, axis=1).reshape((correlation_abs_matrix.shape[0],1))
+        print ('correlation_abs_matrix_sum shape:', correlation_abs_matrix_sum.shape)
+        correlation_abs_matrix_normalize = correlation_abs_matrix / correlation_abs_matrix_sum
+        print ('correlation_abs_matrix_normalize shape: ', correlation_abs_matrix_normalize.shape)
+        print ('np.sum(correlation_abs_matrix_normalize, axis=1)', np.sum(correlation_abs_matrix_normalize, axis=1))
+        correlation_abs_matrix_normalize_log = np.log(correlation_abs_matrix_normalize)
+        print ('np.min(correlation_abs_matrix_normalize) after log', np.min(correlation_abs_matrix_normalize_log))
+        reg_grad_w = -self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log
+        logger.debug ("reg_grad_w shape:")
+        logger.debug (reg_grad_w.shape)
+        return reg_grad_w
+
     def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, epoch, param, name, step):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
@@ -127,6 +144,9 @@ class ResRegularizer():
             self.reg_grad_w = self.calcRegGradAvg_Inverse()
         elif reg_method == 4:
             self.reg_grad_w = self.calcRegGradAvg_Inverse_Var()
+        # generation probablity
+        elif reg_method == 5:
+            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob()
         else:
             print("Invalid regularization method, exiting...")
             exit()
