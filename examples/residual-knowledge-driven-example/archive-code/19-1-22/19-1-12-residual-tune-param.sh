@@ -1,0 +1,7 @@
+# ncrd 0
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -regmethod 4 -firstepochs 0 -maxepoch 100 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-12/1-12-tune-param-100epoch-0
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.0001 -batchsize 64 -regmethod 4 -firstepochs 0 -maxepoch 100 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-12/1-12-tune-param-100epoch-1
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 2 -decay 0.00001 -batchsize 64 -regmethod 4 -firstepochs 0 -maxepoch 100 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-12/1-12-tune-param-100epoch-2
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 2 -decay 0.0001 -batchsize 64 -regmethod 4 -firstepochs 0 -maxepoch 100 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-12/1-12-tune-param-100epoch-3
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 3 -decay 0.00001 -batchsize 64 -regmethod 4 -firstepochs 0 -maxepoch 100 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-12/1-12-tune-param-100epoch-4
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 3 -decay 0.0001 -batchsize 64 -regmethod 4 -firstepochs 0 -maxepoch 100 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-12/1-12-tune-param-100epoch-5
