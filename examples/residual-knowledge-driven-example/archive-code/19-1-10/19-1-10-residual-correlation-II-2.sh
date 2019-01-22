@@ -1,0 +1,5 @@
+## ncrc
+CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp3 -blocks 5 -decay 0.0 -batchsize 64 -maxepoch 20 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-10/1-10-regmlp5-wd-0
+CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp3 -blocks 5 -decay 0.00001 -batchsize 64 -maxepoch 20 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-10/1-10-regmlp5-wd-000001
+CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp3 -blocks 5 -decay 0.0001 -batchsize 64 -maxepoch 20 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-10/1-10-regmlp5-wd-00001
+CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp3 -blocks 5 -decay 0.001 -batchsize 64 -maxepoch 20 -gpuid 0 | tee -a /hdd1/zhaojing/res-regularization/19-1-10/1-10-regmlp5-wd-0001
