@@ -104,12 +104,12 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         correlation_abs_matrix = np.abs(self.correlation_moving_average)
         correlation_abs_matrix_sum = np.sum(correlation_abs_matrix, axis=1).reshape((correlation_abs_matrix.shape[0],1))
-        print ('correlation_abs_matrix_sum shape:', correlation_abs_matrix_sum.shape)
+        # print ('correlation_abs_matrix_sum shape:', correlation_abs_matrix_sum.shape)
         correlation_abs_matrix_normalize = correlation_abs_matrix / correlation_abs_matrix_sum
-        print ('correlation_abs_matrix_normalize shape: ', correlation_abs_matrix_normalize.shape)
-        print ('np.sum(correlation_abs_matrix_normalize, axis=1)', np.sum(correlation_abs_matrix_normalize, axis=1))
+        # print ('correlation_abs_matrix_normalize shape: ', correlation_abs_matrix_normalize.shape)
+        # print ('np.sum(correlation_abs_matrix_normalize, axis=1)', np.sum(correlation_abs_matrix_normalize, axis=1))
         correlation_abs_matrix_normalize_log = np.log(correlation_abs_matrix_normalize)
-        print ('np.min(correlation_abs_matrix_normalize) after log', np.min(correlation_abs_matrix_normalize_log))
+        # print ('np.min(correlation_abs_matrix_normalize) after log', np.min(correlation_abs_matrix_normalize_log))
         reg_grad_w = -self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
