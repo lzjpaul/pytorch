@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import logging
-
+import math
 
 class GMRegularizer():
     '''GM regularization
@@ -11,15 +11,15 @@ class GMRegularizer():
 
     def __init__(self, hyperpara=None, gm_num=None, pi_list=None, reg_lambda=None, uptfreq=None):
         self.a, self.b, self.gm_num = hyperpara[0], hyperpara[1], gm_num
-        print "init self.a, self.b, self.gm_num: ", self.a, self.b, self.gm_num
+        print ("init self.a, self.b, self.gm_num: ", self.a, self.b, self.gm_num)
         for i in range(gm_num):
             pi_list[i] = np.reshape(np.array(pi_list[i]), (1, gm_num))
         self.pi_list = pi_list 
         self.reg_lambda = np.reshape(np.array(reg_lambda), (1, gm_num))
-        print "init self.reg_lambda: ", self.reg_lambda
-        print "init self.pi_list: ", self.pi_list
+        print ("init self.reg_lambda: ", self.reg_lambda)
+        print ("init self.pi_list: ", self.pi_list)
         self.gmuptfreq, self.paramuptfreq = uptfreq[0], uptfreq[1]
-        print "init self.gmuptfreq, self.paramuptfreq: ", self.gmuptfreq, self.paramuptfreq
+        print ("init self.gmuptfreq, self.paramuptfreq: ", self.gmuptfreq, self.paramuptfreq)
 
     # calc the resposibilities for pj(wi)
     def calcResponsibilityList(self):
@@ -83,7 +83,7 @@ class GMRegularizer():
             print ('self.grad_array_ordered_list[i] shape: ', self.grad_array_ordered_list[i].shape)
         # concatenate 
         grad_array_ordered_matrix = self.grad_array_ordered_list[0]
-        for i in range(1, self.gm_num)
+        for i in range(1, self.gm_num):
             grad_array_ordered_matrix = np.concatenate((grad_array_ordered_matrix, self.grad_array_ordered_list[i]), axis=1)
         print ("grad_array_ordered_matrix shape: ", grad_array_ordered_matrix.shape)
         self.reg_grad_w = np.zeros(self.w_array.shape)
@@ -98,7 +98,7 @@ class GMRegularizer():
         print ('self.w_array shape: ', self.w_array.shape)
         print ('self.correlation_moving_average shape: ', self.correlation_moving_average.shape)
         self.CalcOrdCorreIdx()
-        print('self.ordered_correlation_index shape: ', self.ordered_correlation_index.shape)
+        print('self.ordered_correlation_index_matrix shape: ', self.ordered_correlation_index_matrix.shape)
         self.DivideParam() # divide parameters into different groups according to correlation
         if epoch < 2 or step % self.paramuptfreq == 0:
             self.calcResponsibilityList()
@@ -106,12 +106,12 @@ class GMRegularizer():
         labelnum = 1
         self.reg_grad_w = self.reg_grad_w / float(trainnum * labelnum)
         if (epoch == 0 and step < 50) or step % self.gmuptfreq == 0:
-            print "step: ", step
-            print "name: ", name
-            print "data grad l2 norm: ", np.linalg.norm(param.grad.data.cpu().numpy())
-            print "reg_grad_w_dev l2 norm: ", np.linalg.norm(self.reg_grad_w)
+            print ("step: ", step)
+            print ("name: ", name)
+            print ("data grad l2 norm: ", np.linalg.norm(param.grad.data.cpu().numpy()))
+            print ("reg_grad_w_dev l2 norm: ", np.linalg.norm(self.reg_grad_w))
         if (epoch == 0 and step < 50) or step % self.gmuptfreq == 0:
-            print "w norm: ", np.linalg.norm(param.data.cpu().numpy())
+            print ("w norm: ", np.linalg.norm(param.data.cpu().numpy()))
         if epoch < 2 or step % self.gmuptfreq == 0:
             if epoch >=2 and step % self.paramuptfreq != 0:
                 self.calcResponsibilityList()
@@ -130,9 +130,10 @@ class GMResRegularizer():
         print ("new self.momentum_mu: ", self.momentum_mu)
         self.correlation_moving_average = np.zeros((feature_dim, feature_dim))
         print ('new self.correlation_moving_average shape: ', self.correlation_moving_average.shape)
+        self.gmregularizers = {}
     
     def layer_wise_hyperpara(self, fea_num, hyperpara_list, hyperpara_idx):
-        print "layer_wise fea_num: ", fea_num
+        print ("layer_wise fea_num: ", fea_num)
         a_list = hyperpara_list[0]
         b_list = hyperpara_list[1]
         b_val = (b_list[hyperpara_idx[1]]) * fea_num
@@ -148,7 +149,7 @@ class GMResRegularizer():
         print('index_array: ', index_array)
         pi_list = []
         for i in range(gm_num):
-            pi_list.append(index_array[50-i, 50+gm_num-i]) # [[0, -1, -2, -3], [-1, 0, -1, -2], [-2, -1, 0, -1], [-3, -2, -1, 0]]
+            pi_list.append(index_array[(50-i):(50+gm_num-i)]) # [[0, -1, -2, -3], [-1, 0, -1, -2], [-2, -1, 0, -1], [-3, -2, -1, 0]]
         # decay and normalize 
         for i in range(gm_num):
             pi_list[i] = np.exp(pi_list[i] * pi_decay_ratio)
@@ -156,17 +157,17 @@ class GMResRegularizer():
         return pi_list
 
     def gm_register(self, name, param, hyperpara_list, hyperpara_idx, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq):
-        print "param name: ", name
-        print "param shape: ", param.data.size()
+        print ("param name: ", name)
+        print ("param shape: ", param.data.size())
         dims = param.data.size()[0] * param.data.size()[1]
-        print "dims: ", dims
+        print ("dims: ", dims)
         layer_hyperpara = self.layer_wise_hyperpara(dims, hyperpara_list, hyperpara_idx) # layerwise initialization of hyper-params
-        pi_list = gen_pi_list(gm_num, pi_decay_ratio)
+        pi_list = self.gen_pi_list(gm_num, pi_decay_ratio)
         k = 1.0 + gm_lambda_ratio
-        print "gm_lambda_ratio: ", gm_lambda_ratio
+        print ("gm_lambda_ratio: ", gm_lambda_ratio)
         # calculate base
         base = 10000.0 / 1000.0
-        print "base: ", base
+        print ("base: ", base)
         # calculate GM initialized lambda (1/variance)
         if gm_lambda_ratio >= 0.0:
             reg_lambda = [base*math.pow(k,_) for _ in  range(gm_num)]

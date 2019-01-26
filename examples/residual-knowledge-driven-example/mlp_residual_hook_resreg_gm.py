@@ -32,7 +32,7 @@ from mimic_metric import *
 import time
 import datetime
 import logging
-
+import random
 
 features = []
 
@@ -454,15 +454,17 @@ if __name__ == '__main__':
     ###################################################
     gm_num = args.gmnum
     pi_decay_ratio = args.pidecayratio
-    gm_lambda_ratio_list, a_list, alpha_list, b_list = get_hyperparams(args.hyperparampath, gm_lambda_ratio_list, a_list, alpha_list, b_list)
+    # gm_lambda_ratio_list, a_list, alpha_list, b_list = get_hyperparams(args.hyperparampath, gm_lambda_ratio_list, a_list, alpha_list, b_list)
     b_val_num = len(b_list)
-    alpha_val_num = len(alpha_list)
+    # alpha_val_num = len(alpha_list)
     a_val_num = len(a_list)
     gm_lambda_ratio = random.choice(gm_lambda_ratio_list)
+    b_idx_arr, a_idx_arr = np.arange(b_val_num), np.arange(a_val_num)
     for b_idx in b_idx_arr:
         for a_idx in a_idx_arr:
             train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, \
                                                    [a_list, b_list], [a_idx, b_idx], gm_num, pi_decay_ratio, gm_lambda_ratio, [args.gmuptfreq, args.paramuptfreq], max_epoch=args.maxepoch)    
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_gm.py -datadir . -modelname regmlp -blocks 3 -decay 0.00001 -batchsize 64 -regmethod 6 -firstepochs 0 -gmnum 3 -pidecayratio 2 -gmuptfreq 100 -paramuptfreq 50 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
 # python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
