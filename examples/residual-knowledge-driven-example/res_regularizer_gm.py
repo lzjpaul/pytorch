@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import logging
 import math
+from scipy.stats import norm as gaussian
+
 
 class GMRegularizer():
     '''GM regularization
@@ -23,6 +25,7 @@ class GMRegularizer():
 
     # calc the resposibilities for pj(wi)
     def calcResponsibilityList(self):
+        self.responsibilitylist = []
         for i in range(self.gm_num):
             # responsibility normalized with pi
             responsibility = gaussian.pdf(self.w_array_ordered_list[i], loc=np.zeros(shape=(1, self.gm_num)), scale=1/np.sqrt(self.reg_lambda))*self.pi_list[i]
@@ -53,7 +56,7 @@ class GMRegularizer():
 
     def CalcOrdCorreIdx(self):
         correlation_abs_matrix = np.abs(self.correlation_moving_average)
-        self.ordered_correlation_index_matrix = np.zeros(correlation_abs_matrix.shape)
+        self.ordered_correlation_index_matrix = np.zeros(correlation_abs_matrix.shape, dtype=int)
         ## descend ...
         for i in range(self.ordered_correlation_index_matrix.shape[0]):
             self.ordered_correlation_index_matrix[i] = np.argsort(-correlation_abs_matrix[i]) # uisng a small matrix to test the whole process ...

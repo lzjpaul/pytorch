@@ -289,7 +289,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     if "layer1" in name and "weight" in name:
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_method, reg_lambda, len(train_loader), epoch, param, name, batch_idx)
+                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_method, reg_lambda, len(train_loader.dataset), epoch, param, name, batch_idx)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
