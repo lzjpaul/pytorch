@@ -78,6 +78,7 @@ class GMRegularizer():
     def calcGMRegGrad(self):
         self.grad_array_ordered_list = []
         # gm_num happens to be group number
+        print ('len(self.responsibilitylist: )', len(self.responsibilitylist))
         for i in range(self.gm_num):
             self.grad_array_ordered_list.append(np.sum(self.responsibilitylist[i]*self.reg_lambda, axis=1).reshape(self.w_array_ordered_list[i].shape) * self.w_array_ordered_list[i])
         # reshape
@@ -168,16 +169,17 @@ class GMResRegularizer():
         pi_list = self.gen_pi_list(gm_num, pi_decay_ratio)
         k = 1.0 + gm_lambda_ratio
         print ("gm_lambda_ratio: ", gm_lambda_ratio)
-        # calculate base
-        base = 10000.0 / 1000.0
+        # calculate base, calculate fan_in and fan_out for MLP
+        # https://pytorch.org/docs/stable/_modules/torch/nn/init.html#calculate_gain
+        base = 333.3333 / 10.0
         print ("base: ", base)
         # calculate GM initialized lambda (1/variance)
         if gm_lambda_ratio >= 0.0:
-            reg_lambda = [base*math.pow(k,_) for _ in  range(gm_num)]
+            gm_reg_lambda = [base*math.pow(k,_) for _ in  range(gm_num)]
         else:
-            reg_lambda_range = base * float(gm_num)
-            reg_lambda = np.arange(1.0, reg_lambda_range, reg_lambda_range/gm_num)
-        self.gmregularizers[name] = GMRegularizer(hyperpara=layer_hyperpara, gm_num=gm_num, pi_list=pi_list, reg_lambda=reg_lambda, uptfreq=uptfreq)
+            gm_reg_lambda_range = base * float(gm_num)
+            gm_reg_lambda = np.arange(1.0, gm_reg_lambda_range, gm_reg_lambda_range/gm_num)
+        self.gmregularizers[name] = GMRegularizer(hyperpara=layer_hyperpara, gm_num=gm_num, pi_list=pi_list, reg_lambda=gm_reg_lambda, uptfreq=uptfreq)
 
 
     # calc correlation using one layer 

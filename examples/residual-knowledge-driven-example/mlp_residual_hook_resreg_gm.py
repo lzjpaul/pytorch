@@ -448,7 +448,7 @@ if __name__ == '__main__':
     # Train and evaluate MNIST on resmlp or mlp model
     # train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, max_epoch=args.maxepoch)
     # gm type model
-    gm_lambda_ratio_list = [ -1., 0.0, 1.]
+    gm_lambda_ratio_list = [1., -1, 0.0]
     a_list = [1e-1, 1e-2]
     b_list = [0.05, 0.02, 0.1, 0.01]
     ###################################################
