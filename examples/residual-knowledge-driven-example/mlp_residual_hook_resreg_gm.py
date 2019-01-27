@@ -233,12 +233,12 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
 '''
 
 def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, reg_lambda, momentum_mu, hidden_dim, weightdecay, firstepochs, \
-                                           hyperpara_list, hyperpara_idx, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq, max_epoch=25):
+                                           hyperpara_list, hyperpara_idx, label_num, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = GMResRegularizer(reg_lambda=reg_lambda, momentum_mu=momentum_mu, feature_dim=hidden_dim)
     for name, param in model.named_parameters():
         if "layer1" in name and "weight" in name:
-            res_regularizer_instance.gm_register(name, param, hyperpara_list, hyperpara_idx, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq)
+            res_regularizer_instance.gm_register(name, param, model_name, hyperpara_list, hyperpara_idx, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq)
 
     # hyper parameters
     print('Beginning Training')
@@ -289,7 +289,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     if "layer1" in name and "weight" in name:
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_method, reg_lambda, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        res_regularizer_instance.apply(gpu_id, features, feature_idx, reg_method, reg_lambda, label_num, len(train_loader.dataset), epoch, param, name, batch_idx)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -367,6 +367,7 @@ if __name__ == '__main__':
     parser.add_argument('-batchsize', type=int, help='batch_size')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
+    parser.add_argument('-labelnum', type=int, help='label number because the loss is averaged across labels')
     parser.add_argument('-gmnum', type=int, help='gm_number')
     parser.add_argument('-pidecayratio', type=float, help='pi decay ratio')
     parser.add_argument('-gmuptfreq', type=int, help='gm update frequency, in steps')
@@ -452,6 +453,7 @@ if __name__ == '__main__':
     a_list = [1e-1, 1e-2]
     b_list = [0.05, 0.02, 0.1, 0.01]
     ###################################################
+    label_num = args.labelnum
     gm_num = args.gmnum
     pi_decay_ratio = args.pidecayratio
     # gm_lambda_ratio_list, a_list, alpha_list, b_list = get_hyperparams(args.hyperparampath, gm_lambda_ratio_list, a_list, alpha_list, b_list)
@@ -463,7 +465,7 @@ if __name__ == '__main__':
     for b_idx in b_idx_arr:
         for a_idx in a_idx_arr:
             train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, \
-                                                   [a_list, b_list], [a_idx, b_idx], gm_num, pi_decay_ratio, gm_lambda_ratio, [args.gmuptfreq, args.paramuptfreq], max_epoch=args.maxepoch)    
+                                                   [a_list, b_list], [a_idx, b_idx], label_num, gm_num, pi_decay_ratio, gm_lambda_ratio, [args.gmuptfreq, args.paramuptfreq], max_epoch=args.maxepoch)    
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_gm.py -datadir . -modelname regmlp -blocks 3 -decay 0.00001 -batchsize 64 -regmethod 6 -firstepochs 0 -gmnum 3 -pidecayratio 2 -gmuptfreq 100 -paramuptfreq 50 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1

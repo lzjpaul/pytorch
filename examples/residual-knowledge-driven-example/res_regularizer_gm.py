@@ -4,6 +4,8 @@ import logging
 import math
 from scipy.stats import norm as gaussian
 
+################
+#(1) base need to be changed according to model and fan_in
 
 class GMRegularizer():
     '''GM regularization
@@ -96,7 +98,7 @@ class GMRegularizer():
             self.reg_grad_w[i][self.ordered_correlation_index_matrix[i]] = grad_array_ordered_matrix[i]
 
 
-    def apply(self, correlation_moving_average, trainnum, epoch, param, name, step):
+    def apply(self, correlation_moving_average, labelnum, trainnum, epoch, param, name, step):
         self.w_array = param.data.cpu().numpy()
         self.correlation_moving_average = correlation_moving_average
         print ('self.w_array shape: ', self.w_array.shape)
@@ -107,8 +109,8 @@ class GMRegularizer():
         if epoch < 2 or step % self.paramuptfreq == 0:
             self.calcResponsibilityList()
             self.calcGMRegGrad()
-        labelnum = 1
-        self.reg_grad_w = self.reg_grad_w / float(trainnum * labelnum)
+        print ("labelnum: ", labelnum)
+        self.reg_grad_w = self.reg_grad_w / float(labelnum * trainnum)
         if (epoch == 0 and step < 50) or step % self.gmuptfreq == 0:
             print ("step: ", step)
             print ("name: ", name)
@@ -160,7 +162,7 @@ class GMResRegularizer():
             pi_list[i] = pi_list[i] / float(np.sum(pi_list[i]))            
         return pi_list
 
-    def gm_register(self, name, param, hyperpara_list, hyperpara_idx, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq):
+    def gm_register(self, name, param, model_name, hyperpara_list, hyperpara_idx, gm_num, pi_decay_ratio, gm_lambda_ratio, uptfreq):
         print ("param name: ", name)
         print ("param shape: ", param.data.size())
         dims = param.data.size()[0] * param.data.size()[1]
@@ -171,8 +173,12 @@ class GMResRegularizer():
         print ("gm_lambda_ratio: ", gm_lambda_ratio)
         # calculate base, calculate fan_in and fan_out for MLP
         # https://pytorch.org/docs/stable/_modules/torch/nn/init.html#calculate_gain
-        base = 333.3333 / 10.0
-        print ("base: ", base)
+        if 'mlp' in model_name:
+            base = 333.3333 / 10.0
+            print ('base model name: ', model_name)
+            print ("base: ", base)
+        else:
+            print ("not mlp, need new fan_in functions")
         # calculate GM initialized lambda (1/variance)
         if gm_lambda_ratio >= 0.0:
             gm_reg_lambda = [base*math.pow(k,_) for _ in  range(gm_num)]
@@ -281,7 +287,7 @@ class GMResRegularizer():
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
-    def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, trainnum, epoch, param, name, step):
+    def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         print ('trainnum: ', trainnum)
         logger = logging.getLogger('res_reg')
@@ -316,7 +322,7 @@ class GMResRegularizer():
             self.reg_grad_w = self.calcRegGradAvg_Gen_Prob()
         # gm-based method
         elif reg_method == 6:
-            self.reg_grad_w = self.gmregularizers[name].apply(self.correlation_moving_average, trainnum, epoch, param, name, step)
+            self.reg_grad_w = self.gmregularizers[name].apply(self.correlation_moving_average, labelnum, trainnum, epoch, param, name, step)
         else:
             print("Invalid regularization method, exiting...")
             exit()
