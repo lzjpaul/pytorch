@@ -32,17 +32,26 @@ class GMRegularizer():
             self.responsibilitylist.append(responsibility/(np.sum(responsibility, axis=1).reshape(self.w_array_ordered_list[i].shape)))
         for i in range(self.gm_num):
             print ("self.responsibilitylist[i] shape: ", self.responsibilitylist[i].shape)
+            print ('np.sum(self.responsibilitylist[i], axis=1): ', np.sum(self.responsibilitylist[i], axis=1))
     
     def update_GM_Prior_EM(self, name, step):
         # update reg_lambda
         reg_lambda_numerator = 2 * (self.a - 1)
         for i in range(self.gm_num):
+            print ('reg_lambda_numerator: ', reg_lambda_numerator)
+            print ('np.sum(self.responsibilitylist[i], axis=0): ', np.sum(self.responsibilitylist[i], axis=0))
             reg_lambda_numerator = reg_lambda_numerator + np.sum(self.responsibilitylist[i], axis=0)
+        print ('reg_lambda_numerator shape: ', reg_lambda_numerator.shape)
+        print ('reg_lambda_numerator: ', reg_lambda_numerator)
         reg_lambda_denominator = 2 * self.b
         for i in range(self.gm_num):
+            print ("self.responsibilitylist[i] shape: ", self.responsibilitylist[i].shape)
+            print ("np.square(self.w_array_ordered_list[i]) shape: ", np.square(self.w_array_ordered_list[i]).shape)
             reg_lambda_denominator = reg_lambda_denominator + np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0)
         # self.reg_lambda = (2 * (self.a - 1) + np.sum(self.responsibility, axis=0)) / (2 * self.b + np.sum(self.responsibility * np.square(self.w_array), axis=0))
+        print ('reg_lambda_denominator shape: ', reg_lambda_denominator.shape)
         self.reg_lambda = reg_lambda_numerator / reg_lambda_denominator
+        print ('self.reg_lambda shape: ', self.reg_lambda.shape)
         if step % self.gmuptfreq == 0:
             print ("name: ", name)
             # print "np.sum(self.responsibility, axis=0): ", np.sum(self.responsibility, axis=0)
@@ -85,15 +94,18 @@ class GMRegularizer():
         for i in range(self.gm_num):
             self.grad_array_ordered_list[i] = self.grad_array_ordered_list[i].reshape((self.w_array.shape[0], -1))
             print ('self.grad_array_ordered_list[i] shape: ', self.grad_array_ordered_list[i].shape)
+            print ('self.grad_array_ordered_list[i]: \n', self.grad_array_ordered_list[i])
         # concatenate 
         grad_array_ordered_matrix = self.grad_array_ordered_list[0]
         for i in range(1, self.gm_num):
             grad_array_ordered_matrix = np.concatenate((grad_array_ordered_matrix, self.grad_array_ordered_list[i]), axis=1)
         print ("grad_array_ordered_matrix shape: ", grad_array_ordered_matrix.shape)
+        print ("grad_array_ordered_matrix: \n", grad_array_ordered_matrix)
         self.reg_grad_w = np.zeros(self.w_array.shape)
         print ("self.reg_grad_w shape: ", self.reg_grad_w.shape)
         for i in range(self.reg_grad_w.shape[0]):
             self.reg_grad_w[i][self.ordered_correlation_index_matrix[i]] = grad_array_ordered_matrix[i]
+        print ('self.reg_grad_w: ', self.reg_grad_w)
 
 
     def apply(self, correlation_moving_average, trainnum, epoch, param, name, step):
@@ -120,7 +132,7 @@ class GMRegularizer():
         if epoch < 2 or step % self.gmuptfreq == 0:
             if epoch >=2 and step % self.paramuptfreq != 0:
                 self.calcResponsibilityList()
-            self.update_GM_Prior_EM(name, step)
+        self.update_GM_Prior_EM(name, step)
         return self.reg_grad_w
 
 
@@ -132,7 +144,7 @@ if __name__ == '__main__':
     pi_list.append(pi_1)
     pi_list.append(pi_2)
     pi_list.append(pi_3)
-    gm_regularizer_instance = GMRegularizer(hyperpara=[1., 2.], gm_num=3, pi_list=pi_list, reg_lambda=[1, 2, 5], uptfreq=[50, 100])
+    gm_regularizer_instance = GMRegularizer(hyperpara=[2., 2.], gm_num=3, pi_list=pi_list, reg_lambda=[1, 2, 5], uptfreq=[50, 100])
     correlation_moving_average = np.array([[-0.2, 0.3, 0.1, -0.4, 0.6, -0.7, 0.5],
                                            [0.9, -1.1, 1.2, -0.8, -1.4, 1.0, 1.3],
                                            [1.5, 2.1, 1.7, 1.8, -1.6, -1.9, 2.0],
