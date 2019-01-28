@@ -6,7 +6,7 @@ from scipy.stats import norm as gaussian
 
 ################
 #(1) base need to be changed according to model and fan_in
-
+#(2) two classes commonly use self.w_array, self.reg_lambda, self.reg_grad_w
 class GMRegularizer():
     '''GM regularization
     Args:
@@ -50,11 +50,11 @@ class GMRegularizer():
         if step % self.gmuptfreq == 0:
             print ("name: ", name)
             # print "np.sum(self.responsibility, axis=0): ", np.sum(self.responsibility, axis=0)
-            print ("np.sum(self.responsibility, axis=0): ")
-            # print "np.sum(self.responsibility * np.square(self.w[:-1]), axis=0): ", np.sum(self.responsibility * np.square(self.w_array), axis=0)
-            print ("np.sum(self.responsibility * np.square(self.w[:-1]), axis=0): ")
-            # print "division: ", np.sum(self.responsibility * np.square(self.w_array), axis=0) / np.sum(self.responsibility, axis=0)
-            print ("division: ")
+            for i in range(self.gm_num):
+                print ("np.sum(self.responsibilitylist[i], axis=0): ", np.sum(self.responsibilitylist[i], axis=0))
+                print ("np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0): ", np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0))
+                print ("division: ", np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0) / np.sum(self.responsibilitylist[i], axis=0))
+            print ('self.reg_lambda: ', self.reg_lambda)
 
     def CalcOrdCorreIdx(self):
         correlation_abs_matrix = np.abs(self.correlation_moving_average)
@@ -99,6 +99,7 @@ class GMRegularizer():
 
 
     def apply(self, correlation_moving_average, labelnum, trainnum, epoch, param, name, step):
+        print ("calling regularizers of name: ", name)
         self.w_array = param.data.cpu().numpy()
         self.correlation_moving_average = correlation_moving_average
         print ('self.w_array shape: ', self.w_array.shape)
@@ -106,6 +107,8 @@ class GMRegularizer():
         self.CalcOrdCorreIdx()
         print('self.ordered_correlation_index_matrix shape: ', self.ordered_correlation_index_matrix.shape)
         self.DivideParam() # divide parameters into different groups according to correlation
+        for i in range(self.gm_num):
+            print ('after self.w_array_ordered_list[i] shape: ', self.w_array_ordered_list[i].shape)
         if epoch < 2 or step % self.paramuptfreq == 0:
             self.calcResponsibilityList()
             self.calcGMRegGrad()
@@ -144,6 +147,8 @@ class GMResRegularizer():
         b_list = hyperpara_list[1]
         b_val = (b_list[hyperpara_idx[1]]) * fea_num
         a_val = 1. + (b_val * a_list[hyperpara_idx[0]])
+        print ("b_val: ", b_val)
+        print ("a+val: ", a_val)
         return [a_val, b_val]
 
     def gen_pi_list(self, gm_num, pi_decay_ratio):
@@ -169,6 +174,7 @@ class GMResRegularizer():
         print ("dims: ", dims)
         layer_hyperpara = self.layer_wise_hyperpara(dims, hyperpara_list, hyperpara_idx) # layerwise initialization of hyper-params
         pi_list = self.gen_pi_list(gm_num, pi_decay_ratio)
+        print ("pi_list: ", pi_list)
         k = 1.0 + gm_lambda_ratio
         print ("gm_lambda_ratio: ", gm_lambda_ratio)
         # calculate base, calculate fan_in and fan_out for MLP
