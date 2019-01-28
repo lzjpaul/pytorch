@@ -5,7 +5,7 @@ import math
 from scipy.stats import norm as gaussian
 
 ################
-#(1) base need to be changed according to model and fan_in
+#(1) bases for initializing gm need to be changed according to model and fan_in
 #(2) two classes commonly use self.w_array, self.reg_lambda, self.reg_grad_w
 class GMRegularizer():
     '''GM regularization
@@ -34,8 +34,8 @@ class GMRegularizer():
             # responsibility normalized with summation(denominator)
             # new array ??
             self.responsibilitylist.append(responsibility/(np.sum(responsibility, axis=1).reshape(self.w_array_ordered_list[i].shape)))
-        for i in range(self.gm_num):
-            print ("self.responsibilitylist[i] shape: ", self.responsibilitylist[i].shape)
+        # for i in range(self.gm_num):
+        #     print ("self.responsibilitylist[i] shape: ", self.responsibilitylist[i].shape)
     
     def update_GM_Prior_EM(self, name, step):
         # update reg_lambda
@@ -47,6 +47,7 @@ class GMRegularizer():
             reg_lambda_denominator = reg_lambda_denominator + np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0)
         # self.reg_lambda = (2 * (self.a - 1) + np.sum(self.responsibility, axis=0)) / (2 * self.b + np.sum(self.responsibility * np.square(self.w_array), axis=0))
         self.reg_lambda = reg_lambda_numerator / reg_lambda_denominator
+        self.reg_lambda = self.reg_lambda.reshape((1, self.gm_num))
         if step % self.gmuptfreq == 0:
             print ("name: ", name)
             # print "np.sum(self.responsibility, axis=0): ", np.sum(self.responsibility, axis=0)
@@ -55,6 +56,7 @@ class GMRegularizer():
                 print ("np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0): ", np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0))
                 print ("division: ", np.sum(self.responsibilitylist[i] * np.square(self.w_array_ordered_list[i]), axis=0) / np.sum(self.responsibilitylist[i], axis=0))
             print ('self.reg_lambda: ', self.reg_lambda)
+            print ("self.pi_list: ", self.pi_list)
 
     def CalcOrdCorreIdx(self):
         correlation_abs_matrix = np.abs(self.correlation_moving_average)
@@ -69,50 +71,51 @@ class GMRegularizer():
             self.w_array_ordered[i] = self.w_array[i][self.ordered_correlation_index_matrix[i]]
         ## correct ???
         base = int (self.w_array.shape[1] / self.gm_num)
-        print ('base: ', base)
+        # print ('base: ', base)
         self.w_array_ordered_list = []
         for i in range(self.gm_num-1):
             self.w_array_ordered_list.append(self.w_array_ordered[:, (i*base):((i+1)*base)].reshape((-1,1)))
         self.w_array_ordered_list.append(self.w_array_ordered[:, ((self.gm_num-1)*base):].reshape((-1,1)))
-        for i in range(self.gm_num):
-            print ('self.w_array_ordered_list[i] shape: ', self.w_array_ordered_list[i].shape)
+        # for i in range(self.gm_num):
+        #     print ('self.w_array_ordered_list[i] shape: ', self.w_array_ordered_list[i].shape)
 
     def calcGMRegGrad(self):
         self.grad_array_ordered_list = []
         # gm_num happens to be group number
-        print ('len(self.responsibilitylist: )', len(self.responsibilitylist))
+        # print ('len(self.responsibilitylist: )', len(self.responsibilitylist))
         for i in range(self.gm_num):
+            # print ('calcGMRegGrad self.reg_lambda.shape: ', self.reg_lambda.shape)
             self.grad_array_ordered_list.append(np.sum(self.responsibilitylist[i]*self.reg_lambda, axis=1).reshape(self.w_array_ordered_list[i].shape) * self.w_array_ordered_list[i])
         # reshape
         for i in range(self.gm_num):
             self.grad_array_ordered_list[i] = self.grad_array_ordered_list[i].reshape((self.w_array.shape[0], -1))
-            print ('self.grad_array_ordered_list[i] shape: ', self.grad_array_ordered_list[i].shape)
+            # print ('self.grad_array_ordered_list[i] shape: ', self.grad_array_ordered_list[i].shape)
         # concatenate 
         grad_array_ordered_matrix = self.grad_array_ordered_list[0]
         for i in range(1, self.gm_num):
             grad_array_ordered_matrix = np.concatenate((grad_array_ordered_matrix, self.grad_array_ordered_list[i]), axis=1)
-        print ("grad_array_ordered_matrix shape: ", grad_array_ordered_matrix.shape)
+        # print ("grad_array_ordered_matrix shape: ", grad_array_ordered_matrix.shape)
         self.reg_grad_w = np.zeros(self.w_array.shape)
-        print ("self.reg_grad_w shape: ", self.reg_grad_w.shape)
+        # print ("self.reg_grad_w shape: ", self.reg_grad_w.shape)
         for i in range(self.reg_grad_w.shape[0]):
             self.reg_grad_w[i][self.ordered_correlation_index_matrix[i]] = grad_array_ordered_matrix[i]
 
 
     def apply(self, correlation_moving_average, labelnum, trainnum, epoch, param, name, step):
-        print ("calling regularizers of name: ", name)
+        # print ("calling regularizers of name: ", name)
         self.w_array = param.data.cpu().numpy()
         self.correlation_moving_average = correlation_moving_average
-        print ('self.w_array shape: ', self.w_array.shape)
-        print ('self.correlation_moving_average shape: ', self.correlation_moving_average.shape)
+        # print ('self.w_array shape: ', self.w_array.shape)
+        # print ('self.correlation_moving_average shape: ', self.correlation_moving_average.shape)
         self.CalcOrdCorreIdx()
-        print('self.ordered_correlation_index_matrix shape: ', self.ordered_correlation_index_matrix.shape)
+        # print('self.ordered_correlation_index_matrix shape: ', self.ordered_correlation_index_matrix.shape)
         self.DivideParam() # divide parameters into different groups according to correlation
-        for i in range(self.gm_num):
-            print ('after self.w_array_ordered_list[i] shape: ', self.w_array_ordered_list[i].shape)
+        # for i in range(self.gm_num):
+        #     print ('after self.w_array_ordered_list[i] shape: ', self.w_array_ordered_list[i].shape)
         if epoch < 2 or step % self.paramuptfreq == 0:
             self.calcResponsibilityList()
             self.calcGMRegGrad()
-        print ("labelnum: ", labelnum)
+        # print ("labelnum: ", labelnum)
         self.reg_grad_w = self.reg_grad_w / float(labelnum * trainnum)
         if (epoch == 0 and step < 50) or step % self.gmuptfreq == 0:
             print ("step: ", step)
@@ -295,7 +298,7 @@ class GMResRegularizer():
 
     def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
-        print ('trainnum: ', trainnum)
+        # print ('trainnum: ', trainnum)
         logger = logging.getLogger('res_reg')
         self.feature_matrix = features[feature_idx].data.cpu().numpy()
         self.second_feature_matrix = features[feature_idx + 1].data.cpu().numpy()

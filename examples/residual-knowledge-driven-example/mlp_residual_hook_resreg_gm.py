@@ -330,6 +330,16 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
+        if epoch == (max_epoch - 1):
+            print('\nFinally Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            test_loss, correct, len(test_loader.dataset),
+            100. * correct / len(test_loader.dataset)))
+            print ('finally hyperpara_list: ', hyperpara_list)
+            print ('finally hyperpara_idx: ', hyperpara_idx)
+            print ('finally gm_num: ', gm_num)
+            print ('finally pi_decay_ratio: ', pi_decay_ratio)
+            print ('finally gm_lambda_ratio: ', gm_lambda_ratio)
+            print ('finally uptfreq: ', uptfreq)
             
     done = time.time()
     do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
