@@ -331,7 +331,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
         if epoch == (max_epoch - 1):
-            print('\nFinally Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            print('\nfinally Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
             print ('finally hyperpara_list: ', hyperpara_list)
@@ -477,6 +477,7 @@ if __name__ == '__main__':
         for a_idx in a_idx_arr:
             train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, \
                                                    [a_list, b_list], [a_idx, b_idx], label_num, gm_num, pi_decay_ratio, gm_lambda_ratio, [args.gmuptfreq, args.paramuptfreq], max_epoch=args.maxepoch)    
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_gm.py -datadir . -modelname regmlp -blocks 3 -decay 0.00001 -batchsize 64 -regmethod 6 -firstepochs 0 -labelnum 1 -gmnum 3 -pidecayratio 2 -gmuptfreq 100 -paramuptfreq 50 -maxepoch 1 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_gm.py -datadir . -modelname regmlp -blocks 3 -decay 0.00001 -batchsize 64 -regmethod 6 -firstepochs 0 -labelnum 1 -gmnum 3 -pidecayratio 2 -gmuptfreq 100 -paramuptfreq 50 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_gm.py -datadir . -modelname regmlp -blocks 3 -decay 0.00001 -batchsize 64 -regmethod 6 -firstepochs 0 -gmnum 3 -pidecayratio 2 -gmuptfreq 100 -paramuptfreq 50 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0

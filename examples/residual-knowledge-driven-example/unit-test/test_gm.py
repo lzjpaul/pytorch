@@ -52,6 +52,9 @@ class GMRegularizer():
         print ('reg_lambda_denominator shape: ', reg_lambda_denominator.shape)
         self.reg_lambda = reg_lambda_numerator / reg_lambda_denominator
         print ('self.reg_lambda shape: ', self.reg_lambda.shape)
+        for i in range(self.gm_num):
+            print ('in EM self.w_array_ordered_list[i] shape: ', self.w_array_ordered_list[i].shape)
+            print ('in EM self.w_array_ordered_list[i]: ', self.w_array_ordered_list[i])
         if step % self.gmuptfreq == 0:
             print ("name: ", name)
             # print "np.sum(self.responsibility, axis=0): ", np.sum(self.responsibility, axis=0)
@@ -89,6 +92,7 @@ class GMRegularizer():
         self.grad_array_ordered_list = []
         # gm_num happens to be group number
         for i in range(self.gm_num):
+            print ('self.reg_lambda shape: ', self.reg_lambda.shape)
             self.grad_array_ordered_list.append(np.sum(self.responsibilitylist[i]*self.reg_lambda, axis=1).reshape(self.w_array_ordered_list[i].shape) * self.w_array_ordered_list[i])
         # reshape
         for i in range(self.gm_num):

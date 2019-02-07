@@ -5,3 +5,5 @@
 19-1-22:
 (1) save the using |r| version, no baysian approach
 
+19-2-7:
+(1) gen_prob: need to divided by (trainnum * labelnum)
