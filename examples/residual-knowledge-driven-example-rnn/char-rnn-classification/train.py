@@ -1,6 +1,6 @@
 ## different from MIMIC-III
 ## https://github.com/spro/practical-pytorch/tree/master/char-rnn-classification
-## next step:
+## Attention:
 ## (1) batch_first set as argument
 ## (2) # of blocks: set as argument
 
@@ -101,7 +101,8 @@ def timeSince(since):
 start = time.time()
 
 for epoch in range(1, n_epochs + 1):
-    # print ('epoch: ', epoch)
+    print ('epoch: ', epoch)
+    print ("features: ", features)
     category, line, category_tensor, line_tensor = randomTrainingPair()
     if model_type != 'originrnn': 
         category_tensor, line_tensor = category_tensor.cuda(gpu_id), line_tensor.cuda(gpu_id)
