@@ -150,15 +150,15 @@ def mlp(blocks, dim_vec, pretrained=False, **kwargs):
     return model
 
 
-def get_features_hook(self, input, output):
+def get_features_hook(module, input, output):
     # input is a tuple of packed inputs
     # output is a Tensor. output.data is the Tensor we are interested
     
     logger = logging.getLogger('res_reg')
-    logger.debug('Inside ' + self.__class__.__name__ + ' forward hook')
+    logger.debug('Inside ' + module.__class__.__name__ + ' forward hook')
     logger.debug('')
-    logger.debug('input:')
-    logger.debug(input)
+    # logger.debug('input:')
+    # logger.debug(input)
     logger.debug('input: ')
     logger.debug(type(input))
     logger.debug('input[0]: ')
