@@ -16,8 +16,8 @@
 
 
 ## Attention:
-## (1) batch_first set as argument
-## (2) # of blocks: set as argument
+## (1) batch_first set as argument --> for calculating correlation also!!
+## (2) label_num
 ## (3) batch_size are passed to the functions
 ## (4) different model different params???
 
@@ -264,7 +264,7 @@ def randomTrainingPair():
     line_tensor = Variable(lineToTensor(line))
     return category, line, category_tensor, line_tensor
 
-logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
 logger = logging.getLogger('res_reg')
 logger.info ('#################################')
 

@@ -16,7 +16,7 @@
 # 2) set reg_lambda, weightdecay
 # 3) which weights to be taken out? -- correct?
 # Attention
-# (1)
+# (1) label_num
 import math
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
