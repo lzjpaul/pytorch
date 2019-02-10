@@ -25,13 +25,39 @@ class ResRegularizer():
 
     # calc correlation using two layers 
     def calcCorrelation_two_layers(self):
+        self.feature_correlation = []
         logger = logging.getLogger('res_reg')
-        feature_dim = self.feature_matrix.shape[1]
-        logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
-        self.feature_correlation = np.corrcoef(self.feature_matrix, self.second_feature_matrix, rowvar=False)[feature_dim:, 0:feature_dim]
-        logger.debug ("new using two layers self.feature_correlation.shape:")
-        logger.debug (self.feature_correlation.shape)
-
+        # not rnn
+        if self.feature_matrix.ndim == 2:
+            feature_dim = self.feature_matrix.shape[1]
+            logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
+            self.feature_correlation.append(np.corrcoef(self.feature_matrix, self.second_feature_matrix, rowvar=False)[feature_dim:, 0:feature_dim])
+            logger.debug ("new using two layers self.feature_correlation.shape:")
+            logger.debug (self.feature_correlation[0].shape)
+        # rnn
+        else:
+            feature_dim = self.feature_matrix.shape[2]
+            logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
+            if self.batch_first:
+                for i in range(self.feature_matrix.shape[1]):
+                    self.feature_correlation.append(np.corrcoef(self.feature_matrix[:,i,:], self.second_feature_matrix[:,i,:], rowvar=False)[feature_dim:, 0:feature_dim])
+                    logger.debug ("new using two layers self.feature_correlation[i].shape:")
+                    logger.debug (self.feature_correlation[i].shape)
+            else:
+                for i in range(self.feature_matrix.shape[0]):
+                    self.feature_correlation.append(np.corrcoef(self.feature_matrix[i,:,:], self.second_feature_matrix[i,:,:], rowvar=False)[feature_dim:, 0:feature_dim])
+                    logger.debug ("new using two layers self.feature_correlation[i].shape:")
+                    logger.debug (self.feature_correlation[i].shape)
+    
+    # calc moving average
+    def calAvgCorrelation(self):
+        logger = logging.getLogger('res_reg')
+        logger.debug ("len(self.feature_correlation):")
+        logger.debug (len(self.feature_correlation))
+        for i in range(len(self.feature_correlation)):
+            self.correlation_moving_average = self.momentum_mu * self.correlation_moving_average + (1-self.momentum_mu) * self.feature_correlation[i]
+        logger.debug ("self.correlation_moving_average.shape:")
+        logger.debug (self.correlation_moving_average.shape)
     # singa: (word_num, doc_num)
     # pytorch: (doc_num, word_num)
     '''
@@ -115,9 +141,10 @@ class ResRegularizer():
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
-    def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step):
+    def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step, batch_first=True):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
+        self.batch_first = batch_first
         self.feature_matrix = features[feature_idx].data.cpu().numpy()
         self.second_feature_matrix = features[feature_idx + 1].data.cpu().numpy()
         logger.debug ("feature_idx: %d", feature_idx)
@@ -132,7 +159,7 @@ class ResRegularizer():
         logger.debug (self.w_array.shape)
         # self.calcCorrelation()
         self.calcCorrelation_two_layers()
-        self.correlation_moving_average = self.momentum_mu * self.correlation_moving_average + (1-self.momentum_mu) * self.feature_correlation
+        self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
         if reg_method == 0:
             self.reg_grad_w = self.calcRegGradAvg()

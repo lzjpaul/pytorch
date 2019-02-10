@@ -369,7 +369,7 @@ if __name__ == '__main__':
     parser.add_argument('-gpuid', type=int, help='gpuid')
     args = parser.parse_args()
    
-    logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     gpu_id = args.gpuid
     logger = logging.getLogger('res_reg')
     logger.info ('#################################')
