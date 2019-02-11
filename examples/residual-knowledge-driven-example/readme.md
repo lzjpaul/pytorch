@@ -14,3 +14,4 @@
 
 19-2-11:
 (1) every layer has its own correlation_moving_average!!
+(2) using main() to organize the code
