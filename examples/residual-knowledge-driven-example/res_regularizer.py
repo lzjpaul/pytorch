@@ -32,12 +32,14 @@ class ResRegularizer():
             feature_dim = self.feature_matrix.shape[1]
             logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
             self.feature_correlation.append(np.corrcoef(self.feature_matrix, self.second_feature_matrix, rowvar=False)[feature_dim:, 0:feature_dim])
-            logger.debug ("new using two layers self.feature_correlation.shape:")
+            logger.debug ("new using two layers self.feature_correlation[0].shape:")
             logger.debug (self.feature_correlation[0].shape)
         # rnn
         else:
             feature_dim = self.feature_matrix.shape[2]
             logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
+            logger.debug ("self.batch_first")
+            logger.debug (self.batch_first)
             if self.batch_first:
                 for i in range(self.feature_matrix.shape[1]):
                     self.feature_correlation.append(np.corrcoef(self.feature_matrix[:,i,:], self.second_feature_matrix[:,i,:], rowvar=False)[feature_dim:, 0:feature_dim])
@@ -55,6 +57,8 @@ class ResRegularizer():
         logger.debug ("len(self.feature_correlation):")
         logger.debug (len(self.feature_correlation))
         for i in range(len(self.feature_correlation)):
+            print ("self.correlation_moving_average shape: ", self.correlation_moving_average.shape)
+            print ('self.feature_correlation[i] shape: ', self.feature_correlation[i].shape)
             self.correlation_moving_average = self.momentum_mu * self.correlation_moving_average + (1-self.momentum_mu) * self.feature_correlation[i]
         logger.debug ("self.correlation_moving_average.shape:")
         logger.debug (self.correlation_moving_average.shape)

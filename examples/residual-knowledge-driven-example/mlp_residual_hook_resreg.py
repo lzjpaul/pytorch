@@ -442,6 +442,7 @@ if __name__ == '__main__':
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 2 -decay 0.00001 -batchsize 64 -regmethod 5 -firstepochs 0 -labelnum 1 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
 # python mlp_residual_hook_resreg.py -datadir . -modelname resnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1

@@ -265,38 +265,36 @@ def randomTrainingPair():
     line_tensor = Variable(lineToTensor(line))
     return category, line, category_tensor, line_tensor
 
-logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
 logger = logging.getLogger('res_reg')
 logger.info ('#################################')
 
-model_type = sys.argv[1]
+model_name = sys.argv[1]
 gpu_id = 0
 batch_first = False ## need to set this as argument ??? batch_first
 learning_rate = float(sys.argv[2])
 print ('learning_rate', learning_rate)
-if model_type == 'originrnn':
+if model_name == 'originrnn':
     rnn = OriginRNN(n_letters, n_hidden, n_categories)
-elif model_type == 'rnn3':
-    blocks = 2
-    rnn = ResNetRNN(gpu_id, BasicRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
-    rnn = rnn.cuda(gpu_id)
-elif model_type == 'resrnn3':
+elif "res" in model_name:
     blocks = 2
     rnn = ResNetRNN(gpu_id, BasicResRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
     rnn = rnn.cuda(gpu_id)
 else:
-    print ('Please specify one type model')
+    blocks = 2
+    rnn = ResNetRNN(gpu_id, BasicRNNBlock, n_letters, n_hidden, n_categories, blocks, batch_first)
+    rnn = rnn.cuda(gpu_id)
 
 optimizer = torch.optim.SGD(rnn.parameters(), lr=learning_rate)
 criterion = nn.NLLLoss()
-label_num = 1
+labelnum = 1
 momentum_mu = 0.9 # momentum mu
 reg_lambda = 0.00001 # resreg strength
 weightdecay = 0.00001 # other parameters' weight decay
-first_epochs = 3
-def train(model_type, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance):
+firstepochs = 0
+def train(model_name, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance):
     logger = logging.getLogger('res_reg')
-    if model_type == 'originrnn':
+    if model_name == 'originrnn':
         hidden = rnn.initHidden()
         optimizer.zero_grad()
 
@@ -372,7 +370,7 @@ start = time.time()
 
 for epoch in range(1, n_epochs + 1):
     category, line, category_tensor, line_tensor = randomTrainingPair()
-    if model_type != 'originrnn': 
+    if model_name != 'originrnn': 
         category_tensor, line_tensor = category_tensor.cuda(gpu_id), line_tensor.cuda(gpu_id)
     if batch_first:
         batch_size = line_tensor.size()[0]
@@ -380,7 +378,7 @@ for epoch in range(1, n_epochs + 1):
         batch_size = line_tensor.size()[1]
     # print ('batch_size', batch_size)
     # print ('epoch: ', epoch)
-    output, loss = train(model_type, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance)
+    output, loss = train(model_name, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance)
     current_loss += loss
 
     # Print epoch number, loss, name and guess
@@ -396,6 +394,7 @@ for epoch in range(1, n_epochs + 1):
 
 print ('all_losses: ', all_losses)
 torch.save(rnn, 'char-rnn-classification.pt')
+# python train_hook_resreg.py regrnn3 0.005
 # python train_hook.py rnn3 0.005
 # python train_hook.py resrnn3 0.005
 # python train_hook.py originrnn 0.005

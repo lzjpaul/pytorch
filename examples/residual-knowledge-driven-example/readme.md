@@ -11,3 +11,6 @@
 19-2-10:
 (1) train_hook.py: adding model.py to train.py + adding hook
 (2) res_regularizer.py: calculating correlation for different time steps
+
+19-2-11:
+(1) every layer has its own correlation_moving_average!!
