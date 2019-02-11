@@ -233,9 +233,9 @@ def train_validate_test_model(model, train_loader, test_loader, criterion, optim
                 print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
 '''
 
-def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, reg_lambda, momentum_mu, hidden_dim, weightdecay, firstepochs, labelnum, max_epoch=25):
+def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, max_epoch=25):
     logger = logging.getLogger('res_reg')
-    res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda, momentum_mu=momentum_mu, feature_dim=hidden_dim)
+    res_regularizer_instance = ResRegularizer(reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=hidden_dim)
     # hyper parameters
     print('Beginning Training')
     start = time.time()
@@ -440,7 +440,7 @@ if __name__ == '__main__':
     reg_lambda = args.decay # resreg strength
     weightdecay = args.decay # other parameters' weight decay
     # Train and evaluate MNIST on resmlp or mlp model
-    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
+    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 2 -decay 0.00001 -batchsize 64 -regmethod 5 -firstepochs 0 -labelnum 1 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0

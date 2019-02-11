@@ -8,13 +8,16 @@ class ResRegularizer():
     Args:
         hyperparameters: a, b, alpha (like the coefficient of L2), uptfreq
     '''
-    def __init__(self, reg_lambda=None, momentum_mu=None, feature_dim=None):
+    def __init__(self, reg_lambda=None, momentum_mu=None, blocks=None, feature_dim=None):
         self.reg_lambda = reg_lambda
         self.momentum_mu = momentum_mu
         print ("self.reg_lambda: ", self.reg_lambda)
         print ("new self.momentum_mu: ", self.momentum_mu)
-        self.correlation_moving_average = np.zeros((feature_dim, feature_dim))
-        print ('new self.correlation_moving_average shape: ', self.correlation_moving_average.shape)
+        print ("blocks: ", blocks)
+        self.correlation_moving_average = []
+        for i in range(blocks):
+            self.correlation_moving_average.append(np.zeros((feature_dim, feature_dim)))
+        print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
     
     # calc correlation using one layer 
     def calcCorrelation(self):
@@ -57,11 +60,15 @@ class ResRegularizer():
         logger.debug ("len(self.feature_correlation):")
         logger.debug (len(self.feature_correlation))
         for i in range(len(self.feature_correlation)):
-            print ("self.correlation_moving_average shape: ", self.correlation_moving_average.shape)
-            print ('self.feature_correlation[i] shape: ', self.feature_correlation[i].shape)
-            self.correlation_moving_average = self.momentum_mu * self.correlation_moving_average + (1-self.momentum_mu) * self.feature_correlation[i]
-        logger.debug ("self.correlation_moving_average.shape:")
-        logger.debug (self.correlation_moving_average.shape)
+            logger.debug ("self.feature_idx: ")
+            logger.debug (self.feature_idx)
+            logger.debug ("self.correlation_moving_average[self.feature_idx] shape: ")
+            logger.debug (self.correlation_moving_average[self.feature_idx].shape)
+            logger.debug ('self.feature_correlation[i] shape: ')
+            logger.debug (self.feature_correlation[i].shape)
+            self.correlation_moving_average[self.feature_idx] = self.momentum_mu * self.correlation_moving_average[self.feature_idx] + (1-self.momentum_mu) * self.feature_correlation[i]
+        logger.debug ("self.correlation_moving_average[self.feature_idx].shape:")
+        logger.debug (self.correlation_moving_average[self.feature_idx].shape)
     # singa: (word_num, doc_num)
     # pytorch: (doc_num, word_num)
     '''
@@ -79,7 +86,9 @@ class ResRegularizer():
     # calculate regularization using self.correlation_moving_average
     def calcRegGradAvg(self):
         logger = logging.getLogger('res_reg')
-        correlation_abs_matrix = np.abs(self.correlation_moving_average) # only this line is different
+        logger.debug ('calcRegGradAvg correlation_moving_average self.feature_idx: ')
+        logger.debug (self.feature_idx)
+        correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx]) # only this line is different
         correlation_abs_avg = np.mean(correlation_abs_matrix)
         correlation_diff_matrix = correlation_abs_avg - correlation_abs_matrix
         reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array
@@ -91,7 +100,9 @@ class ResRegularizer():
     # pytorch: (doc_num, word_num)
     def calcRegGradAvg_Exp(self):
         logger = logging.getLogger('res_reg')
-        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        logger.debug ('calcRegGradAvg_Exp correlation_moving_average self.feature_idx: ')
+        logger.debug (self.feature_idx)
+        correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
@@ -101,7 +112,9 @@ class ResRegularizer():
     # pytorch: (doc_num, word_num)
     def calcRegGradAvg_Linear(self):
         logger = logging.getLogger('res_reg')
-        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        logger.debug ('calcRegGradAvg_Linear correlation_moving_average self.feature_idx: ')
+        logger.debug (self.feature_idx)
+        correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
@@ -112,7 +125,9 @@ class ResRegularizer():
     # pytorch: (doc_num, word_num)
     def calcRegGradAvg_Inverse(self):
         logger = logging.getLogger('res_reg')
-        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        logger.debug ('calcRegGradAvg_Inverse correlation_moving_average self.feature_idx: ')
+        logger.debug (self.feature_idx)
+        correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
@@ -122,7 +137,9 @@ class ResRegularizer():
     # pytorch: (doc_num, word_num)
     def calcRegGradAvg_Inverse_Var(self):
         logger = logging.getLogger('res_reg')
-        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        logger.debug ('calcRegGradAvg_Inverse_Var correlation_moving_average self.feature_idx: ')
+        logger.debug (self.feature_idx)
+        correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
@@ -132,7 +149,9 @@ class ResRegularizer():
     # pytorch: (doc_num, word_num)
     def calcRegGradAvg_Gen_Prob(self, labelnum, trainnum):
         logger = logging.getLogger('res_reg')
-        correlation_abs_matrix = np.abs(self.correlation_moving_average)
+        logger.debug ('calcRegGradAvg_Gen_prob correlation_moving_average self.feature_idx: ')
+        logger.debug (self.feature_idx)
+        correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         correlation_abs_matrix_sum = np.sum(correlation_abs_matrix, axis=1).reshape((correlation_abs_matrix.shape[0],1))
         # print ('correlation_abs_matrix_sum shape:', correlation_abs_matrix_sum.shape)
         correlation_abs_matrix_normalize = correlation_abs_matrix / correlation_abs_matrix_sum
@@ -149,9 +168,10 @@ class ResRegularizer():
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
         self.batch_first = batch_first
-        self.feature_matrix = features[feature_idx].data.cpu().numpy()
-        self.second_feature_matrix = features[feature_idx + 1].data.cpu().numpy()
-        logger.debug ("feature_idx: %d", feature_idx)
+        self.feature_idx = feature_idx
+        self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
+        self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
+        logger.debug ("self.feature_idx: %d", self.feature_idx)
         logger.debug ("self.feature_matrix shape:")
         logger.debug (self.feature_matrix.shape)
         logger.debug ("self.feature_matrix norm: %f", np.linalg.norm(self.feature_matrix))
