@@ -331,6 +331,7 @@ class GMResRegularizer():
             self.reg_grad_w = self.calcRegGradAvg_Gen_Prob()
         # gm-based method
         elif reg_method == 6:
+            print ('the correlation_moving_average is not layer-wise!!!!')
             self.reg_grad_w = self.gmregularizers[name].apply(self.correlation_moving_average, labelnum, trainnum, epoch, param, name, step)
         else:
             print("Invalid regularization method, exiting...")
