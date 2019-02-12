@@ -371,10 +371,13 @@ if __name__ == '__main__':
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
     parser.add_argument('--batch_first', action='store_true')
+    parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
-
-    logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    else:
+        logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     logger = logging.getLogger('res_reg')
     logger.info ('#################################')
 
@@ -383,6 +386,7 @@ if __name__ == '__main__':
     print_every = 5000
     plot_every = 1000
     
+    print ("args.debug: ", args.debug)
     print ("args.batch_first: ", args.batch_first)
 
     if args.modelname == 'originrnn':

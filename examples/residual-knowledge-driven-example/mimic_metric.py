@@ -14,7 +14,7 @@ def AUCAccuracy(outputs, labels):
     '''
     p_np = outputs
     y_np = labels
-       
+    print ("y_np shape: ", y_np.shape)       
     pred_p_np = (p_np > 0.5).astype(np.float32)
  
     # accuracy = tensor.from_numpy((pred_x_np == y_np).astype(np.float32)) # still a matrix

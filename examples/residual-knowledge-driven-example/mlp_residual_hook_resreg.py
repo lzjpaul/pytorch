@@ -367,9 +367,13 @@ if __name__ == '__main__':
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
+    parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
    
-    logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
+    else:
+        logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     gpu_id = args.gpuid
     logger = logging.getLogger('res_reg')
     logger.info ('#################################')

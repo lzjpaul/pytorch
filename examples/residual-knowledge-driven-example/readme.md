@@ -15,3 +15,7 @@
 19-2-11:
 (1) every layer has its own correlation_moving_average!!
 (2) using main() to organize the code
+
+19-2-12:
+(1) mlp_residual_hook_resreg_real.py and train_main_hook_resreg_real.py:
+design for healthcare and sentiment analysis
