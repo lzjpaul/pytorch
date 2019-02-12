@@ -321,7 +321,7 @@ if __name__ == '__main__':
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-lr', type=float, help='0.08 for MIMIC-III')
     parser.add_argument('-decay', type=float, help='reg_lambda and weightdecay')
-    parser.add_argument('-batchsize', type=int, help='batch_size')
+    parser.add_argument('-batchsize', type=int, help='batch_size, default 100')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='need to consider label number because the loss is averaged across labels')
@@ -357,7 +357,7 @@ if __name__ == '__main__':
 
     train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
     train_loader = Data.DataLoader(dataset=train_dataset,
-                                   batch_size=100,
+                                   batch_size=args.batchsize,
                                    shuffle=True)
     print ('len(train_dataset): ', len(train_dataset))
     test_dataset = Data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_y))
