@@ -19,3 +19,7 @@
 19-2-12:
 (1) mlp_residual_hook_resreg_real.py and train_main_hook_resreg_real.py:
 design for healthcare and sentiment analysis
+(2) train_lstm_main_hook_resreg_real.py: lstm model is ready
+
+19-2-13:
+(1) res_regularizer.py: divide the model paramter into 4 parts

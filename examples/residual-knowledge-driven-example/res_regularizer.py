@@ -91,7 +91,13 @@ class ResRegularizer():
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx]) # only this line is different
         correlation_abs_avg = np.mean(correlation_abs_matrix)
         correlation_diff_matrix = correlation_abs_avg - correlation_abs_matrix
-        reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array
+        if 'lstm' not in self.model_name:
+            reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array
+        else:
+            base = self.w_array.shape[0] / 4
+            reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array[0:base]
+            for i in range(1,4):
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
         logger.debug ("new reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -103,7 +109,13 @@ class ResRegularizer():
         logger.debug ('calcRegGradAvg_Exp correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-        reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array
+        if 'lstm' not in self.model_name:
+            reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array
+        else:
+            base = self.w_array.shape[0] / 4
+            reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array[0:base]
+            for i in range(1,4):
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -115,7 +127,13 @@ class ResRegularizer():
         logger.debug ('calcRegGradAvg_Linear correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-        reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array
+        if 'lstm' not in self.model_name:
+            reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array
+        else:
+            base = self.w_array.shape[0] / 4
+            reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array[0:base]
+            for i in range(1,4):
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -128,7 +146,13 @@ class ResRegularizer():
         logger.debug ('calcRegGradAvg_Inverse correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-        reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array
+        if 'lstm' not in self.model_name:
+            reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array
+        else:
+            base = self.w_array.shape[0] / 4
+            reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array[0:base]
+            for i in range(1,4):
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -140,7 +164,13 @@ class ResRegularizer():
         logger.debug ('calcRegGradAvg_Inverse_Var correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-        reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array
+        if 'lstm' not in self.model_name:
+            reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array
+        else:
+            base = self.w_array.shape[0] / 4
+            reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array[0:base]
+            for i in range(1,4):
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array[i * base: (i+1) * base]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -159,14 +189,21 @@ class ResRegularizer():
         # print ('np.sum(correlation_abs_matrix_normalize, axis=1)', np.sum(correlation_abs_matrix_normalize, axis=1))
         correlation_abs_matrix_normalize_log = np.log(correlation_abs_matrix_normalize)
         # print ('np.min(correlation_abs_matrix_normalize) after log', np.min(correlation_abs_matrix_normalize_log))
-        reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+        if 'lstm' not in self.model_name:
+            reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+        else:
+            base = self.w_array.shape[0] / 4
+            reg_grad_w = (-self.reg_lambda * np.sign(self.w_array[0:base]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+            for i in range(1,4):
+                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(self.w_array[i * base: (i+1) * base]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
-    def apply(self, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step, batch_first=True):
+    def apply(self, model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step, batch_first=True):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
+        self.model_name = model_name
         self.batch_first = batch_first
         self.feature_idx = feature_idx
         self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
