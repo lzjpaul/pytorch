@@ -39,7 +39,7 @@ import time
 import datetime
 import logging
 import torch.utils.data as Data
-
+from torch.autograd import Variable
 
 features = []
 
@@ -196,20 +196,20 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
         running_loss = 0.0
         running_accuracy = 0.0
         for batch_idx, data_iter in enumerate(train_loader, 0):
-            features, labels = data_iter
-            features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
-            logger.debug('features shape:')
-            logger.debug(features.shape)
-            logger.debug('labels shape:')
-            logger.debug(labels.shape)
+            data_x, data_y = data_iter
+            data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+            logger.debug('data_x shape:')
+            logger.debug(data_x.shape)
+            logger.debug('data_y shape:')
+            logger.debug(data_y.shape)
             optimizer.zero_grad()
             features.clear()
-            logger.debug ('features: ')
-            logger.debug (features)
-            logger.debug ('features norm: %f', features.norm())
-            outputs = model(features)
-            loss = criterion(outputs, labels)
-            accuracy = AUCAccuracy(outputs, labels)[0]
+            logger.debug ('data_x: ')
+            logger.debug (data_x)
+            logger.debug ('data_x norm: %f', data_x.norm())
+            outputs = model(data_x)
+            loss = criterion(outputs, data_y)
+            accuracy = AUCAccuracy(outputs, data_y)[0]
             # train_loss += (loss.item() * len(data)) # sum over all samples in the mini-batch
             
             logger.debug ("features length: %d", len(features))
@@ -250,9 +250,9 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                             logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 0.01))
             ### print norm
             optimizer.step()
-            running_loss += loss.data[0] * len(features)
-            print ('len(features): ', len(features))
-            running_accuracy += accuracy * len(features)
+            running_loss += loss.data[0] * len(data_x)
+            print ('len(data_x): ', len(data_x))
+            running_accuracy += accuracy * len(data_x)
             '''
             if batch_idx % 10 == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -272,11 +272,11 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
         correct = 0
         with torch.no_grad():
             for batch_idx, data_iter in enumerate(test_loader):
-                features, labels = data_iter
-                features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
-                outputs = model(features)
-                loss = criterion(outputs, labels)
-                metrics = AUCAccuracy(outputs, labels)
+                data_x, data_y = data_iter
+                data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+                outputs = model(data_x)
+                loss = criterion(outputs, data_y)
+                metrics = AUCAccuracy(outputs, data_y)
                 accuracy, macro_auc, micro_auc = metrics[0], metrics[1], metrics[2]
                 print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
                 if epoch == (max_epoch - 1):
@@ -344,16 +344,19 @@ if __name__ == '__main__':
     # Load Data
     # ---------
     #
-    train_x = np.genfromtxt(args.traindatadir, delimiter=',')
-    train_y = np.genfromtxt(args.trainlabeldir, delimiter=',')
-    test_x = np.genfromtxt(args.testdatadir, delimiter=',')
-    test_y = np.genfromtxt(args.testlabeldir, delimiter=',')
+    train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+    train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
+    test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+    test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
     train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
     train_x = np.sum(train_x, axis=1, keepdims=False)
     test_x = np.sum(test_x, axis=1, keepdims=False)
     print ('train_x.shape: ', train_x.shape)
     print ('test_x.shape: ', test_x.shape)
+    train_num = train_x.shape[0]
+    input_dim = train_x.shape[-1]
+    print ('input_dim: ', input_dim)
 
     train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
     train_loader = Data.DataLoader(dataset=train_dataset,
@@ -371,7 +374,7 @@ if __name__ == '__main__':
     else:
         label_num = train_y.shape[1]
     print ("label number: ", label_num)
-    dim_vec = [train_x.shape[2], 128, label_num] # [input_dim, hidden_dim, output_dim]
+    dim_vec = [input_dim, 128, label_num] # [input_dim, hidden_dim, output_num]
     print ("dim_vec: ", dim_vec)
     print("Initializing Datasets and Dataloaders...")
 

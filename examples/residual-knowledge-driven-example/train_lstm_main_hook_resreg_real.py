@@ -28,6 +28,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from init_linear import InitLinear
 from res_regularizer import ResRegularizer
+import torch.utils.data as Data
 import torch.autograd as autograd
 import random
 import time
@@ -36,6 +37,11 @@ import sys
 import numpy as np
 import logging
 import argparse
+from torch.optim.adam import Adam
+import datetime
+import torch.nn.functional as F
+from mimic_metric import *
+
 
 features = []
 
@@ -403,22 +409,22 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
         running_accuracy = 0.0
         # output, loss = train(model_name, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance)
         for batch_idx, data_iter in enumerate(train_loader, 0):
-            features, labels = data_iter
-            features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
-            rnn.init_hidden(features.shape[0])
+            data_x, data_y = data_iter
+            data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+            rnn.init_hidden(data_x.shape[0])
             optimizer.zero_grad()
             features.clear()
-            logger.debug ('line_tensor: ')
-            logger.debug (line_tensor)
-            logger.debug ('line_tensor norm: %f', line_tensor.norm())
-            outputs = rnn(features)
-            loss = criterion(outputs, labels)
+            logger.debug ('data_x: ')
+            logger.debug (data_x)
+            logger.debug ('data_x norm: %f', data_x.norm())
+            outputs = rnn(data_x)
+            loss = criterion(outputs, data_y)
             logger.debug ("features length: %d", len(features))
             for feature in features:
                 logger.debug ("feature size:")
                 logger.debug (feature.data.size())
                 logger.debug ("feature norm: %f", feature.data.norm())
-            accuracy = AUCAccuracy(outputs.data.cpu().numpy(), labels.data.cpu().numpy())[0]
+            accuracy = AUCAccuracy(outputs.data.cpu().numpy(), data_y.data.cpu().numpy())[0]
             loss.backward()
             ### print norm
             '''
@@ -439,7 +445,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                     if "layer1" in name and "weight_ih" in name:
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, 0, reg_lambda, labelnum, 800, epoch, f, name, epoch, batch_first)
+                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -449,10 +455,10 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
                             logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             ### print norm
-            optimizer.step(epoch=epoch, batch_iter=batch_idx, ldauptfreq=args.ldauptfreq, gpu_id=gpu_id)
-            running_loss += loss.data[0] * len(features)
-            print ('len(features): ', len(features))
-            running_accuracy += accuracy * len(features)
+            optimizer.step()
+            running_loss += loss.data[0] * len(data_x)
+            print ('len(data_x): ', len(data_x))
+            running_accuracy += accuracy * len(data_x)
 
         # Print epoch number, loss, name and guess
         print ('maximum batch_idx: ', batch_idx)
@@ -468,14 +474,17 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
         test_loss = 0.0
         with torch.no_grad():
             for batch_idx, data_iter in enumerate(test_loader):
-                features, labels = data_iter
-                features, labels = Variable(features.cuda(gpu_id)), Variable(labels.cuda(gpu_id))
-                rnn.init_hidden(features.shape[0])
-                outputs = rnn(features)
-                loss = criterion(outputs, labels)
-                test_loss += loss.data[0] * len(features)
+                data_x, data_y = data_iter
+                data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+                print ('data_y shape: ', data_y.shape)
+                rnn.init_hidden(data_x.shape[0])
+                outputs = rnn(data_x)
+                print ('outputs shape: ', outputs.shape)
+                print ('data_y shape: ', data_y.shape)
+                loss = criterion(outputs, data_y)
+                test_loss += loss.data[0] * len(data_x)
                 outputs_list.extend(list(outputs.data.cpu().numpy()))
-                labels_list.extend(list(labels.data.cpu().numpy()))
+                labels_list.extend(list(data_y.data.cpu().numpy()))
             print ('test outputs_list length: ', len(outputs_list))
             print ('test labels_list length: ', len(labels_list))
             metrics = AUCAccuracy(np.array(outputs_list), np.array(labels_list))
@@ -531,14 +540,18 @@ if __name__ == '__main__':
     # Load Data
     # ---------
     #
-    train_x = np.genfromtxt(args.traindatadir, delimiter=',')
-    train_y = np.genfromtxt(args.trainlabeldir, delimiter=',')
-    test_x = np.genfromtxt(args.testdatadir, delimiter=',')
-    test_y = np.genfromtxt(args.testlabeldir, delimiter=',')
+    train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+    train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
+    test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+    test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
     train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
     print ('train_x.shape: ', train_x.shape)
     print ('test_x.shape: ', test_x.shape)
+    train_num = train_x.shape[0]
+    print ('train_num: ', train_num)
+    input_dim = train_x.shape[-1]
+    print ('input_dim: ', input_dim)
 
     train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
     train_loader = Data.DataLoader(dataset=train_dataset,
@@ -563,28 +576,29 @@ if __name__ == '__main__':
 
     if "res" in args.modelname and "rnn" in args.modelname:
         print ('resrnn model')
-        rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, n_letters, n_hidden, n_categories, args.blocks, args.batch_first)
+        rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
     elif "res" in args.modelname and "lstm" in args.modelname:
         print ('reslstm model')
-        rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, n_letters, n_hidden, n_categories, args.blocks, args.batch_first)
+        rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
     elif "res" not in args.modelname and "rnn" in args.modelname:
         print ('rnn model')
-        rnn = ResNetRNN(args.gpuid, BasicRNNBlock, n_letters, n_hidden, n_categories, args.blocks, args.batch_first)
+        rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
     else:
         print ('lstm model')
-        rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, n_letters, n_hidden, n_categories, args.blocks, args.batch_first)
+        rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
 
-    optimizer = MyAdam(rnn.parameters(), lr=args.lr)
+    optimizer = Adam(rnn.parameters(), lr=args.lr)
     criterion = nn.BCELoss()
     momentum_mu = 0.9 # momentum mu
     reg_lambda = args.decay
     weightdecay = args.decay
     train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
+# python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=0 python train_main_hook_resreg.py -datadir . -modelname rnn3 -blocks 2 -decay 0.00001 -regmethod 3 -firstepochs 0 -labelnum 1 -maxepoch 100000 -gpuid 0
 # python train_hook_resreg.py regrnn3 0.005
 # python train_hook.py rnn3 0.005
