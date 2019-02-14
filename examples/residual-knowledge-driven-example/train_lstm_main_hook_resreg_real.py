@@ -268,7 +268,6 @@ class ResNetRNN(nn.Module):
             layer.register_forward_hook(get_features_hook)
         logger.info ('layers: ')
         logger.info (layers)
-        print ('layers: ')
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -294,7 +293,6 @@ class ResNetRNN(nn.Module):
             x = F.sigmoid(self.fc1(x[:, -1, :].view(batch_size, -1)))
         else:
             x = F.sigmoid(self.fc1(x[-1, :, :].view(batch_size, -1)))
-        print ('x in ResNetRNN: ', x)
         return x
 
 class ResNetLSTM(nn.Module):
@@ -444,9 +442,11 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                     logger.debug ("param size:")
                     logger.debug (f.size())
                     if "layer1" in name and "weight_ih" in name:
+                        print ("check res_reg param name: ", name)
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
                         res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first)
+                        print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -458,7 +458,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
             ### print norm
             optimizer.step()
             running_loss += loss.item() * len(data_x)
-            print ('len(data_x): ', len(data_x))
+            print ('check!! len(data_x) --> last batch? : ', len(data_x))
             running_accuracy += accuracy * len(data_x)
 
         # Print epoch number, loss, name and guess
@@ -518,7 +518,7 @@ if __name__ == '__main__':
     parser.add_argument('-batchsize', type=int, help='batch_size')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
-    parser.add_argument('-considerlabelnum', type=int, help='need to consider label number because the loss is averaged across labels')
+    parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
@@ -549,50 +549,51 @@ if __name__ == '__main__':
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
     print ('train_x.shape: ', train_x.shape)
     print ('test_x.shape: ', test_x.shape)
-    train_num = train_x.shape[0]
-    print ('train_num: ', train_num)
     input_dim = train_x.shape[-1]
-    print ('input_dim: ', input_dim)
+    print ('check input_dim: ', input_dim)
 
     train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
     train_loader = Data.DataLoader(dataset=train_dataset,
                                    batch_size=args.batchsize,
                                    shuffle=True)
-    print ('len(train_dataset): ', len(train_dataset))
+    print ('check len(train_dataset): ', len(train_dataset))
     test_dataset = Data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_y))
     test_loader = Data.DataLoader(dataset=test_dataset,
                                    batch_size=args.batchsize,
                                    shuffle=True)
-    print ('len(test_dataset): ', len(test_dataset))
+    print ('check len(test_dataset): ', len(test_dataset))
 
     if train_y.ndim == 1:
         label_num = 1
     else:
         label_num = train_y.shape[1]
-    print ("label number: ", label_num)
+    print ("check label number: ", label_num)
 
 
     n_hidden = 128
     n_epochs = args.maxepoch
 
     if "res" in args.modelname and "rnn" in args.modelname:
-        print ('resrnn model')
+        print ('check resrnn model')
         rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
     elif "res" in args.modelname and "lstm" in args.modelname:
-        print ('reslstm model')
+        print ('check reslstm model')
         rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
     elif "res" not in args.modelname and "rnn" in args.modelname:
-        print ('rnn model')
+        print ('check rnn model')
         rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
-    else:
-        print ('lstm model')
+    elif "res" not in args.modelname and "lstm" in args.modelname:
+        print ('check lstm model')
         rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
+    else:
+        print("Invalid model name, exiting...")
+        exit()
 
-    if "reg" in args.modelname
+    if "reg" in args.modelname:
         optimizer = Adam(rnn.parameters(), lr=args.lr)
     else:
         optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
@@ -602,7 +603,10 @@ if __name__ == '__main__':
     weightdecay = args.decay
     train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
+####### real
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
+# CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 3 -gpuid 0 --debug | tee -a 2-14-check-mlp-movie-review
+###############
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=0 python train_main_hook_resreg.py -datadir . -modelname rnn3 -blocks 2 -decay 0.00001 -regmethod 3 -firstepochs 0 -labelnum 1 -maxepoch 100000 -gpuid 0
 # python train_hook_resreg.py regrnn3 0.005

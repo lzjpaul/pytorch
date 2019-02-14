@@ -13,7 +13,7 @@ def AUCAccuracy(outputs, labels):
             a tensor of floats, one per sample
     '''
     p_np = outputs
-    print ('p_np: \n', p_np)
+    # print ('p_np: \n', p_np)
     y_np = labels
     print ("y_np shape: ", y_np.shape)       
     pred_p_np = (p_np > 0.5).astype(np.float32)

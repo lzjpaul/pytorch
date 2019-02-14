@@ -129,7 +129,7 @@ class ResNetMLP(nn.Module):
         x = F.sigmoid(self.fc2(x)) # dimension 0: # of samples, dimension 1: exponential
         return x
 
-def resnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
+def resnetmlp(blocks, dim_vec, **kwargs):
     """Constructs a resnetmlp model.
 
     Args:
@@ -138,11 +138,9 @@ def resnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNetMLP(BasicResMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
-    if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
 
-def mlp(blocks, dim_vec, pretrained=False, **kwargs):
+def mlp(blocks, dim_vec, **kwargs):
     """Constructs a mlp model.
 
     Args:
@@ -151,8 +149,6 @@ def mlp(blocks, dim_vec, pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNetMLP(BasicMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
-    if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
 
 
@@ -237,6 +233,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     logger.debug ("param size:")
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
+                        print ('check res_reg param name: ', name)
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
                         res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, param, name, batch_idx)
@@ -324,7 +321,7 @@ if __name__ == '__main__':
     parser.add_argument('-batchsize', type=int, help='batch_size, default 100')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
-    parser.add_argument('-considerlabelnum', type=int, help='need to consider label number because the loss is averaged across labels')
+    parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
@@ -352,11 +349,10 @@ if __name__ == '__main__':
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
     train_x = np.sum(train_x, axis=1, keepdims=False)
     test_x = np.sum(test_x, axis=1, keepdims=False)
-    print ('train_x.shape: ', train_x.shape)
-    print ('test_x.shape: ', test_x.shape)
-    train_num = train_x.shape[0]
+    print ('check train_x.shape: ', train_x.shape)
+    print ('check test_x.shape: ', test_x.shape)
     input_dim = train_x.shape[-1]
-    print ('input_dim: ', input_dim)
+    print ('check input_dim: ', input_dim)
 
     train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
     train_loader = Data.DataLoader(dataset=train_dataset,
@@ -367,19 +363,19 @@ if __name__ == '__main__':
     test_loader = Data.DataLoader(dataset=test_dataset,
                                    batch_size=len(test_dataset),
                                    shuffle=True)
-    print ('len(test_dataset): ', len(test_dataset))
+    print ('check!! len(test_dataset) !!: ', len(test_dataset))
 
     if train_y.ndim == 1:
         label_num = 1
     else:
         label_num = train_y.shape[1]
-    print ("label number: ", label_num)
+    print ("check label number: ", label_num)
     dim_vec = [input_dim, 128, label_num] # [input_dim, hidden_dim, output_num]
-    print ("dim_vec: ", dim_vec)
+    print ("check dim_vec: ", dim_vec)
     print("Initializing Datasets and Dataloaders...")
 
     # Initialize the model for this run
-    model_ft = initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
+    model_ft = initialize_model(args.modelname, args.blocks, dim_vec)
 
     # Print the model we just instantiated
     print('model:')
