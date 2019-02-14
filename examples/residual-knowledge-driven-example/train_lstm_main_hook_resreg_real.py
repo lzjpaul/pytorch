@@ -294,6 +294,7 @@ class ResNetRNN(nn.Module):
             x = F.sigmoid(self.fc1(x[:, -1, :].view(batch_size, -1)))
         else:
             x = F.sigmoid(self.fc1(x[-1, :, :].view(batch_size, -1)))
+        print ('x in ResNetRNN: ', x)
         return x
 
 class ResNetLSTM(nn.Module):
@@ -456,7 +457,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                             logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 0.01))
             ### print norm
             optimizer.step()
-            running_loss += loss.data[0] * len(data_x)
+            running_loss += loss.item() * len(data_x)
             print ('len(data_x): ', len(data_x))
             running_accuracy += accuracy * len(data_x)
 
@@ -482,7 +483,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                 print ('outputs shape: ', outputs.shape)
                 print ('data_y shape: ', data_y.shape)
                 loss = criterion(outputs, data_y)
-                test_loss += loss.data[0] * len(data_x)
+                test_loss += loss.item() * len(data_x)
                 outputs_list.extend(list(outputs.data.cpu().numpy()))
                 labels_list.extend(list(data_y.data.cpu().numpy()))
             print ('test outputs_list length: ', len(outputs_list))
@@ -598,7 +599,8 @@ if __name__ == '__main__':
     weightdecay = args.decay
     train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
-# python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
+# CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
+# CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=0 python train_main_hook_resreg.py -datadir . -modelname rnn3 -blocks 2 -decay 0.00001 -regmethod 3 -firstepochs 0 -labelnum 1 -maxepoch 100000 -gpuid 0
 # python train_hook_resreg.py regrnn3 0.005
 # python train_hook.py rnn3 0.005

@@ -209,7 +209,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
             logger.debug ('data_x norm: %f', data_x.norm())
             outputs = model(data_x)
             loss = criterion(outputs, data_y)
-            accuracy = AUCAccuracy(outputs, data_y)[0]
+            accuracy = AUCAccuracy(outputs.data.cpu().numpy(), data_y.data.cpu().numpy())[0]
             # train_loss += (loss.item() * len(data)) # sum over all samples in the mini-batch
             
             logger.debug ("features length: %d", len(features))
@@ -250,7 +250,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                             logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 0.01))
             ### print norm
             optimizer.step()
-            running_loss += loss.data[0] * len(data_x)
+            running_loss += loss.item() * len(data_x)
             print ('len(data_x): ', len(data_x))
             running_accuracy += accuracy * len(data_x)
             '''
@@ -276,11 +276,11 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
                 outputs = model(data_x)
                 loss = criterion(outputs, data_y)
-                metrics = AUCAccuracy(outputs, data_y)
+                metrics = AUCAccuracy(outputs.data.cpu().numpy(), data_y.data.cpu().numpy())
                 accuracy, macro_auc, micro_auc = metrics[0], metrics[1], metrics[2]
-                print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
+                print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.item(), accuracy, macro_auc, micro_auc))
                 if epoch == (max_epoch - 1):
-                    print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.data[0], accuracy, macro_auc, micro_auc))
+                    print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.item(), accuracy, macro_auc, micro_auc))
 
     done = time.time()
     do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
@@ -422,6 +422,8 @@ if __name__ == '__main__':
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
+# CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug
+# CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 2 -decay 0.00001 -batchsize 64 -regmethod 5 -firstepochs 0 -labelnum 1 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
 # python mlp_residual_hook_resreg.py -datadir . -modelname regresnetmlp -blocks 3 -batchsize 64 -maxepoch 10 -gpuid 1
