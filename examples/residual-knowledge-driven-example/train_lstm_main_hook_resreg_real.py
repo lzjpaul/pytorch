@@ -592,7 +592,10 @@ if __name__ == '__main__':
         rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
         rnn = rnn.cuda(args.gpuid)
 
-    optimizer = Adam(rnn.parameters(), lr=args.lr)
+    if "reg" in args.modelname
+        optimizer = Adam(rnn.parameters(), lr=args.lr)
+    else:
+        optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
     criterion = nn.BCELoss()
     momentum_mu = 0.9 # momentum mu
     reg_lambda = args.decay
