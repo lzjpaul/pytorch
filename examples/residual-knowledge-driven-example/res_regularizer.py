@@ -40,9 +40,11 @@ class ResRegularizer():
         # rnn
         else:
             feature_dim = self.feature_matrix.shape[2]
-            logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
+            logger.debug ("rnn new using two layers self.feature_dim: %d", feature_dim)
             logger.debug ("self.batch_first")
             logger.debug (self.batch_first)
+            logger.debug ("feature_dim")
+            logger.debug (feature_dim)
             if self.batch_first:
                 for i in range(self.feature_matrix.shape[1]):
                     self.feature_correlation.append(np.corrcoef(self.feature_matrix[:,i,:], self.second_feature_matrix[:,i,:], rowvar=False)[feature_dim:, 0:feature_dim])
@@ -73,20 +75,24 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ("len(self.feature_correlation):")
         logger.debug (len(self.feature_correlation))
+        logger.debug ("before updating self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         for i in range(len(self.feature_correlation)):
             logger.debug ("self.feature_idx: ")
             logger.debug (self.feature_idx)
             logger.debug ("self.correlation_moving_average[self.feature_idx] shape: ")
             logger.debug (self.correlation_moving_average[self.feature_idx].shape)
+            logger.debug ("before adding self.correlation_moving_average[self.feature_idx] norm: ")
+            logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
             logger.debug ('self.feature_correlation[i] shape: ')
             logger.debug (self.feature_correlation[i].shape)
             self.correlation_moving_average[self.feature_idx] = self.momentum_mu * self.correlation_moving_average[self.feature_idx] + (1-self.momentum_mu) * self.feature_correlation[i]
-        logger.debug ("self.feature_idx: ")
-        logger.debug (self.feature_idx)
-        logger.debug ("self.correlation_moving_average[self.feature_idx]: ")
-        logger.debug (self.correlation_moving_average[self.feature_idx])
+            logger.debug ("after adding self.correlation_moving_average[self.feature_idx] norm: ")
+            logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         logger.debug ("self.correlation_moving_average[self.feature_idx].shape:")
         logger.debug (self.correlation_moving_average[self.feature_idx].shape)
+        logger.debug ("after updating self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
     # singa: (word_num, doc_num)
     # pytorch: (doc_num, word_num)
     '''
@@ -230,6 +236,8 @@ class ResRegularizer():
         logger.debug ("self.feature_idx: %d", self.feature_idx)
         logger.debug ("self.feature_matrix shape:")
         logger.debug (self.feature_matrix.shape)
+        logger.debug ("self.second_feature_matrix shape:")
+        logger.debug (self.second_feature_matrix.shape)
         logger.debug ("self.feature_matrix norm: %f", np.linalg.norm(self.feature_matrix))
         logger.debug ("new self.second_feature_matrix norm: %f", np.linalg.norm(self.second_feature_matrix))
         self.reg_lambda = reg_lambda
