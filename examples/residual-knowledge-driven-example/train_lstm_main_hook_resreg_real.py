@@ -409,6 +409,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
         # output, loss = train(model_name, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance)
         for batch_idx, data_iter in enumerate(train_loader, 0):
             data_x, data_y = data_iter
+            print ('data_y shape: ', data_y.shape)
             data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
             rnn.init_hidden(data_x.shape[0])
             optimizer.zero_grad()
@@ -476,8 +477,8 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
         with torch.no_grad():
             for batch_idx, data_iter in enumerate(test_loader):
                 data_x, data_y = data_iter
+                print ("test data_y shape: ", data_y.shape)
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
-                print ('data_y shape: ', data_y.shape)
                 rnn.init_hidden(data_x.shape[0])
                 outputs = rnn(data_x)
                 print ('outputs shape: ', outputs.shape)
@@ -543,12 +544,16 @@ if __name__ == '__main__':
     #
     train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
     train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
+    train_y = train_y.reshape((train_y.shape[0],-1))
     test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
     test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
+    test_y = test_y.reshape((test_y.shape[0],-1))
     train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
     print ('train_x.shape: ', train_x.shape)
     print ('test_x.shape: ', test_x.shape)
+    print ('train_y.shape: ', train_y.shape)
+    print ('test_y.shape: ', test_y.shape)
     input_dim = train_x.shape[-1]
     print ('check input_dim: ', input_dim)
 
@@ -563,10 +568,7 @@ if __name__ == '__main__':
                                    shuffle=True)
     print ('check len(test_dataset): ', len(test_dataset))
 
-    if train_y.ndim == 1:
-        label_num = 1
-    else:
-        label_num = train_y.shape[1]
+    label_num = train_y.shape[1]
     print ("check label number: ", label_num)
 
 
@@ -605,6 +607,7 @@ if __name__ == '__main__':
 
 ####### real
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
+# CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 3 -gpuid 0 --debug | tee -a 2-14-check-mlp-movie-review
 ###############
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug

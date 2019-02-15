@@ -193,6 +193,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
         running_accuracy = 0.0
         for batch_idx, data_iter in enumerate(train_loader, 0):
             data_x, data_y = data_iter
+            print ("data_y shape: ", data_y.shape)
             data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
             logger.debug('data_x shape:')
             logger.debug(data_x.shape)
@@ -270,6 +271,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
         with torch.no_grad():
             for batch_idx, data_iter in enumerate(test_loader):
                 data_x, data_y = data_iter
+                print ("test data_y shape: ", data_y.shape)
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
                 outputs = model(data_x)
                 loss = criterion(outputs, data_y)
@@ -343,14 +345,18 @@ if __name__ == '__main__':
     #
     train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
     train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
+    train_y = train_y.reshape((train_y.shape[0],-1))
     test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
     test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
+    test_y = test_y.reshape((test_y.shape[0],-1))
     train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
     train_x = np.sum(train_x, axis=1, keepdims=False)
     test_x = np.sum(test_x, axis=1, keepdims=False)
     print ('check train_x.shape: ', train_x.shape)
     print ('check test_x.shape: ', test_x.shape)
+    print ('check train_y.shape: ', train_y.shape)
+    print ('check test_y.shape: ', test_y.shape)
     input_dim = train_x.shape[-1]
     print ('check input_dim: ', input_dim)
 
@@ -365,10 +371,7 @@ if __name__ == '__main__':
                                    shuffle=True)
     print ('check!! len(test_dataset) !!: ', len(test_dataset))
 
-    if train_y.ndim == 1:
-        label_num = 1
-    else:
-        label_num = train_y.shape[1]
+    label_num = train_y.shape[1]
     print ("check label number: ", label_num)
     dim_vec = [input_dim, 128, label_num] # [input_dim, hidden_dim, output_num]
     print ("check dim_vec: ", dim_vec)
@@ -419,6 +422,7 @@ if __name__ == '__main__':
     train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
 # CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug
+# CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname mlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --debug
 # CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 2 -decay 0.00001 -batchsize 64 -regmethod 5 -firstepochs 0 -labelnum 1 -maxepoch 200 -gpuid 0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg.py -datadir . -modelname regmlp -blocks 1 -decay 0.00001 -batchsize 64 -maxepoch 10 -gpuid 0
