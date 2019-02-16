@@ -596,8 +596,10 @@ if __name__ == '__main__':
         exit()
 
     if "reg" in args.modelname:
+        print ('optimizer without wd')
         optimizer = Adam(rnn.parameters(), lr=args.lr)
     else:
+        print ('optimizer with wd')
         optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
     criterion = nn.BCELoss()
     momentum_mu = 0.9 # momentum mu

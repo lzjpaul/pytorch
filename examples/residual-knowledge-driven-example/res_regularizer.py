@@ -18,7 +18,16 @@ class ResRegularizer():
         for i in range(blocks):
             self.correlation_moving_average.append(np.zeros((feature_dim, feature_dim)))
         print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
-    
+   
+    def chunk_array(self, arr, chunks, dim):
+        if dim == 0:
+            chunk_array_list = []
+            base = int(arr.shape[0] / chunks)
+            for i in range(chunks):
+                chunk_array_list.append(arr[i * base: (i+1) * base])
+        return chunk_array_list
+
+
     # calc correlation using one layer 
     def calcCorrelation(self):
         logger = logging.getLogger('res_reg')
@@ -52,20 +61,20 @@ class ResRegularizer():
                     logger.debug (self.feature_matrix[:,i,:].shape)
                     logger.debug ('self.feature_matrix[:,i,:] norm:')
                     logger.debug (np.linalg.norm(self.feature_matrix[:,i,:]))
-                    # logger.debug ('self.feature_matrix[:,i,:]:')
-                    # logger.debug (self.feature_matrix[:,i,:])
+                    logger.debug ('self.feature_matrix[:,i,:]:')
+                    logger.debug (self.feature_matrix[:,i,:])
                     logger.debug ('self.second_feature_matrix[:,i,:] shape')
                     logger.debug (self.second_feature_matrix[:,i,:].shape)
                     logger.debug ('self.second_feature_matrix[:,i,:] norm:')
                     logger.debug (np.linalg.norm(self.second_feature_matrix[:,i,:]))
-                    # logger.debug ('self.second_feature_matrix[:,i,:]')
-                    # logger.debug (self.second_feature_matrix[:,i,:])
+                    logger.debug ('self.second_feature_matrix[:,i,:]')
+                    logger.debug (self.second_feature_matrix[:,i,:])
                     logger.debug ("new using two layers self.feature_correlation[i].shape:")
                     logger.debug (self.feature_correlation[i].shape)
                     logger.debug ('self.feature_correlation[i] norm')
                     logger.debug (np.linalg.norm(self.feature_correlation[i]))
-                    # logger.debug ('self.feature_correlation[i]')
-                    # logger.debug (self.feature_correlation[i])
+                    logger.debug ('self.feature_correlation[i]')
+                    logger.debug (self.feature_correlation[i])
             else:
                 for i in range(self.feature_matrix.shape[0]):
                     self.feature_correlation.append(np.corrcoef(self.feature_matrix[i,:,:], self.second_feature_matrix[i,:,:], rowvar=False)[feature_dim:, 0:feature_dim])
@@ -124,7 +133,7 @@ class ResRegularizer():
             reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array
         else:
             logger.debug ('lstm')
-            w_array_chunk = self.w_array.chunk(4,0)
+            w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * w_array_chunk[0]
             logger.debug ('w_array_chunk[0] shape')
             logger.debug (w_array_chunk[0].shape)
@@ -145,16 +154,20 @@ class ResRegularizer():
         logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-        # print ('calcRegGradAvg_Exp correlation_abs_matrix: ', correlation_abs_matrix)
+        print ('calcRegGradAvg_Exp correlation_abs_matrix: ', correlation_abs_matrix)
         if 'lstm' not in self.model_name:
             logger.debug ('not lstm')
             reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array
         else:
             logger.debug ('lstm')
-            w_array_chunk = self.w_array.chunk(4,0)
+            w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * w_array_chunk[0]
+            logger.debug ('w_array_chunk[0] shape')
+            logger.debug (w_array_chunk[0].shape)
             for i in range(1,4):
                 reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * w_array_chunk[i]), axis=0)
+                logger.debug ("w_array_chunk[i] shape: ")
+                logger.debug (w_array_chunk[i].shape)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -173,7 +186,7 @@ class ResRegularizer():
             reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array
         else:
             logger.debug ('lstm')
-            w_array_chunk = self.w_array.chunk(4,0)
+            w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * w_array_chunk[0]
             for i in range(1,4):
                 reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * w_array_chunk[i]), axis=0)
@@ -196,7 +209,7 @@ class ResRegularizer():
             reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array
         else:
             logger.debug ('lstm')
-            w_array_chunk = self.w_array.chunk(4,0)
+            w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * w_array_chunk[0]
             for i in range(1,4):
                 reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * w_array_chunk[i]), axis=0)
@@ -218,7 +231,7 @@ class ResRegularizer():
             reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array
         else:
             logger.debug ('lstm')
-            w_array_chunk = self.w_array.chunk(4,0)
+            w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * w_array_chunk[0]
             for i in range(1,4):
                 reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * w_array_chunk[i]), axis=0)
@@ -247,10 +260,14 @@ class ResRegularizer():
             reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
         else:
             logger.debug ('lstm')
-            w_array_chunk = self.w_array.chunk(4,0)
+            w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+            logger.debug ('w_array_chunk[0] shape')
+            logger.debug (w_array_chunk[0].shape)
             for i in range(1,4):
                 reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)), axis=0)
+                logger.debug ("w_array_chunk[i] shape: ")
+                logger.debug (w_array_chunk[i].shape)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
