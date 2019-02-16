@@ -52,18 +52,20 @@ class ResRegularizer():
                     logger.debug (self.feature_matrix[:,i,:].shape)
                     logger.debug ('self.feature_matrix[:,i,:] norm:')
                     logger.debug (np.linalg.norm(self.feature_matrix[:,i,:]))
-                    logger.debug ('self.feature_matrix[:,i,:]:')
-                    logger.debug (self.feature_matrix[:,i,:])
+                    # logger.debug ('self.feature_matrix[:,i,:]:')
+                    # logger.debug (self.feature_matrix[:,i,:])
                     logger.debug ('self.second_feature_matrix[:,i,:] shape')
                     logger.debug (self.second_feature_matrix[:,i,:].shape)
                     logger.debug ('self.second_feature_matrix[:,i,:] norm:')
                     logger.debug (np.linalg.norm(self.second_feature_matrix[:,i,:]))
-                    logger.debug ('self.second_feature_matrix[:,i,:]')
-                    logger.debug (self.second_feature_matrix[:,i,:])
+                    # logger.debug ('self.second_feature_matrix[:,i,:]')
+                    # logger.debug (self.second_feature_matrix[:,i,:])
                     logger.debug ("new using two layers self.feature_correlation[i].shape:")
                     logger.debug (self.feature_correlation[i].shape)
-                    logger.debug ('self.feature_correlation[i]')
-                    logger.debug (self.feature_correlation[i])
+                    logger.debug ('self.feature_correlation[i] norm')
+                    logger.debug (np.linalg.norm(self.feature_correlation[i]))
+                    # logger.debug ('self.feature_correlation[i]')
+                    # logger.debug (self.feature_correlation[i])
             else:
                 for i in range(self.feature_matrix.shape[0]):
                     self.feature_correlation.append(np.corrcoef(self.feature_matrix[i,:,:], self.second_feature_matrix[i,:,:], rowvar=False)[feature_dim:, 0:feature_dim])
@@ -112,16 +114,24 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
+        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx]) # only this line is different
         correlation_abs_avg = np.mean(correlation_abs_matrix)
         correlation_diff_matrix = correlation_abs_avg - correlation_abs_matrix
         if 'lstm' not in self.model_name:
+            logger.debug ('not lstm')
             reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array
         else:
-            base = int(self.w_array.shape[0] / 4)
-            reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array[0:base]
+            logger.debug ('lstm')
+            w_array_chunk = self.w_array.chunk(4,0)
+            reg_grad_w = 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * w_array_chunk[0]
+            logger.debug ('w_array_chunk[0] shape')
+            logger.debug (w_array_chunk[0].shape)
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(correlation_diff_matrix) * w_array_chunk[i]), axis=0)
+                logger.debug ("w_array_chunk[i] shape: ")
+                logger.debug (w_array_chunk[i].shape)
         logger.debug ("new reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -132,15 +142,19 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg_Exp correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
+        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-        print ('calcRegGradAvg_Exp correlation_abs_matrix: ', correlation_abs_matrix)
+        # print ('calcRegGradAvg_Exp correlation_abs_matrix: ', correlation_abs_matrix)
         if 'lstm' not in self.model_name:
+            logger.debug ('not lstm')
             reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array
         else:
-            base = int(self.w_array.shape[0] / 4)
-            reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array[0:base]
+            logger.debug ('lstm')
+            w_array_chunk = self.w_array.chunk(4,0)
+            reg_grad_w = 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * w_array_chunk[0]
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * np.exp(-correlation_abs_matrix) * w_array_chunk[i]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -151,14 +165,18 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg_Linear correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
+        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         if 'lstm' not in self.model_name:
+            logger.debug ('not lstm')
             reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array
         else:
-            base = int(self.w_array.shape[0] / 4)
-            reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array[0:base]
+            logger.debug ('lstm')
+            w_array_chunk = self.w_array.chunk(4,0)
+            reg_grad_w = 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * w_array_chunk[0]
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 - correlation_abs_matrix) * w_array_chunk[i]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -170,14 +188,18 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg_Inverse correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
+        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         if 'lstm' not in self.model_name:
+            logger.debug ('not lstm')
             reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array
         else:
-            base = int(self.w_array.shape[0] / 4)
-            reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array[0:base]
+            logger.debug ('lstm')
+            w_array_chunk = self.w_array.chunk(4,0)
+            reg_grad_w = 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * w_array_chunk[0]
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * self.w_array[i * base: (i+1) * base]), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / correlation_abs_matrix) * w_array_chunk[i]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -188,14 +210,18 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg_Inverse_Var correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
+        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         if 'lstm' not in self.model_name:
+            logger.debug ('not lstm')
             reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array
         else:
-            base = int(self.w_array.shape[0] / 4)
-            reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array[0:base]
+            logger.debug ('lstm')
+            w_array_chunk = self.w_array.chunk(4,0)
+            reg_grad_w = 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * w_array_chunk[0]
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * self.w_array[i * base: (i+1) * base]), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, 2 * self.reg_lambda * (1.0 / (1.0 + correlation_abs_matrix)) * w_array_chunk[i]), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
@@ -206,6 +232,8 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg_Gen_prob correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
+        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
         correlation_abs_matrix_sum = np.sum(correlation_abs_matrix, axis=1).reshape((correlation_abs_matrix.shape[0],1))
         # print ('correlation_abs_matrix_sum shape:', correlation_abs_matrix_sum.shape)
@@ -215,12 +243,14 @@ class ResRegularizer():
         correlation_abs_matrix_normalize_log = np.log(correlation_abs_matrix_normalize)
         # print ('np.min(correlation_abs_matrix_normalize) after log', np.min(correlation_abs_matrix_normalize_log))
         if 'lstm' not in self.model_name:
+            logger.debug ('not lstm')
             reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
         else:
-            base = int(self.w_array.shape[0] / 4)
-            reg_grad_w = (-self.reg_lambda * np.sign(self.w_array[0:base]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+            logger.debug ('lstm')
+            w_array_chunk = self.w_array.chunk(4,0)
+            reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(self.w_array[i * base: (i+1) * base]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)), axis=0)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
