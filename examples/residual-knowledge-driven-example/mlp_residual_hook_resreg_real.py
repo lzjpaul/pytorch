@@ -401,10 +401,12 @@ if __name__ == '__main__':
     # Observe that all parameters are being optimized
     if "reg" in args.modelname:
         print ('optimizer without wd')
-        optimizer_ft = optim.SGD(params_to_update, lr=args.lr) ## correct for Helathcare or MNIST????
+        # optimizer_ft = optim.SGD(params_to_update, lr=args.lr) ## correct for Helathcare or MNIST????
+        optimizer_ft = optim.Adam(params_to_update, lr=args.lr) ## correct for Helathcare or MNIST????
     else:
         print ('optimizer with wd')
-        optimizer_ft = optim.SGD(params_to_update, lr=args.lr, weight_decay=args.decay)
+        # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, weight_decay=args.decay)
+        optimizer_ft = optim.Adam(params_to_update, lr=args.lr, weight_decay=args.decay)
     # optimizer_ft = optim.Adam(params_to_update, lr=0.01) ## correct for Helathcare or MNIST????
 
     ######################################################################
