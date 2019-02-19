@@ -4,8 +4,21 @@ import torch.nn as nn
 import torch.utils.data as Data
 import sys
 import argparse
+import pandas as pd
 
-
+def read_csv_chunks(filename, chunksize):
+    index = 0
+    for gm_chunk in pd.read_csv(filename, header=None, index_col=None, chunksize=chunksize):
+        print ("index: ", index)
+        if index == 0:
+            file_concat = gm_chunk.values
+        else: 
+            file_concat = np.concatenate((file_concat, gm_chunk.values), axis=0)
+        print ("file_concat shape: ", file_concat.shape)
+        index = index + 1
+    print ("final file_concat shape: ", file_concat.shape)
+    return file_concat
+   
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test Input')
     parser.add_argument('-traindatadir', type=str, help='train data directory')
@@ -18,19 +31,19 @@ if __name__ == '__main__':
 
     print ("reading data")
     print ("train data begins")
-    train_x = np.genfromtxt(args.traindatadir, delimiter=',')
+    train_x = read_csv_chunks(args.traindatadir, 1000)
     print ("train data ends")
     print ("train label begins")
-    train_y = np.genfromtxt(args.trainlabeldir, delimiter=',')
+    train_y = read_csv_chunks(args.trainlabeldir, 1000)
     print ("train label ends")
     print ("train data reshapes begins")
     train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
     print ("train data reshape ends")
     print ("test data begins")
-    test_x = np.genfromtxt(args.testdatadir, delimiter=',')
+    test_x = read_csv_chunks(args.testdatadir, 1000)
     print ("test data ends")
     print ("test label begins")
-    test_y = np.genfromtxt(args.testlabeldir, delimiter=',')
+    test_y = read_csv_chunks(args.testlabeldir, 1000)
     print ("test labels ends")
     print ("test data reshape begins")
     test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
@@ -65,5 +78,5 @@ if __name__ == '__main__':
         data_x, data_y = data_iter
         print ('test_data_x size: ', data_x.size())
         print ('test_data_y size: ', data_y.size())
-
+# python read_in_data_memory_pandas.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_x_seq.csv -trainlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm
 # python read_in_data_memory.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq.csv -trainlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq.csv -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname lstm
