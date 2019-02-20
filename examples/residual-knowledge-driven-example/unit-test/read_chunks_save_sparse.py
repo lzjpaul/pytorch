@@ -37,7 +37,7 @@ if __name__ == '__main__':
     print ("source_x shape: ", source_x.shape)
     
     source_x_sparse_matrix = scipy.sparse.csr_matrix(source_x)
-    print ("source_x_sparse_matrix: ", source_x_sparse_matrix)
+    # print ("source_x_sparse_matrix: ", source_x_sparse_matrix)
     scipy.sparse.save_npz(args.dstdatadir, source_x_sparse_matrix)
 # python read_in_data_memory_pandas.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_x_seq.csv -trainlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm
 # python read_in_data_memory.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq.csv -trainlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq.csv -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname lstm
