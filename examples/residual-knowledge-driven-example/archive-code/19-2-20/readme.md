@@ -1,0 +1,25 @@
+18-10-10:
+(1) softmax loss
+(2) out += residual, no relu after
+
+19-1-22:
+(1) save the using |r| version, no baysian approach
+
+19-2-7:
+(1) gen_prob: need to divided by (trainnum * labelnum)
+
+19-2-10:
+(1) train_hook.py: adding model.py to train.py + adding hook
+(2) res_regularizer.py: calculating correlation for different time steps
+
+19-2-11:
+(1) every layer has its own correlation_moving_average!!
+(2) using main() to organize the code
+
+19-2-12:
+(1) mlp_residual_hook_resreg_real.py and train_main_hook_resreg_real.py:
+design for healthcare and sentiment analysis
+(2) train_lstm_main_hook_resreg_real.py: lstm model is ready
+
+19-2-13:
+(1) res_regularizer.py: divide the model paramter into 4 parts

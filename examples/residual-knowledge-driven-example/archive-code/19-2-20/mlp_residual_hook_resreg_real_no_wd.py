@@ -224,7 +224,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     print ('param name: ', name)
                     print ('param size:', f.data.size())
                     print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
-                    print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+                    print ('lr 0.1 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 0.1))
             ### when to use res-reg
             if "reg" in model_name and epoch >= firstepochs:
                 feature_idx = -1 # which feature to use for regularization
@@ -233,7 +233,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     logger.debug ("param size:")
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
-                        # print ('check res_reg param name: ', name)
+                        print ('check res_reg param name: ', name)
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
                         res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, param, name, batch_idx)
@@ -244,7 +244,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                             param.grad.data.add_(float(weightdecay), param.data)
                             logger.debug ('param norm: %f', np.linalg.norm(param.data.cpu().numpy()))
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
-                            logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
+                            logger.debug ('lr 0.01 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 0.01))
             ### print norm
             optimizer.step()
             running_loss += loss.item() * len(data_x)
@@ -410,9 +410,9 @@ if __name__ == '__main__':
         # optimizer_ft = optim.Adam(params_to_update, lr=args.lr) ## correct for Helathcare or MNIST????
     else:
         print ('optimizer with wd')
-        # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9)
+        optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9)
         # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, weight_decay=args.decay)
-        optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9, weight_decay=args.decay)
+        # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9, weight_decay=args.decay)
         # optimizer_ft = optim.Adam(params_to_update, lr=args.lr, weight_decay=args.decay)
     # optimizer_ft = optim.Adam(params_to_update, lr=0.01) ## correct for Helathcare or MNIST????
 
