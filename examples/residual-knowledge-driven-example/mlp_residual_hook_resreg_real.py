@@ -318,7 +318,8 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='resnetmlp or mlp')
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-lr', type=float, help='0.08 for MIMIC-III')
-    parser.add_argument('-decay', type=float, help='reg_lambda and weightdecay')
+    parser.add_argument('-decay', type=float, help='weightdecay')
+    parser.add_argument('-reglambda', type=float, help='reg_lambda')
     parser.add_argument('-batchsize', type=int, help='batch_size, default 100')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
@@ -427,8 +428,10 @@ if __name__ == '__main__':
     # Train and evaluate
     # train_validate_test_model(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, max_epoch=args.maxepoch)
     momentum_mu = 0.9 # momentum mu
-    reg_lambda = args.decay # resreg strength
+    reg_lambda = args.reglambda # resreg strength
     weightdecay = args.decay # other parameters' weight decay
+    print('weightdecay: ', weightdecay)
+    print ('reg_lambda: ', reg_lambda)
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 

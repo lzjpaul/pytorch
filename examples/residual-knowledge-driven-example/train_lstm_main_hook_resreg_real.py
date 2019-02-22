@@ -517,7 +517,8 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='resnetrnn or reslstm or rnn or lstm')
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-lr', type=float, help='0.001 for MIMIC-III')
-    parser.add_argument('-decay', type=float, help='reg_lambda and weightdecay')
+    parser.add_argument('-decay', type=float, help='weightdecay')
+    parser.add_argument('-reglambda', type=float, help='reg_lambda')
     parser.add_argument('-batchsize', type=int, help='batch_size')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
@@ -544,16 +545,22 @@ if __name__ == '__main__':
     # Load Data
     # ---------
     #
-    # train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+    print ("loading train_x")
+    train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+    '''
     train_x_sparse_matrix = scipy.sparse.load_npz(args.traindatadir)
     train_x_sparse_matrix = train_x_sparse_matrix.astype(np.float32)
     train_x = np.array(train_x_sparse_matrix.todense())
+    '''
     train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
     train_y = train_y.reshape((train_y.shape[0],-1))
-    # test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+    print ("loading test_x")
+    test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+    '''
     test_x_sparse_matrix = scipy.sparse.load_npz(args.testdatadir)
     test_x_sparse_matrix = test_x_sparse_matrix.astype(np.float32)
     test_x = np.array(test_x_sparse_matrix.todense())
+    '''
     test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
     test_y = test_y.reshape((test_y.shape[0],-1))
     train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
@@ -605,18 +612,23 @@ if __name__ == '__main__':
 
     if "reg" in args.modelname:
         print ('optimizer without wd')
-        optimizer = Adam(rnn.parameters(), lr=args.lr)
+        # optimizer = Adam(rnn.parameters(), lr=args.lr)
+        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
     else:
         print ('optimizer with wd')
         # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
         optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.decay)
+        # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
     criterion = nn.BCELoss()
     momentum_mu = 0.9 # momentum mu
-    reg_lambda = args.decay
+    reg_lambda = args.reglambda
     weightdecay = args.decay
+    print ('weightdecay: ', weightdecay)
+    print ('reg_lambda: ', reg_lambda)
     train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real
+# CUDA_VISIBLE_DEVICES=0 /home/zhaojing/anaconda3-cuda-10/bin/python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_x_seq_word2vec200_window50.csv -trainlabel /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq_word2vec200_window50.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm -blocks 1 -lr 0.1 -decay 0.0 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 2-21-try-lstm-embedding-lr-01-no-decay
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 3 -gpuid 0 --debug | tee -a 2-14-check-mlp-movie-review
