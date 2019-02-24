@@ -344,21 +344,30 @@ if __name__ == '__main__':
     # ---------
     #
     # train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
-    train_x_sparse_matrix = scipy.sparse.load_npz(args.traindatadir)
-    train_x_sparse_matrix = train_x_sparse_matrix.astype(np.float32)
-    train_x = np.array(train_x_sparse_matrix.todense())
+    if "MIMIC-III" in args.traindatadir:
+        train_x_sparse_matrix = scipy.sparse.load_npz(args.traindatadir)
+        train_x_sparse_matrix = train_x_sparse_matrix.astype(np.float32)
+        train_x = np.array(train_x_sparse_matrix.todense())
+    else:
+        train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+
     train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
     train_y = train_y.reshape((train_y.shape[0],-1))
     # test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
-    test_x_sparse_matrix = scipy.sparse.load_npz(args.testdatadir)
-    test_x_sparse_matrix = test_x_sparse_matrix.astype(np.float32)
-    test_x = np.array(test_x_sparse_matrix.todense())
+    if "MIMIC-III" in args.traindatadir:
+        test_x_sparse_matrix = scipy.sparse.load_npz(args.testdatadir)
+        test_x_sparse_matrix = test_x_sparse_matrix.astype(np.float32)
+        test_x = np.array(test_x_sparse_matrix.todense())
+    else:
+        test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+
     test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
     test_y = test_y.reshape((test_y.shape[0],-1))
-    train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
-    test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
-    train_x = np.sum(train_x, axis=1, keepdims=False)
-    test_x = np.sum(test_x, axis=1, keepdims=False)
+    if "MIMIC-III" in args.traindatadir:
+        train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
+        test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
+        train_x = np.sum(train_x, axis=1, keepdims=False)
+        test_x = np.sum(test_x, axis=1, keepdims=False)
     print ('check train_x.shape: ', train_x.shape)
     print ('check test_x.shape: ', test_x.shape)
     print ('check train_y.shape: ', train_y.shape)
