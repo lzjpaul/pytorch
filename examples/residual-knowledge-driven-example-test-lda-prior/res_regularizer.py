@@ -15,16 +15,23 @@ class ResRegularizer():
         self.reg_lambda = reg_lambda
         self.momentum_mu = momentum_mu
         self.feature_dim = feature_dim
+        if "lstm" in model_name:
+            self.doc_num = 4 * self.feature_dim
+        else:
+            self.doc_num = self.feature_dim
+        print ("model_name: ", model_name)
+        print ("self.doc_num: ", self.doc_num)
         print ("self.prior_beta: ", self.prior_beta)
         print ("self.reg_lambda: ", self.reg_lambda)
         print ("new self.momentum_mu: ", self.momentum_mu)
         print ("new self.feature_dim: ", self.feature_dim)
         print ("blocks: ", blocks)
         self.correlation_moving_average = []
+        self.theta_all_layer = []
         for i in range(blocks):
-            self.correlation_moving_average.append(np.zeros((feature_dim, feature_dim)))
+            self.correlation_moving_average.append(np.zeros((self.feature_dim, self.feature_dim)))
         for i in range(blocks):
-            self.theta_all_layer.append(np.full((feature_dim, feature_dim), 1./feature_dim))
+            self.theta_all_layer.append(np.full((self.doc_num, self.feature_dim), 1./self.feature_dim))
         print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
         print ('new check len(self.theta_all_layer): ', len(self.theta_all_layer))
         print ('new check self.theta_all_layer[0]: ', self.theta_all_layer[0])
@@ -297,6 +304,7 @@ class ResRegularizer():
         logger.debug ("reggrad self.theta_all_layer[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.theta_all_layer[self.feature_idx]))
         theta_current_layer_log = np.log(self.theta_all_layer[self.feature_idx])
+        print ("theta_current_layer_log shape: ", theta_current_layer_log.shape)
         if 'lstm' not in self.model_name:
             logger.debug ('not lstm')
             reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/float(labelnum * trainnum)
@@ -324,15 +332,15 @@ class ResRegularizer():
         self.prior_alpha = 1.0 + self.prior_beta * correlation_abs_matrix
         print ('check self.prior_alpha shape: ', self.prior_alpha)
         print ("check self.w_array shape: ", self.w_array.shape)
-        for neuron_idx in range(self.feature_dim):
-            theta_neuron = (self.reg_lambda * np.absolute(self.w_array[neuron_idx, :]) + (self.prior_alpha[neuron_idx] - 1.0)) / np.sum(self.reg_lambda * np.absolute(self.w_array[neuron_idx, :]) + (self.prior_alpha[neuron_idx] - 1.0)) # here: self.w_array[doc_idx, :]
-            print ('(self.reg_lambda * np.absolute(self.w_array[neuron_idx, :]) + (self.prior_alpha[neuron_idx] - 1.0)) shape: ', (self.reg_lambda * np.absolute(self.w_array[neuron_idx, :]) + (self.prior_alpha[neuron_idx] - 1.0)).shape)
+        for doc_idx in range(self.doc_num):
+            theta_doc = (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)) / np.sum(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)) # here: self.w_array[doc_idx, :]
+            print ('(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)) shape: ', (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)).shape)
             print ("check self.theta_all_layer[self.feature_idx] shape: ", self.theta_all_layer[self.feature_idx].shape)
-            print ("check theta_neuron shape: ", theta_neuron.shape)
-            self.theta_all_layer[self.feature_idx][neuron_idx] = theta_neuron
+            print ("check theta_doc shape: ", theta_doc.shape)
+            self.theta_all_layer[self.feature_idx][doc_idx] = theta_doc
             if step % 1000 == 0:
                 print ("self.feature_idx: ", self.feature_idx)
-                print ('theta_neuron:', theta_neuron)
+                print ('theta_doc:', theta_doc)
         logger.debug ("update_Theta_Current_Layer self.theta_all_layer[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.theta_all_layer[self.feature_idx]))
         logger.debug ("update_Theta_Current_Layer np.sum(self.theta_all_layer[self.feature_idx], axis=1):")

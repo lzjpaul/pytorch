@@ -36,3 +36,6 @@ dataset
 (2) (using) formal_test_y_seq_sparse.npz: sparse format
 (3) (using) correct_formal_train_x_seq_embedding200_window50_mlp..: correct: mlp is averaged among embeddings
 (4) (not using) movie_review_test_x_seq_word2vec200_window50: not correct, because not averaged correctly
+
+19-2-26:
+(1) correaltion as prior
