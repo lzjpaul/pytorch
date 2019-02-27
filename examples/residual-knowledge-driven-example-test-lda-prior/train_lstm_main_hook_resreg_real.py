@@ -631,7 +631,7 @@ if __name__ == '__main__':
     weightdecay = args.decay
     print ('weightdecay: ', weightdecay)
     print ('reg_lambda: ', reg_lambda)
-    print ('prior_beta: ', prior_beta)
+    print ('priot prior_beta: ', prior_beta)
     train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real

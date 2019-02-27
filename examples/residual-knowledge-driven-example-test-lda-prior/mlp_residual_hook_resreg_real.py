@@ -442,12 +442,13 @@ if __name__ == '__main__':
     reg_lambda = args.reglambda # resreg strength
     prior_beta = args.priorbeta
     weightdecay = args.decay # other parameters' weight decay
-    print('weightdecay: ', weightdecay)
+    print ('weightdecay: ', weightdecay)
     print ('reg_lambda: ', reg_lambda)
-    print ('prior_beta: ', prior_beta)
+    print ('prior prior_beta: ', prior_beta)
     # Train and evaluate MNIST on resmlp or mlp model
     train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
+#CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabel /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname regmlp -blocks 1 -lr 0.3 -decay 0.00001 -reglambda 0.01 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 50 -gpuid 0 --batch_first --priorbeta 1.5 --debug
 # CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug
 # CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname mlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --debug
 # CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 3 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug

@@ -19,13 +19,13 @@ class ResRegularizer():
             self.doc_num = 4 * self.feature_dim
         else:
             self.doc_num = self.feature_dim
-        print ("model_name: ", model_name)
-        print ("self.doc_num: ", self.doc_num)
-        print ("self.prior_beta: ", self.prior_beta)
-        print ("self.reg_lambda: ", self.reg_lambda)
-        print ("new self.momentum_mu: ", self.momentum_mu)
-        print ("new self.feature_dim: ", self.feature_dim)
-        print ("blocks: ", blocks)
+        print ("prior model_name: ", model_name)
+        print ("prior self.doc_num: ", self.doc_num)
+        print ("prior self.prior_beta: ", self.prior_beta)
+        print ("prior self.reg_lambda: ", self.reg_lambda)
+        print ("prior new self.momentum_mu: ", self.momentum_mu)
+        print ("prior new self.feature_dim: ", self.feature_dim)
+        print ("prior blocks: ", blocks)
         self.correlation_moving_average = []
         self.theta_all_layer = []
         for i in range(blocks):
@@ -33,8 +33,9 @@ class ResRegularizer():
         for i in range(blocks):
             self.theta_all_layer.append(np.full((self.doc_num, self.feature_dim), 1./self.feature_dim))
         print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
-        print ('new check len(self.theta_all_layer): ', len(self.theta_all_layer))
-        print ('new check self.theta_all_layer[0]: ', self.theta_all_layer[0])
+        print ('prior new check len(self.theta_all_layer): ', len(self.theta_all_layer))
+        print ('prior new check self.theta_all_layer[0]: ', self.theta_all_layer[0])
+        print ('prior new check self.theta_all_layer[0] shape: ', self.theta_all_layer[0].shape)
    
     def chunk_array(self, arr, chunks, dim):
         if dim == 0:
@@ -299,51 +300,77 @@ class ResRegularizer():
 
     def calcRegGradAvg_Gen_Prob_Prior(self, labelnum, trainnum):
         logger = logging.getLogger('res_reg')
-        logger.debug ('calcRegGradAvg_Gen_Prob_Prior self.theta_all_layer self.feature_idx: ')
+        logger.debug ('prior calcRegGradAvg_Gen_Prob_Prior self.theta_all_layer self.feature_idx: ')
         logger.debug (self.feature_idx)
-        logger.debug ("reggrad self.theta_all_layer[self.feature_idx] norm:")
+        logger.debug ("prior check theta norm reggrad self.theta_all_layer[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.theta_all_layer[self.feature_idx]))
         theta_current_layer_log = np.log(self.theta_all_layer[self.feature_idx])
-        print ("theta_current_layer_log shape: ", theta_current_layer_log.shape)
+        logger.debug ("prior theta_current_layer_log shape: ") 
+        logger.debug (theta_current_layer_log.shape)
+        '''
         if 'lstm' not in self.model_name:
-            logger.debug ('not lstm')
-            reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/float(labelnum * trainnum)
+            logger.debug ('prior not lstm')
+        '''
+        reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/float(labelnum * trainnum)
+        '''
         else:
-            logger.debug ('lstm')
+            logger.debug ('prior lstm')
             w_array_chunk = self.chunk_array(self.w_array,4,0)
             reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * theta_current_layer_log)/float(labelnum * trainnum)
-            logger.debug ('w_array_chunk[0] shape')
+            logger.debug ('prior w_array_chunk[0] shape')
             logger.debug (w_array_chunk[0].shape)
             for i in range(1,4):
                 reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * theta_current_layer_log)/float(labelnum * trainnum)), axis=0)
-                logger.debug ("w_array_chunk[i] shape: ")
+                logger.debug ("prior w_array_chunk[i] shape: ")
                 logger.debug (w_array_chunk[i].shape)
-        logger.debug ("reg_grad_w shape:")
+        '''
+        logger.debug ("prior reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
     def update_Theta_Current_Layer(self, step):
         logger = logging.getLogger('res_reg')
-        logger.debug ('calcRegGradAvg_Gen_Prob_Prior correlation_moving_average self.feature_idx: ')
+        logger.debug ('prior calcRegGradAvg_Gen_Prob_Prior correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
-        logger.debug ("reggrad self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug ("prior reggrad self.correlation_moving_average[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
+        logger.debug ("correlation_abs_matrix norm")
+        logger.debug (np.linalg.norm(correlation_abs_matrix))
+        # logger.debug ("correlation_abs_matrix")
+        # logger.debug (correlation_abs_matrix)
         self.prior_alpha = 1.0 + self.prior_beta * correlation_abs_matrix
-        print ('check self.prior_alpha shape: ', self.prior_alpha)
-        print ("check self.w_array shape: ", self.w_array.shape)
+        logger.debug ('prior check self.prior_alpha shape: ')
+        logger.debug (self.prior_alpha.shape)
+        logger.debug ("prior check self.w_array shape: ")
+        logger.debug (self.w_array.shape)
+        logger.debug ("self.w_array norm")
+        logger.debug (np.linalg.norm(self.w_array))
+        # logger.debug ("self.w_array")
+        # logger.debug (self.w_array)
+        logger.debug ("self.w_array[0:self.feature_dim] norm")
+        logger.debug (np.linalg.norm(self.w_array[0:self.feature_dim]))
         for doc_idx in range(self.doc_num):
-            theta_doc = (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)) / np.sum(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)) # here: self.w_array[doc_idx, :]
-            print ('(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)) shape: ', (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx] - 1.0)).shape)
-            print ("check self.theta_all_layer[self.feature_idx] shape: ", self.theta_all_layer[self.feature_idx].shape)
-            print ("check theta_doc shape: ", theta_doc.shape)
+            logger.debug ("prior doc_idx")
+            logger.debug (doc_idx)
+            logger.debug ("prior doc_idx%self.feature_dim")
+            logger.debug (doc_idx%self.feature_dim)
+            theta_doc = (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) / np.sum(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) # here: self.w_array[doc_idx, :]
+            logger.debug ('prior (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) shape: ')
+            logger.debug ((self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)).shape)
+            logger.debug ("prior check self.theta_all_layer[self.feature_idx] shape: ")
+            logger.debug (self.theta_all_layer[self.feature_idx].shape)
+            logger.debug ("prior check theta_doc shape: ")
+            logger.debug (theta_doc.shape)
             self.theta_all_layer[self.feature_idx][doc_idx] = theta_doc
             if step % 1000 == 0:
-                print ("self.feature_idx: ", self.feature_idx)
-                print ('theta_doc:', theta_doc)
-        logger.debug ("update_Theta_Current_Layer self.theta_all_layer[self.feature_idx] norm:")
+                print ("prior self.feature_idx: ", self.feature_idx)
+                print ('prior theta_doc:', theta_doc)
+        logger.debug ("self.feature_idx:")
+        logger.debug (self.feature_idx)
+        logger.debug ("prior check theta norm update_Theta_Current_Layer self.theta_all_layer[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.theta_all_layer[self.feature_idx]))
-        logger.debug ("update_Theta_Current_Layer np.sum(self.theta_all_layer[self.feature_idx], axis=1):")
+        logger.debug ("prior update_Theta_Current_Layer np.sum(self.theta_all_layer[self.feature_idx], axis=1):")
         logger.debug (np.sum(self.theta_all_layer[self.feature_idx], axis=1))
 
 
@@ -365,7 +392,7 @@ class ResRegularizer():
         self.reg_lambda = reg_lambda
         logger.debug ("self.reg_lambda: %f", self.reg_lambda)
         self.w_array = param.data.cpu().numpy()
-        logger.debug ("self.w_array shape: ")
+        logger.debug ("prior self.w_array shape: ")
         logger.debug (self.w_array.shape)
         # self.calcCorrelation()
         self.calcCorrelation_two_layers()
