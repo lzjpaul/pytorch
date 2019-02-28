@@ -339,7 +339,7 @@ class ResRegularizer():
         logger.debug (np.linalg.norm(correlation_abs_matrix))
         # logger.debug ("correlation_abs_matrix")
         # logger.debug (correlation_abs_matrix)
-        self.prior_alpha = 1.0 + self.prior_beta * correlation_abs_matrix
+        self.prior_alpha = 1.0 + self.reg_lambda * self.prior_beta * correlation_abs_matrix
         logger.debug ('prior check self.prior_alpha shape: ')
         logger.debug (self.prior_alpha.shape)
         logger.debug ("prior check self.w_array shape: ")
