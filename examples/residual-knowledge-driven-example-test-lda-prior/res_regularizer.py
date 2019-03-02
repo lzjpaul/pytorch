@@ -363,9 +363,11 @@ class ResRegularizer():
             logger.debug ("prior check theta_doc shape: ")
             logger.debug (theta_doc.shape)
             self.theta_all_layer[self.feature_idx][doc_idx] = theta_doc
+            '''
             if step % 1000 == 0:
                 print ("prior self.feature_idx: ", self.feature_idx)
                 print ('prior theta_doc:', theta_doc)
+            '''
         logger.debug ("self.feature_idx:")
         logger.debug (self.feature_idx)
         logger.debug ("prior check theta norm update_Theta_Current_Layer self.theta_all_layer[self.feature_idx] norm:")
@@ -438,3 +440,6 @@ class ResRegularizer():
         logger.debug ("w norm: %f", np.linalg.norm(param.data.cpu().numpy()))
         if reg_method == 6:
             self.update_Theta_Current_Layer(step)
+            if epoch <= 3 or epoch == 50:
+                print ("prior self.feature_idx: ", self.feature_idx)
+                print ('prior self.theta_all_layer:', self.theta_all_layer)
