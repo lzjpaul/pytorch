@@ -513,8 +513,8 @@ def get_features_hook(module, input, output):
     logger.debug('output norm: %f', output.data.norm())
     features.append(output.data)
 
-def get_batch(source, i):
-    seq_len = min(args.bptt, len(source) - 1 - i)
+def get_batch(source, i, seqnum):
+    seq_len = min(seqnum, len(source) - 1 - i)
     data = source[i:i+seq_len]
     target = source[i+1:i+1+seq_len].view(-1)
     return data, target
@@ -651,7 +651,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
         ntokens = len(corpus.dictionary)
         rnn.init_hidden(batchsize) # since the data is batchfied, so batchsize can be just passed in from main()
         for batch_idx, i in enumerate(range(0, train_data.size(0) - 1, seqnum)):
-            data_x, data_y = get_batch(train_data, i)
+            data_x, data_y = get_batch(train_data, i, seqnum)
             # print ('data_y shape: ', data_y.shape)
             data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
 
@@ -660,7 +660,9 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
             features.clear()
             logger.debug ('data_x: ')
             logger.debug (data_x)
-            logger.debug ('data_x norm: %f', data_x.norm())
+            logger.debug ('data_x shape: ')
+            logger.debug (data_x.shape)
+            # logger.debug ('data_x norm: %f', data_x.norm())
             outputs = rnn(data_x)
             loss = criterion(outputs.view(-1, ntokens), data_y)
             logger.debug ("features length: %d", len(features))
@@ -721,7 +723,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
         rnn.init_hidden(batchsize)
         with torch.no_grad():
             for batch_idx in range(0, test_data.size(0) - 1, seqnum):
-                data_x, data_y = get_batch(test_data, batch_idx)
+                data_x, data_y = get_batch(test_data, batch_idx, seqnum)
                 # print ("test data_y shape: ", data_y.shape)
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
                 outputs = rnn(data_x)
@@ -781,7 +783,7 @@ if __name__ == '__main__':
     # Set the random seed manually for reproducibility.
     # torch.manual_seed(args.seed)
     print ("args.debug: ", args.debug)
-    print ("args.batch_first: ", args.batch_first)
+    print ("wlm args.batch_first: ", args.batch_first)
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     else:
@@ -913,6 +915,7 @@ if __name__ == '__main__':
         trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real
+# CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
 # CUDA_VISIBLE_DEVICES=0 /home/zhaojing/anaconda3-cuda-10/bin/python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_x_seq_word2vec200_window50.csv -trainlabel /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq_word2vec200_window50.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm -blocks 1 -lr 0.1 -decay 0.0 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 2-21-try-lstm-embedding-lr-01-no-decay
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --batch_first --debug
