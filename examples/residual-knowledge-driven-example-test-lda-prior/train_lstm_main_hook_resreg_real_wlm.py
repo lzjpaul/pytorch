@@ -450,7 +450,9 @@ class WLMResNetLSTM(nn.Module):
             logger.debug (m)
             if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
                 logger.debug ('wlm repackage_hidden isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+                # print ('before repackage m.hidden: ', m.hidden)
                 m.hidden = repackage_hidden(m.hidden)
+                # print ('after repackage m.hidden: ', m.hidden)
     
     def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first):
         logger = logging.getLogger('res_reg')
@@ -526,6 +528,7 @@ def batchify(data, bsz, gpu_id):
     data = data.narrow(0, 0, nbatch * bsz)
     # Evenly divide the data across the bsz batches.
     data = data.view(bsz, -1).t().contiguous()
+    print ("data shape: ", data.shape)
     return data.cuda(gpu_id)
 
 
@@ -915,6 +918,7 @@ if __name__ == '__main__':
         trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real
+# CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
 # CUDA_VISIBLE_DEVICES=0 /home/zhaojing/anaconda3-cuda-10/bin/python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_x_seq_word2vec200_window50.csv -trainlabel /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq_word2vec200_window50.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm -blocks 1 -lr 0.1 -decay 0.0 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 2-21-try-lstm-embedding-lr-01-no-decay
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
