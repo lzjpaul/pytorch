@@ -39,3 +39,13 @@ dataset
 
 19-2-26:
 (1) correaltion as prior
+
+19-2-26:
+
+code in residual-knowledge-driven-example
+
+but open a new folder residual-knowledge-driven-example-test-lda-prior for running
+
+19-3-4:
+
+modifying the code in residual-knowledge-driven-example-test-lda-prior for wlm model
