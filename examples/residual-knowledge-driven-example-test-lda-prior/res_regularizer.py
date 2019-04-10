@@ -267,7 +267,7 @@ class ResRegularizer():
 
     # singa: (word_num, doc_num)
     # pytorch: (doc_num, word_num)
-    def calcRegGradAvg_Gen_Prob(self, labelnum, trainnum):
+    def calcRegGradAvg_Gen_Prob(self, labelnum, seqnum, trainnum, cal_all_timesteps):
         logger = logging.getLogger('res_reg')
         logger.debug ('calcRegGradAvg_Gen_prob correlation_moving_average self.feature_idx: ')
         logger.debug (self.feature_idx)
@@ -281,24 +281,29 @@ class ResRegularizer():
         # print ('np.sum(correlation_abs_matrix_normalize, axis=1)', np.sum(correlation_abs_matrix_normalize, axis=1))
         correlation_abs_matrix_normalize_log = np.log(correlation_abs_matrix_normalize)
         # print ('np.min(correlation_abs_matrix_normalize) after log', np.min(correlation_abs_matrix_normalize_log))
+        if cal_all_timesteps:
+            normalization_coefficient = float(labelnum * seqnum * trainnum)
+        else:
+            normalization_coefficient = float(labelnum * trainnum)
+        print ("normalization_coefficient: ", normalization_coefficient)
         if 'lstm' not in self.model_name:
             logger.debug ('not lstm')
-            reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+            reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/(normalization_coefficient)
         else:
             logger.debug ('lstm')
             w_array_chunk = self.chunk_array(self.w_array,4,0)
-            reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)
+            reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * correlation_abs_matrix_normalize_log)/(normalization_coefficient)
             logger.debug ('w_array_chunk[0] shape')
             logger.debug (w_array_chunk[0].shape)
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * correlation_abs_matrix_normalize_log)/float(labelnum * trainnum)), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * correlation_abs_matrix_normalize_log)/(normalization_coefficient)), axis=0)
                 logger.debug ("w_array_chunk[i] shape: ")
                 logger.debug (w_array_chunk[i].shape)
         logger.debug ("reg_grad_w shape:")
         logger.debug (reg_grad_w.shape)
         return reg_grad_w
 
-    def calcRegGradAvg_Gen_Prob_Prior(self, labelnum, trainnum):
+    def calcRegGradAvg_Gen_Prob_Prior(self, labelnum, seqnum, trainnum, cal_all_timesteps):
         logger = logging.getLogger('res_reg')
         logger.debug ('prior calcRegGradAvg_Gen_Prob_Prior self.theta_all_layer self.feature_idx: ')
         logger.debug (self.feature_idx)
@@ -307,20 +312,25 @@ class ResRegularizer():
         theta_current_layer_log = np.log(self.theta_all_layer[self.feature_idx])
         logger.debug ("prior theta_current_layer_log shape: ") 
         logger.debug (theta_current_layer_log.shape)
+        if cal_all_timesteps:
+            normalization_coefficient = float(labelnum * seqnum * trainnum)
+        else:
+            normalization_coefficient = float(labelnum * trainnum)
+        print ("normalization_coefficient: ", normalization_coefficient)
         '''
         if 'lstm' not in self.model_name:
             logger.debug ('prior not lstm')
         '''
-        reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/float(labelnum * trainnum)
+        reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/(normalization_coefficient)
         '''
         else:
             logger.debug ('prior lstm')
             w_array_chunk = self.chunk_array(self.w_array,4,0)
-            reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * theta_current_layer_log)/float(labelnum * trainnum)
+            reg_grad_w = (-self.reg_lambda * np.sign(w_array_chunk[0]) * theta_current_layer_log)/(normalization_coefficient)
             logger.debug ('prior w_array_chunk[0] shape')
             logger.debug (w_array_chunk[0].shape)
             for i in range(1,4):
-                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * theta_current_layer_log)/float(labelnum * trainnum)), axis=0)
+                reg_grad_w = np.concatenate((reg_grad_w, (-self.reg_lambda * np.sign(w_array_chunk[i]) * theta_current_layer_log)/(normalization_coefficient)), axis=0)
                 logger.debug ("prior w_array_chunk[i] shape: ")
                 logger.debug (w_array_chunk[i].shape)
         '''
@@ -376,7 +386,7 @@ class ResRegularizer():
         logger.debug (np.sum(self.theta_all_layer[self.feature_idx], axis=1))
 
 
-    def apply(self, model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, trainnum, epoch, param, name, step, batch_first=True):
+    def apply(self, model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, trainnum, epoch, param, name, step, batch_first=True, cal_all_timesteps=False):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
         logger = logging.getLogger('res_reg')
         self.model_name = model_name
@@ -400,6 +410,7 @@ class ResRegularizer():
         self.calcCorrelation_two_layers()
         self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
+        print ("trainnum: ", trainnum)
         if reg_method == 0:
             self.reg_grad_w = self.calcRegGradAvg()
         elif reg_method == 1:
@@ -412,10 +423,11 @@ class ResRegularizer():
             self.reg_grad_w = self.calcRegGradAvg_Inverse_Var()
         # generation probablity
         elif reg_method == 5:
-            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob(labelnum, trainnum)
+            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob(labelnum, seqnum, trainnum, cal_all_timesteps)
         # generation probablity using prior
         elif reg_method == 6:
-            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, trainnum)
+            print ("in self.calcRegGradAvg_Gen_Prob_Prior")
+            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()

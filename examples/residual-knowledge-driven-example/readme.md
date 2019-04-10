@@ -44,8 +44,13 @@ dataset
 
 code in residual-knowledge-driven-example
 
-but open a new folder residual-knowledge-driven-example-test-lda-prior for running
+(1) but open a new folder residual-knowledge-driven-example-test-lda-prior for running
 
 19-3-4:
 
-modifying the code in residual-knowledge-driven-example-test-lda-prior for wlm model
+(1) modifying the code in residual-knowledge-driven-example-test-lda-prior for wlm model, but the non-wlm part is not changed ....
+
+19-4-10:
+(1) in "residual-knowledge-driven-example-test-lda-prior", for wlm
+--divided by (label_num * time_step * sample_num)--> since sample_num = (train_data.size(0) * train_data.size(1))/seqnum, the # of mini-batches may not be accurate since the last mini-batch does not contain 100 samples 
+--for non-wlm, not changed yet!!

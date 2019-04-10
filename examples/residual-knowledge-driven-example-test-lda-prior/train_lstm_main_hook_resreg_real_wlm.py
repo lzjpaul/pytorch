@@ -24,6 +24,8 @@
 ## (4) different model different params???
 ## (5) sequence length is not fixed, so I do not pass in sequence_length + init_hidden need to pass in features[0] as batch_size + forward() batchsize need to be 
 ##     calculated while init_hidden batchsize is passed in by features[0]
+## Attenton after TKDE revision:
+## (1) for non-wlm, not divide by (labelnum * train * seqnum) yet!!
 
 import torch
 import torch.nn as nn
@@ -477,6 +479,8 @@ class WLMResNetLSTM(nn.Module):
         else:
             batch_size = x.size()[1]
         x = self.encoder(x)
+        logger.debug('after encoder x shape')
+        logger.debug (x.shape)
         x = self.lstm1(x)
         features.append(x.data)
         logger.debug('Inside ' + self.__class__.__name__ + ' forward')
@@ -674,6 +678,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
                 logger.debug (feature.data.size())
                 logger.debug ("feature norm: %f", feature.data.norm())
             loss.backward()
+            print ("batch_idx: ", batch_idx)
             ### print norm
             if (epoch == 0 and batch_idx < 1000) or batch_idx % 1000 == 0:
                 for name, f in rnn.named_parameters():
@@ -694,7 +699,8 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
                         # print ("check res_reg param name: ", name)
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first)
+                        cal_all_timesteps=True
+                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
                         # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                     else:
                         if weightdecay != 0:
