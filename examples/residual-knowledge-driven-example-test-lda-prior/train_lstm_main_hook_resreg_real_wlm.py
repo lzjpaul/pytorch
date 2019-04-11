@@ -652,6 +652,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
     start = time.time()
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print(st)
+    pre_running_loss = 0.0
     for epoch in range(n_epochs):
         rnn.train()
         total_loss = 0.
@@ -678,7 +679,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
                 logger.debug (feature.data.size())
                 logger.debug ("feature norm: %f", feature.data.norm())
             loss.backward()
-            print ("batch_idx: ", batch_idx)
+            # print ("batch_idx: ", batch_idx)
             ### print norm
             if (epoch == 0 and batch_idx < 1000) or batch_idx % 1000 == 0:
                 for name, f in rnn.named_parameters():
@@ -718,10 +719,14 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
 
         # Print epoch number, loss, name and guess
         # print ('maximum batch_idx: ', batch_idx)
-        cur_loss = total_loss / batch_idx
+        # actually the last mini-batch may contain less time-steps!! originally, the train loss is printed every args.log_interval mini-batches
+        # not totally correct, but just show some hints, then ok
+        cur_loss = total_loss / (batch_idx+1)
         print('| epoch {:3d} | {:5d} batches '
-                    'loss per sample {:5.2f} | ppl {:8.2f}'.format(
+                    'loss per sample per timestep {:.8f} | ppl {:8.2f}'.format(
                 epoch, batch_idx, cur_loss, math.exp(cur_loss)))
+        print ('abs(cur_loss - pre_running_loss)', abs(cur_loss - pre_running_loss))
+        pre_running_loss = cur_loss
         total_loss = 0
 
         # test
@@ -739,15 +744,16 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
                 outputs_flat = outputs.view(-1, ntokens)
                 # print ('outputs shape: ', outputs.shape)
                 # print ('data_y shape: ', data_y.shape)
+                # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
                 total_test_loss += len(data_x) * criterion(outputs_flat, data_y).item()
                 rnn.repackage_hidden()
         average_test_loss = total_test_loss / (len(test_data) - 1)
         print('=' * 89)
-        print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
+        print('| End of training | test loss {:.8f} | test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
         print('=' * 89)
         if epoch == (n_epochs - 1):
             print('=' * 89)
-            print('| End of training | final test loss {:5.2f} | final test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
+            print('| End of training | final test loss {:.8f} | final test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
             print('=' * 89)
             
 
