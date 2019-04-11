@@ -8,6 +8,19 @@
 ## https://github.com/pytorch/examples/blob/master/word_language_model/main.py
 ## https://github.com/lzjpaul/pytorch/blob/residual-knowledge-driven/examples/residual-knowledge-driven-example-test-lda-prior/train_lstm_main_hook_resreg_real.py
 
+## learning rate annealing:
+# https://blog.csdn.net/u012436149/article/details/70666068 
+# https://blog.csdn.net/u012436149/article/details/70666068
+#--> only one parameter group
+# https://discuss.pytorch.org/t/adaptive-learning-rate/320/3
+# https://stackoverflow.com/questions/52660985/pytorch-how-to-get-learning-rate-during-training
+
+# https://pytorch.org/docs/stable/optim.html
+# https://gist.github.com/j-min/a07b235877a342a1b4f3461f45cf33b3
+# https://discuss.pytorch.org/t/adaptive-learning-rate/320/2
+# https://pytorch.org/docs/stable/_modules/torch/optim/optimizer.html
+# https://discuss.pytorch.org/t/different-learning-rate-for-a-specific-layer/33670
+
 ## different from MIMIC-III
 ## (1) no seq_length
 ## (2) !! batch_first not True nned to modify many!!! 
@@ -644,8 +657,18 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
     elapsed = done - start
     print (elapsed)
     print('Finished Training')
-    
-def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
+
+
+def adjust_learning_rate(optimizer, decay_rate):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = param_group['lr'] * decay_rate
+        print ("new param_group['lr']: ", param_group['lr'])
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
+def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, origin_lr, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=n_hidden, model_name=model_name)
     # Keep track of losses for plotting
@@ -653,6 +676,8 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print(st)
     pre_running_loss = 0.0
+    lr = origin_lr
+    best_val_loss = None
     for epoch in range(n_epochs):
         rnn.train()
         total_loss = 0.
@@ -722,18 +747,48 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
         # actually the last mini-batch may contain less time-steps!! originally, the train loss is printed every args.log_interval mini-batches
         # not totally correct, but just show some hints, then ok
         cur_loss = total_loss / (batch_idx+1)
-        print('| epoch {:3d} | {:5d} batches '
+        print('| epoch {:3d} | lr {:.8f} | {:5d} batches '
                     'loss per sample per timestep {:.8f} | ppl {:8.2f}'.format(
-                epoch, batch_idx, cur_loss, math.exp(cur_loss)))
+                epoch, get_lr(optimizer), batch_idx, cur_loss, math.exp(cur_loss)))
         print ('abs(cur_loss - pre_running_loss)', abs(cur_loss - pre_running_loss))
         pre_running_loss = cur_loss
         total_loss = 0
 
+        # validation
+        # Turn on evaluation mode which disables dropout.
+        rnn.eval()
+        total_val_loss = 0.
+        ntokens = len(corpus.dictionary)
+        print ('ntokens: ', ntokens)
+        rnn.init_hidden(batchsize)
+        with torch.no_grad():
+            for batch_idx in range(0, val_data.size(0) - 1, seqnum):
+                data_x, data_y = get_batch(val_data, batch_idx, seqnum)
+                # print ("val data_y shape: ", data_y.shape)
+                data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+                outputs = rnn(data_x)
+                outputs_flat = outputs.view(-1, ntokens)
+                print ('outputs_flat shape: ', outputs_flat.shape)
+                # print ('data_y shape: ', data_y.shape)
+                # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
+                total_val_loss += len(data_x) * criterion(outputs_flat, data_y).item()
+                rnn.repackage_hidden()
+        average_val_loss = total_val_loss / (len(val_data) - 1)
+        print('=' * 89)
+        print('| End of training | val loss {:.8f} | val ppl {:8.2f}'.format(average_val_loss, math.exp(average_val_loss)))
+        print('=' * 89)
+        if not best_val_loss or average_val_loss < best_val_loss:
+            best_val_loss = average_val_loss
+        else:
+            adjust_learning_rate(optimizer, float(1/4.0))
+        
+        
         # test
         # Turn on evaluation mode which disables dropout.
         rnn.eval()
         total_test_loss = 0.
         ntokens = len(corpus.dictionary)
+        print ('ntokens: ', ntokens)
         rnn.init_hidden(batchsize)
         with torch.no_grad():
             for batch_idx in range(0, test_data.size(0) - 1, seqnum):
@@ -742,7 +797,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, test_data, 
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
                 outputs = rnn(data_x)
                 outputs_flat = outputs.view(-1, ntokens)
-                # print ('outputs shape: ', outputs.shape)
+                print ('outputs_flat shape: ', outputs_flat.shape)
                 # print ('data_y shape: ', data_y.shape)
                 # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
                 total_test_loss += len(data_x) * criterion(outputs_flat, data_y).item()
@@ -917,6 +972,7 @@ if __name__ == '__main__':
         criterion = nn.BCELoss()
     else:
         criterion = nn.CrossEntropyLoss()
+    print ('criterion: ', criterion)
     momentum_mu = 0.9 # momentum mu
     reg_lambda = args.reglambda
     prior_beta = args.priorbeta
@@ -927,7 +983,7 @@ if __name__ == '__main__':
     if "wikitext" not in args.traindatadir:
         train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
     else:
-        trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
+        trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, args.lr, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111

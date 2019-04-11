@@ -48,9 +48,12 @@ code in residual-knowledge-driven-example
 
 19-3-4:
 
-(1) modifying the code in residual-knowledge-driven-example-test-lda-prior for wlm model, but the non-wlm part is not changed ....
+(1) adding train_lstm_main_hook_resreg_real_wlm.py  in residual-knowledge-driven-example-test-lda-prior for wlm model, but the non-wlm part is not changed and not tested ....
 
 19-4-10:
-(1) in "residual-knowledge-driven-example-test-lda-prior", for wlm
+(1) in "residual-knowledge-driven-example-test-lda-prior", for train_lstm_main_hook_resreg_real_wlm.py
 --divided by (label_num * time_step * sample_num)--> since sample_num = (train_data.size(0) * train_data.size(1))/seqnum, the # of mini-batches may not be accurate since the last mini-batch does not contain 100 samples 
---for non-wlm, not changed yet!!
+--for non-wlm, not changed and not tested yet!!
+
+19-4-11:
+(1) adding validation dataset and doing learning rate annealing
