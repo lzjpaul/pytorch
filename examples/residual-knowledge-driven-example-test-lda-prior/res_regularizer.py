@@ -98,8 +98,12 @@ class ResRegularizer():
             else:
                 for i in range(self.feature_matrix.shape[0]):
                     self.feature_correlation.append(np.corrcoef(self.feature_matrix[i,:,:], self.second_feature_matrix[i,:,:], rowvar=False)[feature_dim:, 0:feature_dim])
-                    logger.debug ("new using two layers self.feature_correlation[i].shape:")
+                    logger.debug ("19-4-13 using two layers self.feature_correlation[i].shape:")
                     logger.debug (self.feature_correlation[i].shape)
+                    logger.debug ('19-4-13 self.feature_correlation[i] norm')
+                    logger.debug (np.linalg.norm(self.feature_correlation[i]))
+                    logger.debug ('19-4-13 self.feature_correlation[i]')
+                    logger.debug (self.feature_correlation[i])
     
     # calc moving average
     def calAvgCorrelation(self):

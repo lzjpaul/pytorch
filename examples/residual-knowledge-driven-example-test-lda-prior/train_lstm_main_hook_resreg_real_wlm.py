@@ -668,7 +668,7 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
-def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, origin_lr, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
+def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=n_hidden, model_name=model_name)
     # Keep track of losses for plotting
@@ -676,7 +676,6 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, origin_lr, train_data, 
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
     print(st)
     pre_running_loss = 0.0
-    lr = origin_lr
     best_val_loss = None
     for epoch in range(n_epochs):
         rnn.train()
@@ -768,7 +767,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, origin_lr, train_data, 
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
                 outputs = rnn(data_x)
                 outputs_flat = outputs.view(-1, ntokens)
-                print ('outputs_flat shape: ', outputs_flat.shape)
+                # print ('outputs_flat shape: ', outputs_flat.shape)
                 # print ('data_y shape: ', data_y.shape)
                 # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
                 total_val_loss += len(data_x) * criterion(outputs_flat, data_y).item()
@@ -797,7 +796,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, origin_lr, train_data, 
                 data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
                 outputs = rnn(data_x)
                 outputs_flat = outputs.view(-1, ntokens)
-                print ('outputs_flat shape: ', outputs_flat.shape)
+                # print ('outputs_flat shape: ', outputs_flat.shape)
                 # print ('data_y shape: ', data_y.shape)
                 # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
                 total_test_loss += len(data_x) * criterion(outputs_flat, data_y).item()
@@ -983,7 +982,7 @@ if __name__ == '__main__':
     if "wikitext" not in args.traindatadir:
         train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
     else:
-        trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, args.lr, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
+        trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
