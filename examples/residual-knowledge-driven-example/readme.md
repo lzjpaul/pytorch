@@ -57,3 +57,7 @@ code in residual-knowledge-driven-example
 
 19-4-11:
 (1) adding validation dataset and doing learning rate annealing
+
+19-4-15:
+MNIST
+(1) getting mlp_residual_hook_resreg.py from archive-code/19-2-13/mlp_residual_hook_resreg.py, because mlp_residual_hook_resreg.py contains MNIST while 19-2-13 is the latest that has MNIST --> but still running in ../residual-knowledge-driven-example-test-lda-prior/ folder
