@@ -7,3 +7,6 @@ temporarily used as lda-prior folder
 
 (3) 19-4-15
 (3-1) mlp_residual_hook_resreg_real_mnist.py: adapted for mnist dataset
+
+(4) 19-4-16
+(4-1) for MNIST, the loss function is log_softmax

@@ -130,7 +130,58 @@ class ResNetMLP(nn.Module):
         x = F.sigmoid(self.fc2(x)) # dimension 0: # of samples, dimension 1: exponential
         return x
 
-def resnetmlp(blocks, dim_vec, **kwargs):
+class MNISTResNetMLP(nn.Module):
+    def __init__(self, block, input_dim, hidden_dim, output_dim, blocks):
+        super(MNISTResNetMLP, self).__init__()
+        self.fc1 = InitLinear(input_dim, hidden_dim)
+        self.layer1 = self._make_layer(block, hidden_dim, hidden_dim, blocks)
+        self.fc2 = InitLinear(hidden_dim, output_dim)
+
+        logger = logging.getLogger('res_reg')
+        # ??? do I need this?
+        for idx, m in enumerate(self.modules()):
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
+            if isinstance(m, nn.Conv2d):
+                logger.info ('initialization using kaiming_normal_')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            # elif isinstance(m, nn.BatchNorm2d):
+            #    nn.init.constant_(m.weight, 1)
+            #    nn.init.constant_(m.bias, 0)
+
+    def _make_layer(self, block, input_dim, hidden_dim, blocks):
+        logger = logging.getLogger('res_reg')
+        layers = []
+        layers.append(block(input_dim, hidden_dim))
+        for i in range(1, blocks):
+            layers.append(block(input_dim, hidden_dim))
+        for layer in layers:
+            layer.register_forward_hook(get_features_hook)
+        logger.info ('layers: ')
+        logger.info (layers)
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
+        x = F.sigmoid(self.fc1(x))
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
+        x = self.layer1(x)
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
+        x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
+        return x
+
+
+
+def resnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
     """Constructs a resnetmlp model.
 
     Args:
@@ -141,7 +192,7 @@ def resnetmlp(blocks, dim_vec, **kwargs):
     model = ResNetMLP(BasicResMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
     return model
 
-def mlp(blocks, dim_vec, **kwargs):
+def mlp(blocks, dim_vec, pretrained=False, **kwargs):
     """Constructs a mlp model.
 
     Args:
@@ -152,6 +203,27 @@ def mlp(blocks, dim_vec, **kwargs):
     model = ResNetMLP(BasicMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
     return model
 
+def mnistresnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
+    """Constructs a mnistresnetmlp model.
+
+    Args:
+        blocks: how many residual links
+        dim_vec: [input_dim, hidden_dim, output_dim]
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = MNISTResNetMLP(BasicResMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
+    return model
+
+def mnistmlp(blocks, dim_vec, pretrained=False, **kwargs):
+    """Constructs a mnistmlp model.
+
+    Args:
+        blocks: how many residual links
+        dim_vec: [input_dim, hidden_dim, output_dim]
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = MNISTResNetMLP(BasicMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
+    return model
 
 def get_features_hook(module, input, output):
     # input is a tuple of packed inputs
@@ -411,6 +483,28 @@ def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
     
     return model_ft
 
+def mnist_initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
+    # Initialize these variables which will be set in this if statement. Each of these
+    #   variables is model specific.
+    model_ft = None
+    input_size = 0
+
+    if "res" in model_name:
+        """ mnistresnetmlp or mnistregresnetmlp
+        """
+        print ("mnistresnetmlp")
+        model_ft = mnistresnetmlp(blocks, dim_vec, pretrained=use_pretrained)
+    else:
+        """ mnistmlp or mnistregmlp
+        """
+        print ("mnistmlp")
+        model_ft = mnistmlp(blocks, dim_vec, pretrained=use_pretrained)
+    # else:
+    #     print("Invalid model name, exiting...")
+    #     exit()
+    
+    return model_ft
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Residual MLP')
     parser.add_argument('-traindatadir', type=str, help='training data directory')
@@ -517,13 +611,15 @@ if __name__ == '__main__':
         
 
         # Initialize the model for this run
-        model_ft = initialize_model(args.modelname, args.blocks, dim_vec)
+        model_ft = initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
     else:
         label_num = 1 # hard-coded for MNIST
         print ("check label number: ", label_num)
         dim_vec = [28*28, 100, 10] # [input_dim, hidden_dim, output_dim]
         print ("check dim_vec: ", dim_vec)
-        model_ft = initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
+
+
+        model_ft = mnist_initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
     # Print the model we just instantiated
     print('model:')
     print(model_ft)
@@ -582,6 +678,7 @@ if __name__ == '__main__':
     else:
         train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname mlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 --priorbeta 1.0
 #CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabel /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname regmlp -blocks 1 -lr 0.3 -decay 0.00001 -reglambda 0.01 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 50 -gpuid 0 --batch_first --priorbeta 1.5 --debug
 # CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug
 # CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname mlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --debug
