@@ -289,7 +289,7 @@ class ResRegularizer():
             normalization_coefficient = float(labelnum * seqnum * trainnum)
         else:
             normalization_coefficient = float(labelnum * trainnum)
-        print ("normalization_coefficient: ", normalization_coefficient)
+        # print ("normalization_coefficient: ", normalization_coefficient)
         if 'lstm' not in self.model_name:
             logger.debug ('not lstm')
             reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/(normalization_coefficient)
@@ -320,7 +320,7 @@ class ResRegularizer():
             normalization_coefficient = float(labelnum * seqnum * trainnum)
         else:
             normalization_coefficient = float(labelnum * trainnum)
-        print ("normalization_coefficient: ", normalization_coefficient)
+        # print ("normalization_coefficient: ", normalization_coefficient)
         '''
         if 'lstm' not in self.model_name:
             logger.debug ('prior not lstm')
@@ -414,7 +414,8 @@ class ResRegularizer():
         self.calcCorrelation_two_layers()
         self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
-        print ("trainnum: ", trainnum)
+        # print ("trainnum: ", trainnum)
+        # print ("seqnum: ", seqnum)
         if reg_method == 0:
             self.reg_grad_w = self.calcRegGradAvg()
         elif reg_method == 1:

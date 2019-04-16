@@ -410,7 +410,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     if "layer1" in name and "weight" in name:
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -517,7 +517,7 @@ if __name__ == '__main__':
     parser.add_argument('-lr', type=float, help='0.08 for MIMIC-III, 0.01 for MNIST')
     parser.add_argument('-decay', type=float, help='weightdecay')
     parser.add_argument('-reglambda', type=float, help='reg_lambda')
-    parser.add_argument('-batchsize', type=int, help='batch_size, default 100')
+    parser.add_argument('-batchsize', type=int, help='batch_size, default 100, mnist hard-coded 64')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
