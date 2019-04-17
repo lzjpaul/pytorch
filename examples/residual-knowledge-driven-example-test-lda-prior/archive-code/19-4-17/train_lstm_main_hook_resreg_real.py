@@ -5,21 +5,6 @@
 ## https://github.com/lzjpaul/pytorch/blob/LDA-regularization/examples/cifar-10-tutorial/mimic_lstm_lda.py
 ## https://github.com/lzjpaul/pytorch/blob/residual-knowledge-driven/examples/residual-knowledge-driven-example/mlp_residual.py
 ## https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html#sphx-glr-beginner-nlp-sequence-models-tutorial-py
-## https://github.com/pytorch/examples/blob/master/word_language_model/main.py
-## https://github.com/lzjpaul/pytorch/blob/residual-knowledge-driven/examples/residual-knowledge-driven-example-test-lda-prior/train_lstm_main_hook_resreg_real.py
-
-## learning rate annealing:
-# https://blog.csdn.net/u012436149/article/details/70666068 
-# https://blog.csdn.net/u012436149/article/details/70666068
-#--> only one parameter group
-# https://discuss.pytorch.org/t/adaptive-learning-rate/320/3
-# https://stackoverflow.com/questions/52660985/pytorch-how-to-get-learning-rate-during-training
-
-# https://pytorch.org/docs/stable/optim.html
-# https://gist.github.com/j-min/a07b235877a342a1b4f3461f45cf33b3
-# https://discuss.pytorch.org/t/adaptive-learning-rate/320/2
-# https://pytorch.org/docs/stable/_modules/torch/optim/optimizer.html
-# https://discuss.pytorch.org/t/different-learning-rate-for-a-specific-layer/33670
 
 ## different from MIMIC-III
 ## (1) no seq_length
@@ -37,8 +22,6 @@
 ## (4) different model different params???
 ## (5) sequence length is not fixed, so I do not pass in sequence_length + init_hidden need to pass in features[0] as batch_size + forward() batchsize need to be 
 ##     calculated while init_hidden batchsize is passed in by features[0]
-## Attenton after TKDE revision:
-## (1) for non-wlm, not divide by (labelnum * train * seqnum) yet!!
 
 import torch
 import torch.nn as nn
@@ -60,7 +43,6 @@ import torch.optim as optim
 import datetime
 import torch.nn.functional as F
 from mimic_metric import *
-import data
 
 
 features = []
@@ -391,123 +373,6 @@ class ResNetLSTM(nn.Module):
             x = F.sigmoid(self.fc1(x[-1, :, :].view(batch_size, -1)))
         return x
 
-def repackage_hidden(h):
-    """Wraps hidden states in new Tensors, to detach them from their history."""
-    if isinstance(h, torch.Tensor):
-        return h.detach()
-    else:
-        return tuple(repackage_hidden(v) for v in h)
-
-
-class WLMResNetLSTM(nn.Module):
-    """Container module with an encoder, a recurrent module, and a decoder."""
-
-    def __init__(self, gpu_id, block, ntoken, input_dim, hidden_dim, blocks, batch_first, tie_weights=False):
-        super(WLMResNetLSTM, self).__init__()
-        self.gpu_id = gpu_id
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.batch_first = batch_first
-        self.encoder = nn.Embedding(ntoken, input_dim)
-        self.lstm1 = BasicLSTMBlock(gpu_id=gpu_id, input_dim=input_dim, hidden_dim=hidden_dim, batch_first=batch_first)
-        self.layer1 = self._make_layer(gpu_id, block, hidden_dim, hidden_dim, blocks, batch_first)
-        self.decoder = nn.Linear(hidden_dim, ntoken)
-        
-        logger = logging.getLogger('res_reg')
-        # ??? do I need this?
-        for idx, m in enumerate(self.modules()):
-            print ('idx and self.modules():')
-            print (idx)
-            print (m)
-            logger.info ('idx and self.modules():')
-            logger.info (idx)
-            logger.info (m)
-            if isinstance(m, nn.Conv2d):
-                logger.info ('initialization using kaiming_normal_')
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        # Optionally tie weights as in:
-        # "Using the Output Embedding to Improve Language Models" (Press & Wolf 2016)
-        # https://arxiv.org/abs/1608.05859
-        # and
-        # "Tying Word Vectors and Word Classifiers: A Loss Framework for Language Modeling" (Inan et al. 2016)
-        # https://arxiv.org/abs/1611.01462
-        if tie_weights:
-            if hidden_dim != input_dim:
-                raise ValueError('When using the tied flag, nhid must be equal to emsize')
-            self.decoder.weight = self.encoder.weight
-        self.init_weights()
-
-
-    
-    def init_weights(self):
-        initrange = 0.1
-        self.encoder.weight.data.uniform_(-initrange, initrange)
-        self.decoder.bias.data.zero_()
-        self.decoder.weight.data.uniform_(-initrange, initrange)
-
-    def init_hidden(self, batch_size):
-        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        for idx, m in enumerate(self.modules()):
-            logger.debug ('init hidden idx and self.modules():')
-            # print ('init hidden idx: ', idx)
-            logger.debug ('init hidden m: ')
-            logger.debug (m)
-            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
-                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
-                m.hidden = m.init_hidden(batch_size)
-
-    def repackage_hidden(self):
-        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
-        for idx, m in enumerate(self.modules()):
-            logger.debug ('init hidden idx and self.modules():')
-            # print ('init hidden idx: ', idx)
-            logger.debug ('init hidden m: ')
-            logger.debug (m)
-            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
-                logger.debug ('wlm repackage_hidden isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
-                # print ('before repackage m.hidden: ', m.hidden)
-                m.hidden = repackage_hidden(m.hidden)
-                # print ('after repackage m.hidden: ', m.hidden)
-    
-    def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first):
-        logger = logging.getLogger('res_reg')
-        layers = []
-        layers.append(block(gpu_id, input_dim, hidden_dim, batch_first))
-        for i in range(1, blocks):
-            layers.append(block(gpu_id, input_dim, hidden_dim, batch_first)) # ?? need init_hidden()??
-        for layer in layers:
-            layer.register_forward_hook(get_features_hook)
-        logger.info ('layers: ')
-        logger.info (layers)
-        print ('layers: ')
-        return nn.Sequential(*layers)
-
-
-    def forward(self, x):
-        logger = logging.getLogger('res_reg')
-        logger.debug('x shape')
-        logger.debug (x.shape)
-        if self.batch_first:
-            batch_size = x.size()[0]
-        else:
-            batch_size = x.size()[1]
-        x = self.encoder(x)
-        logger.debug('after encoder x shape')
-        logger.debug (x.shape)
-        x = self.lstm1(x)
-        features.append(x.data)
-        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('before blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('before blocks norm: %f', x.data.norm())
-        x = self.layer1(x)
-        logger.debug ('after blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('after blocks norm: %f', x.data.norm())
-        decoded = self.decoder(x.view(x.size(0)*x.size(1), x.size(2)))
-        return decoded.view(x.size(0), x.size(1), decoded.size(1))
-
-
 def get_features_hook(module, input, output):
     # input is a tuple of packed inputs
     # output is a Tensor. output.data is the Tensor we are interested
@@ -531,23 +396,6 @@ def get_features_hook(module, input, output):
     logger.debug(output.data.size())
     logger.debug('output norm: %f', output.data.norm())
     features.append(output.data)
-
-def get_batch(source, i, seqnum):
-    seq_len = min(seqnum, len(source) - 1 - i)
-    data = source[i:i+seq_len]
-    target = source[i+1:i+1+seq_len].view(-1)
-    return data, target
-
-def batchify(data, bsz, gpu_id):
-    # Work out how cleanly we can divide the dataset into bsz parts.
-    nbatch = data.size(0) // bsz
-    # Trim off any extra elements that wouldn't cleanly fit (remainders).
-    data = data.narrow(0, 0, nbatch * bsz)
-    # Evenly divide the data across the bsz batches.
-    data = data.view(bsz, -1).t().contiguous()
-    print ("data shape: ", data.shape)
-    return data.cuda(gpu_id)
-
 
 def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
     logger = logging.getLogger('res_reg')
@@ -657,172 +505,11 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
     elapsed = done - start
     print (elapsed)
     print('Finished Training')
-
-
-def adjust_learning_rate(optimizer, decay_rate):
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = param_group['lr'] * decay_rate
-        print ("new param_group['lr']: ", param_group['lr'])
-
-def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
-
-def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
-    logger = logging.getLogger('res_reg')
-    res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=n_hidden, model_name=model_name)
-    # Keep track of losses for plotting
-    start = time.time()
-    st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
-    print(st)
-    pre_running_loss = 0.0
-    best_val_loss = None
-    for epoch in range(n_epochs):
-        rnn.train()
-        total_loss = 0.
-        ntokens = len(corpus.dictionary)
-        rnn.init_hidden(batchsize) # since the data is batchfied, so batchsize can be just passed in from main()
-        for batch_idx, i in enumerate(range(0, train_data.size(0) - 1, seqnum)):
-            data_x, data_y = get_batch(train_data, i, seqnum)
-            # print ('data_y shape: ', data_y.shape)
-            data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
-
-            rnn.repackage_hidden()
-            optimizer.zero_grad()
-            features.clear()
-            logger.debug ('data_x: ')
-            logger.debug (data_x)
-            logger.debug ('data_x shape: ')
-            logger.debug (data_x.shape)
-            # logger.debug ('data_x norm: %f', data_x.norm())
-            outputs = rnn(data_x)
-            loss = criterion(outputs.view(-1, ntokens), data_y)
-            logger.debug ("features length: %d", len(features))
-            for feature in features:
-                logger.debug ("feature size:")
-                logger.debug (feature.data.size())
-                logger.debug ("feature norm: %f", feature.data.norm())
-            loss.backward()
-            # print ("batch_idx: ", batch_idx)
-            ### print norm
-            if (epoch == 0 and batch_idx < 1000) or batch_idx % 1000 == 0:
-                for name, f in rnn.named_parameters():
-                    print ('batch_idx: ', batch_idx)
-                    print ('param name: ', name)
-                    print ('param size:', f.data.size())
-                    print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
-                    print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
-            ### when to use res_reg
-                
-            if "reg" in model_name and epoch >= firstepochs:
-                feature_idx = -1 # which feature to use for regularization
-                for name, f in rnn.named_parameters():
-                    logger.debug ("param name: " +  name)
-                    logger.debug ("param size:")
-                    logger.debug (f.size())
-                    if "layer1" in name and "weight_ih" in name:
-                        # print ("check res_reg param name: ", name)
-                        logger.debug ('res_reg param name: '+ name)
-                        feature_idx = feature_idx + 1
-                        cal_all_timesteps=True
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
-                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
-                    else:
-                        if weightdecay != 0:
-                            logger.debug ('weightdecay name: ' + name)
-                            logger.debug ('weightdecay: %f', weightdecay)
-                            f.grad.data.add_(float(weightdecay), f.data)
-                            logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
-                            logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
-                            logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
-            ### print norm
-            torch.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
-            optimizer.step()
-            total_loss += loss.item()
-            # print ('check!! len(data_x) --> last batch? : ', len(data_x))
-
-        # Print epoch number, loss, name and guess
-        # print ('maximum batch_idx: ', batch_idx)
-        # actually the last mini-batch may contain less time-steps!! originally, the train loss is printed every args.log_interval mini-batches
-        # not totally correct, but just show some hints, then ok
-        cur_loss = total_loss / (batch_idx+1)
-        print('| epoch {:3d} | lr {:.8f} | {:5d} batches '
-                    'loss per sample per timestep {:.8f} | ppl {:8.2f}'.format(
-                epoch, get_lr(optimizer), batch_idx, cur_loss, math.exp(cur_loss)))
-        print ('abs(cur_loss - pre_running_loss)', abs(cur_loss - pre_running_loss))
-        pre_running_loss = cur_loss
-        total_loss = 0
-
-        # validation
-        # Turn on evaluation mode which disables dropout.
-        rnn.eval()
-        total_val_loss = 0.
-        ntokens = len(corpus.dictionary)
-        print ('ntokens: ', ntokens)
-        rnn.init_hidden(batchsize)
-        with torch.no_grad():
-            for batch_idx in range(0, val_data.size(0) - 1, seqnum):
-                data_x, data_y = get_batch(val_data, batch_idx, seqnum)
-                # print ("val data_y shape: ", data_y.shape)
-                data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
-                outputs = rnn(data_x)
-                outputs_flat = outputs.view(-1, ntokens)
-                # print ('outputs_flat shape: ', outputs_flat.shape)
-                # print ('data_y shape: ', data_y.shape)
-                # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
-                total_val_loss += len(data_x) * criterion(outputs_flat, data_y).item()
-                rnn.repackage_hidden()
-        average_val_loss = total_val_loss / (len(val_data) - 1)
-        print('=' * 89)
-        print('| End of training | val loss {:.8f} | val ppl {:8.2f}'.format(average_val_loss, math.exp(average_val_loss)))
-        print('=' * 89)
-        if not best_val_loss or average_val_loss < best_val_loss:
-            best_val_loss = average_val_loss
-        else:
-            adjust_learning_rate(optimizer, float(1/4.0))
-        
-        
-        # test
-        # Turn on evaluation mode which disables dropout.
-        rnn.eval()
-        total_test_loss = 0.
-        ntokens = len(corpus.dictionary)
-        print ('ntokens: ', ntokens)
-        rnn.init_hidden(batchsize)
-        with torch.no_grad():
-            for batch_idx in range(0, test_data.size(0) - 1, seqnum):
-                data_x, data_y = get_batch(test_data, batch_idx, seqnum)
-                # print ("test data_y shape: ", data_y.shape)
-                data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
-                outputs = rnn(data_x)
-                outputs_flat = outputs.view(-1, ntokens)
-                # print ('outputs_flat shape: ', outputs_flat.shape)
-                # print ('data_y shape: ', data_y.shape)
-                # sum over timesteps, this is absolutely correct even if the last mini-batch is not equal lenght of timesteps
-                total_test_loss += len(data_x) * criterion(outputs_flat, data_y).item()
-                rnn.repackage_hidden()
-        average_test_loss = total_test_loss / (len(test_data) - 1)
-        print('=' * 89)
-        print('| End of training | test loss {:.8f} | test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
-        print('=' * 89)
-        if epoch == (n_epochs - 1):
-            print('=' * 89)
-            print('| End of training | final test loss {:.8f} | final test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
-            print('=' * 89)
-            
-
-    done = time.time()
-    do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
-    print (do)
-    elapsed = done - start
-    print (elapsed)
-    print('Finished Training')
-
-
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Residual LSTM')
-    parser.add_argument('-traindatadir', type=str, help='training data directory, also the data dir for word language model')
+    parser.add_argument('-traindatadir', type=str, help='training data directory')
     parser.add_argument('-trainlabeldir', type=str, help='training label directory')
     parser.add_argument('-testdatadir', type=str, help='test data directory')
     parser.add_argument('-testlabeldir', type=str, help='test label directory')
@@ -840,19 +527,12 @@ if __name__ == '__main__':
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
     parser.add_argument('--batch_first', action='store_true')
-    parser.add_argument('--priorbeta', type=float, default=1.0)
-    parser.add_argument('--emsize', type=int, default=200, help='size of word embeddings')
-    parser.add_argument('--nhid', type=int, default=200, help='number of hidden units per layer, 200 for word language model, 128 for other datasets')
-    parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
-    parser.add_argument('--tied', action='store_true', help='tie the word embedding and softmax weights')
-    parser.add_argument('--seed', type=int, default=1111, help='random seed')
+    parser.add_argument('--priorbeta', default=1.0, type=float)
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
-    # Set the random seed manually for reproducibility.
-    # torch.manual_seed(args.seed)
     print ("args.debug: ", args.debug)
-    print ("wlm args.batch_first: ", args.batch_first)
+    print ("args.batch_first: ", args.batch_first)
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
     else:
@@ -866,120 +546,85 @@ if __name__ == '__main__':
     # Load Data
     # ---------
     #
-    if "wikitext" not in args.traindatadir:
-        print ("not word language model")
-        print ("loading train_x")
-        # train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
-        if "MIMIC-III" in args.traindatadir: 
-            train_x_sparse_matrix = scipy.sparse.load_npz(args.traindatadir)
-            train_x_sparse_matrix = train_x_sparse_matrix.astype(np.float32)
-            train_x = np.array(train_x_sparse_matrix.todense())
-        else:
-            train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
-        
-        train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
-        train_y = train_y.reshape((train_y.shape[0],-1))
-        print ("loading test_x")
-        # test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
-        if "MIMIC-III" in args.traindatadir:
-            test_x_sparse_matrix = scipy.sparse.load_npz(args.testdatadir)
-            test_x_sparse_matrix = test_x_sparse_matrix.astype(np.float32)
-            test_x = np.array(test_x_sparse_matrix.todense())
-        else:
-            test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
-        
-        test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
-        test_y = test_y.reshape((test_y.shape[0],-1))
-        train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
-        test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
-        print ('train_x.shape: ', train_x.shape)
-        print ('test_x.shape: ', test_x.shape)
-        print ('train_y.shape: ', train_y.shape)
-        print ('test_y.shape: ', test_y.shape)
-        input_dim = train_x.shape[-1]
-        print ('check input_dim: ', input_dim)
-
-        train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
-        train_loader = Data.DataLoader(dataset=train_dataset,
-                                       batch_size=args.batchsize,
-                                       shuffle=True)
-        print ('check len(train_dataset): ', len(train_dataset))
-        test_dataset = Data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_y))
-        test_loader = Data.DataLoader(dataset=test_dataset,
-                                       batch_size=args.batchsize,
-                                       shuffle=True)
-        print ('check len(test_dataset): ', len(test_dataset))
-
-        label_num = train_y.shape[1]
-        print ("check label number: ", label_num)
+    print ("loading train_x")
+    # train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+    if "MIMIC-III" in args.traindatadir: 
+        train_x_sparse_matrix = scipy.sparse.load_npz(args.traindatadir)
+        train_x_sparse_matrix = train_x_sparse_matrix.astype(np.float32)
+        train_x = np.array(train_x_sparse_matrix.todense())
     else:
-        label_num = 1
-        print ("wlm check label number (hard code??): ", label_num)
-        corpus = data.Corpus(args.traindatadir)
-        train_data = batchify(corpus.train, args.batchsize, gpu_id)
-        val_data = batchify(corpus.valid, args.batchsize, gpu_id)
-        test_data = batchify(corpus.test, args.batchsize, gpu_id)
-        ntokens = len(corpus.dictionary)
-        input_dim = args.emsize
+        train_x = np.genfromtxt(args.traindatadir, dtype=np.float32, delimiter=',')
+    
+    train_y = np.genfromtxt(args.trainlabeldir, dtype=np.float32, delimiter=',')
+    train_y = train_y.reshape((train_y.shape[0],-1))
+    print ("loading test_x")
+    # test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+    if "MIMIC-III" in args.traindatadir:
+        test_x_sparse_matrix = scipy.sparse.load_npz(args.testdatadir)
+        test_x_sparse_matrix = test_x_sparse_matrix.astype(np.float32)
+        test_x = np.array(test_x_sparse_matrix.todense())
+    else:
+        test_x = np.genfromtxt(args.testdatadir, dtype=np.float32, delimiter=',')
+    
+    test_y = np.genfromtxt(args.testlabeldir, dtype=np.float32, delimiter=',')
+    test_y = test_y.reshape((test_y.shape[0],-1))
+    train_x = train_x.reshape((train_x.shape[0], args.seqnum, -1))
+    test_x = test_x.reshape((test_x.shape[0], args.seqnum, -1))
+    print ('train_x.shape: ', train_x.shape)
+    print ('test_x.shape: ', test_x.shape)
+    print ('train_y.shape: ', train_y.shape)
+    print ('test_y.shape: ', test_y.shape)
+    input_dim = train_x.shape[-1]
+    print ('check input_dim: ', input_dim)
+
+    train_dataset = Data.TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
+    train_loader = Data.DataLoader(dataset=train_dataset,
+                                   batch_size=args.batchsize,
+                                   shuffle=True)
+    print ('check len(train_dataset): ', len(train_dataset))
+    test_dataset = Data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_y))
+    test_loader = Data.DataLoader(dataset=test_dataset,
+                                   batch_size=args.batchsize,
+                                   shuffle=True)
+    print ('check len(test_dataset): ', len(test_dataset))
+
+    label_num = train_y.shape[1]
+    print ("check label number: ", label_num)
 
 
-    n_hidden = args.nhid
+    n_hidden = 128
     n_epochs = args.maxepoch
 
-    if "wikitext" not in args.traindatadir:
-        if "res" in args.modelname and "rnn" in args.modelname:
-            print ('check resrnn model')
-            rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-            rnn = rnn.cuda(args.gpuid)
-        elif "res" in args.modelname and "lstm" in args.modelname:
-            print ('check reslstm model')
-            rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-            rnn = rnn.cuda(args.gpuid)
-        elif "res" not in args.modelname and "rnn" in args.modelname:
-            print ('check rnn model')
-            rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-            rnn = rnn.cuda(args.gpuid)
-        elif "res" not in args.modelname and "lstm" in args.modelname:
-            print ('check lstm model')
-            rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-            rnn = rnn.cuda(args.gpuid)
-        else:
-            print("Invalid model name, exiting...")
-            exit()
+    if "res" in args.modelname and "rnn" in args.modelname:
+        print ('check resrnn model')
+        rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+        rnn = rnn.cuda(args.gpuid)
+    elif "res" in args.modelname and "lstm" in args.modelname:
+        print ('check reslstm model')
+        rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+        rnn = rnn.cuda(args.gpuid)
+    elif "res" not in args.modelname and "rnn" in args.modelname:
+        print ('check rnn model')
+        rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+        rnn = rnn.cuda(args.gpuid)
+    elif "res" not in args.modelname and "lstm" in args.modelname:
+        print ('check lstm model')
+        rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+        rnn = rnn.cuda(args.gpuid)
     else:
-        if "res" in args.modelname and "lstm" in args.modelname:
-            rnn = WLMResNetLSTM(args.gpuid, BasicResLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-            rnn = rnn.cuda(args.gpuid)
-        elif "res" not in args.modelname and "lstm" in args.modelname:
-            rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-            rnn = rnn.cuda(args.gpuid)
-        else:
-            print("Invalid model name, exiting...")
-            exit()
-
+        print("Invalid model name, exiting...")
+        exit()
 
     if "reg" in args.modelname:
         print ('optimizer without wd')
         # optimizer = Adam(rnn.parameters(), lr=args.lr)
-        if "wikitext" not in args.traindatadir:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
-        else:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr)
+        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
     else:
         print ('optimizer with wd')
         # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-        if "wikitext" not in args.traindatadir:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.decay)
-        else:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
+        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.decay)
         # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-    print ('optimizer: ', optimizer)
-
-    if "wikitext" not in args.traindatadir:
-        criterion = nn.BCELoss()
-    else:
-        criterion = nn.CrossEntropyLoss()
-    print ('criterion: ', criterion)
+    criterion = nn.BCELoss()
     momentum_mu = 0.9 # momentum mu
     reg_lambda = args.reglambda
     prior_beta = args.priorbeta
@@ -987,15 +632,9 @@ if __name__ == '__main__':
     print ('weightdecay: ', weightdecay)
     print ('reg_lambda: ', reg_lambda)
     print ('priot prior_beta: ', prior_beta)
-    if "wikitext" not in args.traindatadir:
-        train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
-    else:
-        trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
+    train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
-####### real and real_wlm
-# CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0 -reglambda 0.0 -batchsize 20 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 6 -gpuid 0 --priorbeta 0.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
-# CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
-# CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
+####### real
 # CUDA_VISIBLE_DEVICES=0 /home/zhaojing/anaconda3-cuda-10/bin/python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_x_seq_word2vec200_window50.csv -trainlabel /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq_word2vec200_window50.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm -blocks 1 -lr 0.1 -decay 0.0 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 2-21-try-lstm-embedding-lr-01-no-decay
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname reslstm -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --batch_first --debug
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/movie_review_valid_y_seq_sample.csv -seqnum 25 -modelname resrnn -blocks 2 -lr 0.001 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 2 -gpuid 0 --batch_first --debug

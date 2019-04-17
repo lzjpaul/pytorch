@@ -961,20 +961,11 @@ if __name__ == '__main__':
     if "reg" in args.modelname:
         print ('optimizer without wd')
         # optimizer = Adam(rnn.parameters(), lr=args.lr)
-        if "wikitext" not in args.traindatadir:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
-        else:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr)
+        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
     else:
         print ('optimizer with wd')
-        # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-        if "wikitext" not in args.traindatadir:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.decay)
-        else:
-            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-        # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-    print ('optimizer: ', optimizer)
-
+        # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.decay)
+        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
     if "wikitext" not in args.traindatadir:
         criterion = nn.BCELoss()
     else:
@@ -992,8 +983,7 @@ if __name__ == '__main__':
     else:
         trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
-####### real and real_wlm
-# CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0 -reglambda 0.0 -batchsize 20 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 6 -gpuid 0 --priorbeta 0.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
+####### real
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
 # CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0001 -reglambda 0.001 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --priorbeta 10.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111
 # CUDA_VISIBLE_DEVICES=0 /home/zhaojing/anaconda3-cuda-10/bin/python train_lstm_main_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_x_seq_word2vec200_window50.csv -trainlabel /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_train_valid_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_x_seq_word2vec200_window50.csv -testlabeldir /hdd1/zhaojing/res-regularization/Movie_Review/movie_review_test_y_seq.csv -seqnum 25 -modelname lstm -blocks 1 -lr 0.1 -decay 0.0 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 2-21-try-lstm-embedding-lr-01-no-decay

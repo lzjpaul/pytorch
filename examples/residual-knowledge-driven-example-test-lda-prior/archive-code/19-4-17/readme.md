@@ -12,5 +12,5 @@ temporarily used as lda-prior folder
 (4-1) for MNIST, the loss function is log_softmax
 
 (5) 19-4-17
-(5-1) try momentum, dropout, batchsize using train_lstm_main_hook_resreg_real_wlm_no_momentum.py and train_lstm_main_hook_resreg_real_wlm_dropout.py
+(5-1) try momentum, dropout, batchsize
 (5-2) no momentum for wlm
