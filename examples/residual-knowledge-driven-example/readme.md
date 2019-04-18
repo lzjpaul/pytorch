@@ -49,6 +49,7 @@ dataset
 code in residual-knowledge-driven-example
 
 (1) but open a new folder residual-knowledge-driven-example-test-lda-prior for running
+(2) develop calcRegGradAvg_Gen_Prob_Prior in this new folder also
 
 19-3-4:
 

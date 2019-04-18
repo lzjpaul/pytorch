@@ -332,9 +332,9 @@ class ResNetLSTM(nn.Module):
         logger = logging.getLogger('res_reg')
         # ??? do I need this?
         for idx, m in enumerate(self.modules()):
-            # print ('idx and self.modules():')
-            # print (idx)
-            # print (m)
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
             logger.info ('idx and self.modules():')
             logger.info (idx)
             logger.info (m)
@@ -600,7 +600,8 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                         # print ("check res_reg param name: ", name)
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first)
+                        cal_all_timesteps=False
+                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
                         # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                     else:
                         if weightdecay != 0:

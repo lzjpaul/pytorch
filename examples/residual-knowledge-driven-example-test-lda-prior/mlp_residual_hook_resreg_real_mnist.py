@@ -91,6 +91,9 @@ class ResNetMLP(nn.Module):
         logger = logging.getLogger('res_reg')
         # ??? do I need this?
         for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
             logger.info ('idx and self.modules():')
             logger.info (idx)
             logger.info (m)
@@ -140,6 +143,9 @@ class MNISTResNetMLP(nn.Module):
         logger = logging.getLogger('res_reg')
         # ??? do I need this?
         for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
             logger.info ('idx and self.modules():')
             logger.info (idx)
             logger.info (m)
@@ -308,7 +314,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                         # print ('check res_reg param name: ', name)
                         logger.debug ('res_reg param name: '+ name)
                         feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -375,6 +381,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             data = data.reshape((data.shape[0],-1))
             logger.debug('data shape:')
             logger.debug(data.shape)
+            # print ("target shape: ", target.shape)
             data, target = data.cuda(gpu_id), target.cuda(gpu_id)
             optimizer.zero_grad()
             features.clear()
@@ -678,6 +685,7 @@ if __name__ == '__main__':
     else:
         train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
 
+# CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname regmlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --priorbeta 1.0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname mlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 --priorbeta 1.0
 #CUDA_VISIBLE_DEVICES=0 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabel /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname regmlp -blocks 1 -lr 0.3 -decay 0.00001 -reglambda 0.01 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 50 -gpuid 0 --batch_first --priorbeta 1.5 --debug
 # CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real.py -traindatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -trainlabel /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -testdatadir /hdd1/zhaojing/res-regularization/sample/formal_valid_x_seq_sample.csv -testlabeldir /hdd1/zhaojing/res-regularization/sample/formal_valid_y_seq_sample.csv -seqnum 9 -modelname resmlp -blocks 2 -lr 0.08 -decay 0.00001 -batchsize 20 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --debug

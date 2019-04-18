@@ -431,7 +431,7 @@ class ResRegularizer():
             self.reg_grad_w = self.calcRegGradAvg_Gen_Prob(labelnum, seqnum, trainnum, cal_all_timesteps)
         # generation probablity using prior
         elif reg_method == 6:
-            print ("in self.calcRegGradAvg_Gen_Prob_Prior")
+            # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
             self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")

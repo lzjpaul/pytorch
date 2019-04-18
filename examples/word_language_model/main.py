@@ -1,4 +1,5 @@
 # coding: utf-8
+import numpy as np
 import argparse
 import time
 import math
@@ -152,16 +153,27 @@ def train():
     start_time = time.time()
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(args.batch_size)
+    print ("train_data.size(0): ", train_data.size(0))
     for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
+        # print ("batch: ", batch)
         data, targets = get_batch(train_data, i)
+        # print ("train data input shape: ", data.shape)
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         hidden = repackage_hidden(hidden)
         model.zero_grad()
         output, hidden = model(data, hidden)
+        # print ("targets shape: ", targets.shape)
+        # print ("output.view(-1, ntokens) shape: ", output.view(-1, ntokens).shape)
+        # print ("train output shape: ", output.shape)
         loss = criterion(output.view(-1, ntokens), targets)
         loss.backward()
 
+        for param_name, f in model.named_parameters():
+            print ('batch_idx: ', batch)
+            print ('param name: ', param_name)
+            print ('param size:', f.data.size())
+            print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         for p in model.parameters():
@@ -178,6 +190,7 @@ def train():
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
             start_time = time.time()
+    print ('final batch: ', batch)
 
 
 def export_onnx(path, batch_size, seq_len):
