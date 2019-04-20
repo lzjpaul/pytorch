@@ -7,6 +7,7 @@
 
 19-2-7:
 (1) gen_prob: need to divided by (trainnum * labelnum)
+(2) mnist trying all weight decays
 
 19-2-10:
 (1) train_hook.py: adding model.py to train.py + adding hook
@@ -30,6 +31,7 @@ design for healthcare and sentiment analysis
 
 19-2-21:
 (1) read in embedding
+(2) trying all the weight decays
 
 19-2-22:
 (1) for some time steps, if samples are all zeros, then judge whether it is nan or not
@@ -40,29 +42,29 @@ dataset
 (2) (using) formal_test_y_seq_sparse.npz: sparse format
 (3) (using) correct_formal_train_x_seq_embedding200_window50_mlp..: correct: mlp is averaged among embeddings
 (4) (not using) movie_review_test_x_seq_word2vec200_window50: not correct, because not averaged correctly
+(5) weight decays are now narrowed to 0.0001 and 0.001
 
 19-2-26:
 (1) correaltion as prior
 
-19-2-26:
+#######19-2-26: for the following , please refer to ../residual-knowledge-driven-example-test-lda-prior/readme.md
 
-code in residual-knowledge-driven-example
+#######code in residual-knowledge-driven-example, open a new folder residual-knowledge-driven-example-test-lda-prior for running calcRegGradAvg_Gen_Prob_Prior
+#######develop word language modeling (wlm) and mnist in this new folder also
 
-(1) but open a new folder residual-knowledge-driven-example-test-lda-prior for running
-(2) develop calcRegGradAvg_Gen_Prob_Prior in this new folder also
+########
+####### 19-3-4:
+####### 
+####### (1) adding train_lstm_main_hook_resreg_real_wlm.py  in residual-knowledge-driven-example-test-lda-prior for wlm model, but the non-wlm part is not changed and not tested ....
 
-19-3-4:
-
-(1) adding train_lstm_main_hook_resreg_real_wlm.py  in residual-knowledge-driven-example-test-lda-prior for wlm model, but the non-wlm part is not changed and not tested ....
-
-19-4-10:
-(1) in "residual-knowledge-driven-example-test-lda-prior", for train_lstm_main_hook_resreg_real_wlm.py
---divided by (label_num * time_step * sample_num)--> since sample_num = (train_data.size(0) * train_data.size(1))/seqnum, the # of mini-batches may not be accurate since the last mini-batch does not contain 100 samples 
---for non-wlm, not changed and not tested yet!!
-
-19-4-11:
-(1) adding validation dataset and doing learning rate annealing
-
-19-4-15:
-MNIST
-(1) getting mlp_residual_hook_resreg.py from archive-code/19-2-13/mlp_residual_hook_resreg.py, because mlp_residual_hook_resreg.py contains MNIST while 19-2-13 is the latest that has MNIST --> but still running in ../residual-knowledge-driven-example-test-lda-prior/ folder
+####### 19-4-10:
+####### (1) in "residual-knowledge-driven-example-test-lda-prior", for train_lstm_main_hook_resreg_real_wlm.py
+####### --divided by (label_num * time_step * sample_num)--> since sample_num = (train_data.size(0) * train_data.size(1))/seqnum, the # of mini-batches may not be accurate since the last mini-batch does not contain 100 samples 
+#######--for non-wlm, not changed and not tested yet!!
+####### 
+####### 19-4-11:
+#######(1) adding validation dataset and doing learning rate annealing in "residual-knowledge-driven-example-test-lda-prior" folder
+####### 
+####### 19-4-15:
+####### MNIST
+####### (1) getting mlp_residual_hook_resreg.py from archive-code/19-2-13/mlp_residual_hook_resreg.py, because mlp_residual_hook_resreg.py contains MNIST while 19-2-13 is the latest that has MNIST --> but still running in ../residual-knowledge-driven-example-test-lda-prior/ folder

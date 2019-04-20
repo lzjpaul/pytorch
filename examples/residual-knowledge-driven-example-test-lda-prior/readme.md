@@ -1,10 +1,26 @@
-(1) 19-2-27
-(1-1) temporarily used as lda-prior folder for running
-(1-2) also, developing calcRegGradAvg_Gen_Prob_Prior()
+###########19-2-27
+###########temporarily used as lda-prior folder for running calcRegGradAvg_Gen_Prob_Prior()
+###########also, developing word language modling (wlm) and mnist
 
 (2) 19-3-2
 (2-1) wlm model code
 (2-2) data.py --> data_origin.py (original example)
+
+
+19-3-4:
+(1) adding train_lstm_main_hook_resreg_real_wlm.py  in residual-knowledge-driven-example-test-lda-prior for wlm model, but the non-wlm part is not changed and not tested ....
+
+19-4-10:
+(1) in "residual-knowledge-driven-example-test-lda-prior", for train_lstm_main_hook_resreg_real_wlm.py
+--divided by (label_num * time_step * sample_num)--> since sample_num = (train_data.size(0) * train_data.size(1))/seqnum, the # of mini-batches may not be accurate since the last mini-batch does not contain 100 samples 
+--for non-wlm, not changed and not tested yet!!
+
+19-4-11:
+(1) adding validation dataset and doing learning rate annealing in "residual-knowledge-driven-example-test-lda-prior" folder
+
+19-4-15:
+MNIST
+(1) getting mlp_residual_hook_resreg.py from ../residual-knowledge-driven-example/archive-code/19-2-13/mlp_residual_hook_resreg.py, because mlp_residual_hook_resreg.py contains MNIST while 19-2-13 is the latest that has MNIST --> but still running in ../residual-knowledge-driven-example-test-lda-prior/ folder
 
 (3) 19-4-15
 (3-1) mlp_residual_hook_resreg_real_mnist.py: adapted for mnist dataset
