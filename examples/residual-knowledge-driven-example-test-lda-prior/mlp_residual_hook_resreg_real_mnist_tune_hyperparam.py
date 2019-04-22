@@ -615,11 +615,11 @@ if __name__ == '__main__':
 
     ########## using for
     weightdecay_list = [0.0000001, 0.000001]
-    reglambda_list = [0.0001, 0.001]
+    reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
 
     for weightdecay in weightdecay_list:
-        for reg_lambda in weightdecay_list:
+        for reg_lambda in reglambda_list:
             for prior_beta in priorbeta_list:
                 print ('weightdecay: ', weightdecay)
                 print ('reg_lambda: ', reg_lambda)
