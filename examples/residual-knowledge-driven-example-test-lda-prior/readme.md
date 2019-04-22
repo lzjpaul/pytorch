@@ -44,4 +44,4 @@ MNIST
 --train_wlm_tune_wd0_01_lambda1_beta_1.py: wd from 0 to 0.1, lambda only one value, beta only one value
 --train_wlm_tune_wd000010001_lambda0000110_beta8: wd from 0.00001 to 0.0001, lambda drom 0.00001 to 10, beta 8 values
 
-all from train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py 
+all from train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py  and mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py 
