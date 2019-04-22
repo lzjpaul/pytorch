@@ -36,3 +36,12 @@ MNIST
 (6-1) check convergence for wlm
 (6-2) train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py && mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py
       --> using "for" for prior_beta, reg_lambda, weight_decay
+
+(7) 19-4-21
+(7-1) train_lstm_main_hook_resreg_real_wlm_tune_converge.py/train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py/train_lstm_main_hook_resreg_real_wlm.py --> no gradient clip
+(7-2) train_wlm_tune_wd0000110_lambda0000110_beta_1.py ... and .mlp_residual_tune_wd0000110_lambda0000110_beta8.py
+
+--train_wlm_tune_wd0_01_lambda1_beta_1.py: wd from 0 to 0.1, lambda only one value, beta only one value
+--train_wlm_tune_wd000010001_lambda0000110_beta8: wd from 0.00001 to 0.0001, lambda drom 0.00001 to 10, beta 8 values
+
+all from train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py 
