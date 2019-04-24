@@ -1,8 +1,3 @@
-## what for:
-## (1) using "for" for prior_beta, reg_lambda, weight_decay
-
-
-## references:
 ## https://github.com/spro/practical-pytorch/tree/master/char-rnn-classification
 ## refer to
 ## https://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
@@ -45,6 +40,12 @@
 ## Attenton after TKDE revision:
 ## (1) for non-wlm, not divide by (labelnum * train * seqnum) yet!!
 
+
+## filter
+## https://www.programiz.com/python-programming/methods/built-in/filter
+## http://book.pythontips.com/en/latest/map_filter.html
+## https://www.w3schools.com/python/python_lambda.asp
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -66,7 +67,7 @@ import datetime
 import torch.nn.functional as F
 from mimic_metric import *
 import data
-
+from torch._six import inf
 
 features = []
 
@@ -655,7 +656,6 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
             test_loss = test_loss / len(test_loader.dataset)
             print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(test_loss, accuracy, macro_auc, micro_auc))
             if epoch == (n_epochs - 1):
-                print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
                 print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(test_loss, accuracy, macro_auc, micro_auc))
 
     done = time.time()
@@ -674,6 +674,27 @@ def adjust_learning_rate(optimizer, decay_rate):
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
+def cal_norm(parameters, max_norm, norm_type=2):
+    if isinstance(parameters, torch.Tensor):
+        parameters = [parameters]
+    parameters = list(filter(lambda p: p.grad is not None, parameters))
+    max_norm = float(max_norm)
+    norm_type = float(norm_type)
+    if norm_type == inf:
+        total_norm = max(p.grad.data.abs().max() for p in parameters)
+    else:
+        total_norm = 0
+        for p in parameters:
+            param_norm = p.grad.data.norm(norm_type)
+            total_norm += param_norm.item() ** norm_type
+        total_norm = total_norm ** (1. / norm_type)
+    print ('total_norm: ', total_norm)
+    # clip_coef = max_norm / (total_norm + 1e-6)
+    # if clip_coef < 1:
+    #     for p in parameters:
+    #         p.grad.data.mul_(clip_coef)
+    # return total_norm
 
 def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
     logger = logging.getLogger('res_reg')
@@ -743,7 +764,12 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### print norm
+            print ("before clip grad norm:")
+            cal_norm(rnn.parameters(), clip)
+            print ("have clip")
             torch.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
+            print ("after clip grad norm:")
+            cal_norm(rnn.parameters(), clip)
             optimizer.step()
             total_loss += loss.item()
             # print ('check!! len(data_x) --> last batch? : ', len(data_x))
@@ -814,7 +840,6 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
         print('=' * 89)
         if epoch == (n_epochs - 1):
             print('=' * 89)
-            print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
             print('| End of training | final test loss {:.8f} | final test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
             print('=' * 89)
             
@@ -838,6 +863,8 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='resnetrnn or reslstm or rnn or lstm')
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-lr', type=float, help='0.001 for MIMIC-III')
+    parser.add_argument('-decay', type=float, help='weightdecay')
+    parser.add_argument('-reglambda', type=float, help='reg_lambda')
     parser.add_argument('-batchsize', type=int, help='batch_size')
     parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
@@ -846,6 +873,7 @@ if __name__ == '__main__':
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
     parser.add_argument('--batch_first', action='store_true')
+    parser.add_argument('--priorbeta', type=float, default=1.0)
     parser.add_argument('--emsize', type=int, default=200, help='size of word embeddings')
     parser.add_argument('--nhid', type=int, default=200, help='number of hidden units per layer, 200 for word language model, 128 for other datasets')
     parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
@@ -927,80 +955,75 @@ if __name__ == '__main__':
         ntokens = len(corpus.dictionary)
         input_dim = args.emsize
 
-    ########## using for
-    weightdecay_list = [0.00001, 0.0001]
-    reglambda_list = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
-    priorbeta_list = [1.0]
 
-    for weightdecay in weightdecay_list:
-        for reg_lambda in reglambda_list:
-            for prior_beta in priorbeta_list:
-                print ('weightdecay: ', weightdecay)
-                print ('reg_lambda: ', reg_lambda)
-                print ('priot prior_beta: ', prior_beta)
-                ########## using for
-                n_hidden = args.nhid
-                n_epochs = args.maxepoch
+    n_hidden = args.nhid
+    n_epochs = args.maxepoch
 
-                if "wikitext" not in args.traindatadir:
-                    if "res" in args.modelname and "rnn" in args.modelname:
-                        print ('check resrnn model')
-                        rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" in args.modelname and "lstm" in args.modelname:
-                        print ('check reslstm model')
-                        rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" not in args.modelname and "rnn" in args.modelname:
-                        print ('check rnn model')
-                        rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" not in args.modelname and "lstm" in args.modelname:
-                        print ('check lstm model')
-                        rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
-                    else:
-                        print("Invalid model name, exiting...")
-                        exit()
-                else:
-                    if "res" in args.modelname and "lstm" in args.modelname:
-                        rnn = WLMResNetLSTM(args.gpuid, BasicResLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" not in args.modelname and "lstm" in args.modelname:
-                        rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-                        rnn = rnn.cuda(args.gpuid)
-                    else:
-                        print("Invalid model name, exiting...")
-                        exit()
+    if "wikitext" not in args.traindatadir:
+        if "res" in args.modelname and "rnn" in args.modelname:
+            print ('check resrnn model')
+            rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+            rnn = rnn.cuda(args.gpuid)
+        elif "res" in args.modelname and "lstm" in args.modelname:
+            print ('check reslstm model')
+            rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+            rnn = rnn.cuda(args.gpuid)
+        elif "res" not in args.modelname and "rnn" in args.modelname:
+            print ('check rnn model')
+            rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+            rnn = rnn.cuda(args.gpuid)
+        elif "res" not in args.modelname and "lstm" in args.modelname:
+            print ('check lstm model')
+            rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+            rnn = rnn.cuda(args.gpuid)
+        else:
+            print("Invalid model name, exiting...")
+            exit()
+    else:
+        if "res" in args.modelname and "lstm" in args.modelname:
+            rnn = WLMResNetLSTM(args.gpuid, BasicResLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
+            rnn = rnn.cuda(args.gpuid)
+        elif "res" not in args.modelname and "lstm" in args.modelname:
+            rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
+            rnn = rnn.cuda(args.gpuid)
+        else:
+            print("Invalid model name, exiting...")
+            exit()
 
 
-                if "reg" in args.modelname:
-                    print ('optimizer without wd')
-                    # optimizer = Adam(rnn.parameters(), lr=args.lr)
-                    if "wikitext" not in args.traindatadir:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
-                    else:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr)
-                else:
-                    print ('optimizer with wd')
-                    # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-                    if "wikitext" not in args.traindatadir:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=weightdecay)
-                    else:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=weightdecay)
-                    # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-                print ('optimizer: ', optimizer)
+    if "reg" in args.modelname:
+        print ('optimizer without wd')
+        # optimizer = Adam(rnn.parameters(), lr=args.lr)
+        if "wikitext" not in args.traindatadir:
+            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
+        else:
+            optimizer = optim.SGD(rnn.parameters(), lr=args.lr)
+    else:
+        print ('optimizer with wd')
+        # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
+        if "wikitext" not in args.traindatadir:
+            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.decay)
+        else:
+            optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
+        # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
+    print ('optimizer: ', optimizer)
 
-                if "wikitext" not in args.traindatadir:
-                    criterion = nn.BCELoss()
-                else:
-                    criterion = nn.CrossEntropyLoss()
-                print ('criterion: ', criterion)
-                momentum_mu = 0.9 # momentum mu
-                if "wikitext" not in args.traindatadir:
-                    train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
-                else:
-                    trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
+    if "wikitext" not in args.traindatadir:
+        criterion = nn.BCELoss()
+    else:
+        criterion = nn.CrossEntropyLoss()
+    print ('criterion: ', criterion)
+    momentum_mu = 0.9 # momentum mu
+    reg_lambda = args.reglambda
+    prior_beta = args.priorbeta
+    weightdecay = args.decay
+    print ('weightdecay: ', weightdecay)
+    print ('reg_lambda: ', reg_lambda)
+    print ('priot prior_beta: ', prior_beta)
+    if "wikitext" not in args.traindatadir:
+        train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
+    else:
+        trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
 
 ####### real and real_wlm
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0 -reglambda 0.0 -batchsize 20 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 6 -gpuid 0 --priorbeta 0.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111

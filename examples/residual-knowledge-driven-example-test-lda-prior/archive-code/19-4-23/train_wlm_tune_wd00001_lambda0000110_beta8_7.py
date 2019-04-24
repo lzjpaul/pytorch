@@ -928,9 +928,9 @@ if __name__ == '__main__':
         input_dim = args.emsize
 
     ########## using for
-    weightdecay_list = [0.00001, 0.0001]
+    weightdecay_list = [0.00001]
     reglambda_list = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
-    priorbeta_list = [1.0]
+    priorbeta_list = [0.01]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
