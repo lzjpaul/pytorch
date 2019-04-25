@@ -32,10 +32,13 @@ MNIST
 (5-1) try momentum, dropout, batchsize using train_lstm_main_hook_resreg_real_wlm_no_momentum.py and train_lstm_main_hook_resreg_real_wlm_dropout.py
 (5-2) no momentum for wlm
 
+(5-3) now the best code is train_lstm_main_hook_resreg_real_wlm.py and mlp_residual_hook_resreg_real_mnist.py!!!!!
+
 (6) 19-4-20
 (6-1) check convergence for wlm
 (6-2) train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py && mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py
       --> using "for" for prior_beta, reg_lambda, weight_decay
+from train_lstm_main_hook_resreg_real_wlm.py and mlp_residual_hook_resreg_real_mnist.py
 
 (7) 19-4-21
 (7-1) train_lstm_main_hook_resreg_real_wlm_tune_converge.py/train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py/train_lstm_main_hook_resreg_real_wlm.py --> no gradient clip
