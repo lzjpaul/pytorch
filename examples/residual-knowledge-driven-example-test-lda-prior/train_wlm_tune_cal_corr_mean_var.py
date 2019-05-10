@@ -643,17 +643,17 @@ def train(model_name, rnn, gpu_id, train_loader, vis_train_loaser, test_loader, 
                     outputs = rnn(data_x)
                     if batch_first:
                         for i in range(features[0].data.cpu().numpy().shape[1]):
-                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[hidden_dim:, 0:hidden_dim]
+                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[n_hidden:, 0:n_hidden]
                     else:
                         for i in range(features[0].data.cpu().numpy().shape[0]):
-                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[hidden_dim:, 0:hidden_dim]
+                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[n_hidden:, 0:n_hidden]
             print ("batch_idx: ", batch_idx)
             if batch_first:
                 verify_correlation_avg = verify_correlation_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[1])
             else:
                 verify_correlation_avg = verify_correlation_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[0])
 
-            verify_correlation_var_avg = np.zeros((hidden_dim, hidden_dim))
+            verify_correlation_var_avg = np.zeros((n_hidden, n_hidden))
             with torch.no_grad():
                 for batch_idx, data_iter in enumerate(vis_train_loader, 0):
                     data_x, data_y = data_iter
@@ -663,21 +663,21 @@ def train(model_name, rnn, gpu_id, train_loader, vis_train_loaser, test_loader, 
                     outputs = rnn(data_x)
                     if batch_first:
                         for i in range(features[0].data.cpu().numpy().shape[1]):
-                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[hidden_dim:, 0:hidden_dim] - verify_correlation_avg)
+                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[n_hidden:, 0:n_hidden] - verify_correlation_avg)
                     else:
                         for i in range(features[0].data.cpu().numpy().shape[0]):
-                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[hidden_dim:, 0:hidden_dim] - verify_correlation_avg)
+                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[n_hidden:, 0:n_hidden] - verify_correlation_avg)
             print ("batch_idx: ", batch_idx)
             if batch_first:
                 verify_correlation_var_avg = verify_correlation_var_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[1])
             else:
                 verify_correlation_var_avg = verify_correlation_var_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[0])
             if labelnum > 1:
-                np.savetxt('mimic-iii_verify_correlation_avg_matrix_lstm' + str(reg_method) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-                np.savetxt('mimic-iii_verify_correlation_var_avg_matrix_lstm' + str(reg_method) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('mimic-iii_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('mimic-iii_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
             else:
-                np.savetxt('movie_review_verify_correlation_avg_matrix_lstm' + str(reg_method) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-                np.savetxt('movie_review_verify_correlation_var_avg_matrix_lstm' + str(reg_method) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('movie_review_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('movie_review_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
 
         # test
         outputs_list = []
@@ -826,10 +826,10 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                     rnn.repackage_hidden()
                     if batch_first:
                         for i in range(features[0].data.cpu().numpy().shape[1]):
-                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[hidden_dim:, 0:hidden_dim]
+                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[n_hidden:, 0:n_hidden]
                     else:
                         for i in range(features[0].data.cpu().numpy().shape[0]):
-                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[hidden_dim:, 0:hidden_dim]
+                            verify_correlation_avg = verify_correlation_avg + np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[n_hidden:, 0:n_hidden]
             print ("batch_idx: ", batch_idx)
             if batch_first:
                 verify_correlation_avg = verify_correlation_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[1])
@@ -837,7 +837,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                 verify_correlation_avg = verify_correlation_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[0])
 
             rnn.eval()
-            verify_correlation_var_avg = np.zeros((hidden_dim, hidden_dim))
+            verify_correlation_var_avg = np.zeros((n_hidden, n_hidden))
             ntokens = len(corpus.dictionary)
             print ('ntokens: ', ntokens)
             rnn.init_hidden(batchsize)
@@ -850,17 +850,17 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                     rnn.repackage_hidden()
                     if batch_first:
                         for i in range(features[0].data.cpu().numpy().shape[1]):
-                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[hidden_dim:, 0:hidden_dim] - verify_correlation_avg)
+                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[n_hidden:, 0:n_hidden] - verify_correlation_avg)
                     else:
                         for i in range(features[0].data.cpu().numpy().shape[0]):
-                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[hidden_dim:, 0:hidden_dim] - verify_correlation_avg)
+                            verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[n_hidden:, 0:n_hidden] - verify_correlation_avg)
             print ("batch_idx: ", batch_idx)
             if batch_first:
                 verify_correlation_var_avg = verify_correlation_var_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[1])
             else:
                 verify_correlation_var_avg = verify_correlation_var_avg / float((batch_idx + 1)*features[0].data.cpu().numpy().shape[0])
-            np.savetxt('wlm_verify_correlation_avg_matrix_lstm' + str(reg_method) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-            np.savetxt('wlm_verify_correlation_var_avg_matrix_lstm' + str(reg_method) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('wlm_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('wlm_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
 
         # validation
         # Turn on evaluation mode which disables dropout.

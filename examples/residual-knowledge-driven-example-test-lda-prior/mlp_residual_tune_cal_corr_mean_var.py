@@ -373,11 +373,11 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, vi
             print ("batch_idx: ", batch_idx)
             verify_correlation_var_avg = verify_correlation_var_avg / float(batch_idx + 1)
             if labelnum > 1:
-                np.savetxt('mimic-iii_verify_correlation_avg_matrix_mlp' + str(reg_method) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-                np.savetxt('mimic-iii_verify_correlation_var_avg_matrix_mlp' + str(reg_method) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('mimic-iii_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('mimic-iii_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
             else:
-                np.savetxt('movie_review_verify_correlation_avg_matrix_mlp' + str(reg_method) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-                np.savetxt('movie_review_verify_correlation_var_avg_matrix_mlp' + str(reg_method) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('movie_review_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('movie_review_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
 
         # Iterate over test data.
         model.eval()
@@ -504,8 +504,8 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     verify_correlation_var_avg = verify_correlation_var_avg + np.square(np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim] - verify_correlation_avg)
             print ("batch_idx: ", batch_idx)
             verify_correlation_var_avg = verify_correlation_var_avg / float(batch_idx + 1) 
-            np.savetxt('mnist_verify_correlation_avg_matrix_mlp' + str(reg_method) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
-            np.savetxt('mnist_verify_correlation_var_avg_matrix_mlp' + str(reg_method) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('mnist_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('mnist_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
 
         # Iterate over test data.
         model.eval()
