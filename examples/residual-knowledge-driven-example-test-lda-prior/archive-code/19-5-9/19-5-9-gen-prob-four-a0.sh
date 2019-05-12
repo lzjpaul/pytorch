@@ -1,0 +1,10 @@
+# running folder: /home/zhaojing/residual-knowledge-driven/pytorch/examples/residual-knowledge-driven-example-test-lda-prior
+# running machine: ncra-ncrh
+# ncra0
+### MNIST-regmlp6-lambda-beta
+# 27 params, 24 hours
+CUDA_VISIBLE_DEVICES=0 python mlp_residual_tune_wd0001_lambda00001100_beta000011000_1.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 1 -modelname regmlp -blocks 1 -lr 0.01 -batchsize 65 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 | tee -a 19-5-9-results/19-5-9-gen-prob-four-13.log
+### MIMIC-III-mlp-regmlp5-regmlp6-best-avg/std --> 24 hours/block
+CUDA_VISIBLE_DEVICES=0 python mlp_residual_tune_wd00001_lambda1_beta1.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname mlp -blocks 1 -lr 0.3 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 19-5-9-results/19-5-9-gen-prob-four-37.log
+CUDA_VISIBLE_DEVICES=0 python mlp_residual_tune_wd00001_lambda1_beta1.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname mlp -blocks 1 -lr 0.3 -batchsize 100 -regmethod 1 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a 19-5-9-results/19-5-9-gen-prob-four-38.log
+# ncrc0
