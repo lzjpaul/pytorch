@@ -632,7 +632,7 @@ def train(model_name, rnn, gpu_id, train_loader, vis_train_loaser, test_loader, 
 
         # 19-5-10 Iterate over train data to get correlation
         # if epoch == (max_epoch-1):
-        if epoch == 0 or ((epoch+1) % (n_epochs/4)) == 0:
+        if epoch == 0 or ((epoch+1) % int(n_epochs/4)) == 0:
             verify_correlation_avg = np.zeros((n_hidden, n_hidden))
             with torch.no_grad():
                 for batch_idx, data_iter in enumerate(vis_train_loader, 0):
@@ -811,7 +811,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
 
         # 19-5-10 Iterate over train data to get correlation
         # if epoch == (max_epoch-1):
-        if epoch == 0 or ((epoch+1) % (n_epochs/4)) == 0:
+        if epoch == 0 or ((epoch+1) % int(n_epochs/4)) == 0:
             rnn.eval()
             verify_correlation_avg = np.zeros((n_hidden, n_hidden))
             ntokens = len(corpus.dictionary)
