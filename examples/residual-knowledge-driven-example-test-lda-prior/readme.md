@@ -66,3 +66,6 @@ mv train_wlm_tune_wd0001_lambda1_beta_1.py train_wlm_tune_cal_corr_mean_var.py
 
 (12) 19-5-14
 (12-1) null hypothesis
+
+(13) 19-5-15
+(13-1) train_wlm_tune_cal_corr_mean_var.py solves nan conditions

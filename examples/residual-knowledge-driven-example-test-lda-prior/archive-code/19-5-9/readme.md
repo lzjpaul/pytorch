@@ -60,3 +60,12 @@ all from train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py  and mlp_residu
 (10-1) cal_corr_mean_var for visualization null hypothesis
 mv mlp_residual_tune_wd0001_lambda1_beta_1.py mlp_residual_tune_cal_corr_mean_var.py
 mv train_wlm_tune_wd0001_lambda1_beta_1.py train_wlm_tune_cal_corr_mean_var.py 
+
+(11) 19-5-12
+(11-1) adding 'int': if epoch == 0 or ((epoch+1) % int(max_epoch/4)) == 0:
+
+(12) 19-5-14
+(12-1) null hypothesis
+
+(13) 19-5-15
+(13-1) train_wlm_tune_cal_corr_mean_var.py solves nan conditions

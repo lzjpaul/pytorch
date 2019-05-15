@@ -348,7 +348,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, vi
 
 
         # 19-5-9: Iterate over train data to get correlation
-        if epoch == 0 or ((epoch+1) % (max_epoch/4)) == 0:
+        if epoch == 0 or ((epoch+1) % int(max_epoch/4)) == 0:
             model.eval()
             verify_correlation_avg = np.zeros((hidden_dim, hidden_dim))
             with torch.no_grad():
@@ -480,7 +480,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
         pre_train_loss = train_loss
 
         # 19-5-9: Iterate over train data to get correlation
-        if epoch == 0 or ((epoch+1) % (max_epoch/4)) == 0:
+        if epoch == 0 or ((epoch+1) % int(max_epoch/4)) == 0:
             model.eval()
             verify_correlation_avg = np.zeros((hidden_dim, hidden_dim))
             with torch.no_grad():
