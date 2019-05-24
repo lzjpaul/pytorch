@@ -32,3 +32,4 @@ if __name__ == '__main__':
     # plt.savefig(args.savepath)
 
 # python plot_correlation_null_hypothesis.py -correlationavgpath mnist_verify_correlation_avg_matrixregmlp199 -correlationvaravgpath mnist_verify_correlation_var_avg_matrixregmlp199 -minibatchnum 937 -criticalvalue 1.96249899
+# python plot_correlation_null_hypothesis.py -correlationavgpath movie_review_verify_correlation_avg_matrixreglstm499 -correlationvaravgpath movie_review_verify_correlation_var_avg_matrixreglstm499 -minibatchnum 58 -criticalvalue 2.00171749
