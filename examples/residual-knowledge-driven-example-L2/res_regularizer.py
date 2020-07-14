@@ -325,7 +325,7 @@ class ResRegularizer():
         if 'lstm' not in self.model_name:
             logger.debug ('prior not lstm')
         '''
-        reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/(normalization_coefficient)
+        reg_grad_w = (-2 * self.reg_lambda * self.w_array * theta_current_layer_log)/(normalization_coefficient)
         '''
         else:
             logger.debug ('prior lstm')
@@ -369,9 +369,9 @@ class ResRegularizer():
             logger.debug (doc_idx)
             logger.debug ("prior doc_idx%self.feature_dim")
             logger.debug (doc_idx%self.feature_dim)
-            theta_doc = (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) / np.sum(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) # here: self.w_array[doc_idx, :]
-            logger.debug ('prior (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) shape: ')
-            logger.debug ((self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)).shape)
+            theta_doc = (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) / np.sum(self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) # here: self.w_array[doc_idx, :]
+            logger.debug ('prior (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) shape: ')
+            logger.debug ((self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)).shape)
             logger.debug ("prior check self.theta_all_layer[self.feature_idx] shape: ")
             logger.debug (self.theta_all_layer[self.feature_idx].shape)
             logger.debug ("prior check theta_doc shape: ")
