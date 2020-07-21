@@ -96,31 +96,10 @@ def save_decod_img(img, epoch):
     img = img.view(img.size(0), 1, 28, 28)
     save_image(img, './MNIST_Out_Images/Autoencoder_image{}.png'.format(epoch))
 
-### The below function will test the trained model on image reconstruction.
-## https://github.com/lzjpaul/pytorch/blob/residual-knowledge-driven/examples/residual-knowledge-driven-example-test-lda-prior/mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py
-def test_image_reconstruct(model, test_loader):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        for batch in test_loader:
-            img, _ = batch
-            img = img.to(device)
-            img = img.view(img.size(0), -1)
-            outputs = model(img)
-            print ("len(img): ", len(img))
-            test_loss += (criterion(outputs, img).item() * len(img))
-            # outputs = outputs.view(outputs.size(0), 1, 28, 28).cpu().data
-            # save_image(outputs, 'MNIST_reconstruction.png')
-            # break
-    print ("len(test_loader.dataset): ", len(test_loader.dataset))
-    test_loss /= len(test_loader.dataset)
-    print('Test Loss Per Sample: {:.3f}'.format(test_loss))
-
 ### The below function will be called to train the model. 
-def training(model, train_loader, Epochs, test_loader):
+def training(model, train_loader, Epochs):
     train_loss = []
     for epoch in range(Epochs):
-        model.train()
         running_loss = 0.0
         for data in train_loader:
             img, _ = data
@@ -137,43 +116,29 @@ def training(model, train_loader, Epochs, test_loader):
         train_loss.append(loss)
         print('Epoch {} of {}, Train Loss: {:.3f}'.format(
             epoch+1, Epochs, loss))
-        
-        # evaluation
-        test_image_reconstruct(model, test_loader)
-        # evaluation
 
         if epoch % 5 == 0:
             save_decod_img(outputs.cpu().data, epoch)
     return train_loss
 
 ### The below function will test the trained model on image reconstruction.
-## https://github.com/lzjpaul/pytorch/blob/residual-knowledge-driven/examples/residual-knowledge-driven-example-test-lda-prior/mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py
-"""
 def test_image_reconstruct(model, test_loader):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        for batch in test_loader:
-            img, _ = batch
-            img = img.to(device)
-            img = img.view(img.size(0), -1)
-            outputs = model(img)
-            print ("len(img): ", len(img))
-            test_loss += (criterion(outputs, img).item() * len(img))
-            # outputs = outputs.view(outputs.size(0), 1, 28, 28).cpu().data
-            # save_image(outputs, 'MNIST_reconstruction.png')
-            # break
-    print ("len(test_loader.dataset): ", len(test_loader.dataset))
-    test_loss /= len(test_loader.dataset)
-    print('Test Loss Per Sample: {:.3f}'.format(test_loss))
-"""
+     for batch in test_loader:
+        img, _ = batch
+        img = img.to(device)
+        img = img.view(img.size(0), -1)
+        outputs = model(img)
+        outputs = outputs.view(outputs.size(0), 1, 28, 28).cpu().data
+        save_image(outputs, 'MNIST_reconstruction.png')
+        break
+
 ### Before training, the model will be pushed to the CUDA environment and the directory will be created to save the result images using the functions defined above.
 device = get_device()
 model.to(device)
 make_dir()
 
 ### Now, the training of the model will be performed.
-train_loss = training(model, train_loader, Epochs, test_loader)
+train_loss = training(model, train_loader, Epochs)
 
 ### image plot
 
