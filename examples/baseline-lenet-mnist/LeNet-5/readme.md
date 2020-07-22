@@ -1,1 +1,6 @@
 (1) disable check model??
+(2) print hidden features shape
+
+20-7-22
+C3 changes to fully connected ...
+finally using adam ...
