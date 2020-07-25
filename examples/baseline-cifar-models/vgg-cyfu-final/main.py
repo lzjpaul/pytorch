@@ -185,7 +185,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         output = output.float()
         loss = loss.float()
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target)[0]
+        prec1 = accuracy(output.data, target)[0]  # 0 means it is the top-1
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
 
