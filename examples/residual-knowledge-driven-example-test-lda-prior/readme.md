@@ -69,3 +69,7 @@ mv train_wlm_tune_wd0001_lambda1_beta_1.py train_wlm_tune_cal_corr_mean_var.py
 
 (13) 19-5-15
 (13-1) train_wlm_tune_cal_corr_mean_var.py solves nan conditions
+
+(14) 20-7-25
+(14-1) mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py && train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py
+model.eval()

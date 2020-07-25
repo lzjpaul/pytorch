@@ -563,6 +563,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
     print(st)
     pre_running_loss = 0.0
     for epoch in range(n_epochs):
+        rnn.train()
         running_loss = 0.0
         running_accuracy = 0.0
         # output, loss = train(model_name, epoch, batch_size, batch_first, category_tensor, line_tensor, res_regularizer_instance)
@@ -631,6 +632,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
         pre_running_loss = running_loss
 
         # test
+        rnn.eval()
         outputs_list = []
         labels_list = []
         test_loss = 0.0
