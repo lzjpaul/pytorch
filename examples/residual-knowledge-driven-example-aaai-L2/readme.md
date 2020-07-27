@@ -70,10 +70,23 @@ mv train_wlm_tune_wd0001_lambda1_beta_1.py train_wlm_tune_cal_corr_mean_var.py
 (13) 19-5-15
 (13-1) train_wlm_tune_cal_corr_mean_var.py solves nan conditions
 
+
+########################AAAI experiments!! #########################
 (14) 20-7-25
 (14-1) mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py && train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py
 model.eval()
 
-########################AAAI experiments!! #########################
-(15) residual-knowledge-driven-example-aaai-L2
+20-7-26
+(1) residual-knowledge-driven-example-aaai-L2
 L2 combined with corr-reg, experiments for aaai
+(2) res_regularizer.py
+coming from residual-knowledge-driven-example-L2/
+--change SGD part
+--change theta update 
+(3) 
+vgg_main_origin.py: baseline-cifar-models/vgg-cyfu-final/main.py
+lenet_run_main_NLL_GPU_SGD_lr01_origin.py: baseline-lenet-mnist/LeNet-5/run_main_NLL_GPU_SGD_lr01.py
+autoencoder_MNIST_main_origin.py: baseline-autoencoder-model/autoencoder_MNIST_main.py
+
+20-7-27:
+(1) three models adding features.append(), all models in one main.py, etc --> see github
