@@ -90,3 +90,8 @@ autoencoder_MNIST_main_origin.py: baseline-autoencoder-model/autoencoder_MNIST_m
 
 20-7-27:
 (1) three models adding features.append(), all models in one main.py, etc --> see github
+
+20-7-28:
+(1) res_regularizer_diff_dim.py
+different dimensions of feature vectors
+(2) all have one more dropout model structure options ...
