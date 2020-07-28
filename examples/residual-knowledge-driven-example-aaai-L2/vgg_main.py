@@ -20,7 +20,12 @@ features = []
 
 __all__ = [
     'VGG', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
-    'vgg19_bn', 'vgg19',
+    'vgg19_bn', 'vgg19', 'dropoutvgg16', 'dropoutvgg16_bn',
+]
+
+all_model_names = [
+    'VGG', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
+    'vgg19_bn', 'vgg19', 'dropoutvgg16', 'dropoutvgg16_bn',
 ]
 
 ### relu(replace=True)
@@ -85,6 +90,69 @@ class VGG(nn.Module):
         x = self.fc3(x)
         return x
 
+class DropoutVGG(nn.Module):
+    '''
+    DropoutVGG model 
+    '''
+    def __init__(self, featurelayers, dropout):
+        super(DropoutVGG, self).__init__()
+        self.featurelayers = featurelayers
+        """
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(512, 512),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(512, 512),
+            nn.ReLU(True),
+            nn.Linear(512, 10),
+        )
+        """
+        # self.drop1 = nn.Dropout()
+        self.drop1 = nn.Dropout(dropout) 
+        self.fc1 = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(512, 512)),
+            ('relu1', nn.ReLU())
+        ]))
+        self.fc1.register_forward_hook(get_features_hook)
+        # self.drop2 = nn.Dropout()
+        self.drop2 = nn.Dropout(dropout) 
+        self.fc2 = nn.Sequential(OrderedDict([
+            ('fc2', nn.Linear(512, 512)),
+            ('relu2', nn.ReLU())
+        ]))
+        self.fc2.register_forward_hook(get_features_hook)
+        self.fc3 = nn.Linear(512, 10)
+
+         # Initialize weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                m.bias.data.zero_()
+
+
+    def forward(self, x):
+        x = self.featurelayers(x)
+        x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
+        # x = self.drop1(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check before blocks norm: %f', x.data.norm())
+        x = self.drop1(x)
+        x = self.fc1(x)
+        # x = self.drop2(x)
+        x = self.drop2(x)
+        x = self.fc2(x)
+        logger.debug ('three models check after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after blocks norm: %f', x.data.norm())
+        x = self.fc3(x)
+        return x
+
 
 def make_layers(cfg, batch_norm=False):
     layers = []
@@ -135,11 +203,17 @@ def vgg16():
     """VGG 16-layer model (configuration "D")"""
     return VGG(make_layers(cfg['D']))
 
+def dropoutvgg16(dropout):
+    """VGG 16-layer model (configuration "D") with dropout"""
+    return DropoutVGG(make_layers(cfg['D']), dropout)
 
 def vgg16_bn():
     """VGG 16-layer model (configuration "D") with batch normalization"""
     return VGG(make_layers(cfg['D'], batch_norm=True))
 
+def dropoutvgg16_bn(dropout):
+    """VGG 16-layer model (configuration "D") with batch normalization and dropout"""
+    return DropoutVGG(make_layers(cfg['D'], batch_norm=True), dropout)
 
 def vgg19():
     """VGG 19-layer model (configuration "E")"""
@@ -150,11 +224,15 @@ def vgg19_bn():
     """VGG 19-layer model (configuration 'E') with batch normalization"""
     return VGG(make_layers(cfg['E'], batch_norm=True))
 
-
+"""
 model_names = sorted(name for name in vgg.__dict__
     if name.islower() and not name.startswith("__")
                      and name.startswith("vgg")
                      and callable(vgg.__dict__[name]))
+"""
+model_names = sorted(name for name in all_model_names
+    if name.islower() and not name.startswith("__")
+                     and name.startswith("vgg"))
 
 
 def get_features_hook(module, input, output):
@@ -189,6 +267,7 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='resnetrnn or reslstm or rnn or lstm')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
+    parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--arch', '-a', metavar='ARCH', default='vgg19',
                         choices=model_names,
@@ -275,7 +354,17 @@ if __name__ == '__main__':
                 if not os.path.exists(args.save_dir):
                     os.makedirs(args.save_dir)
 
-                model = vgg.__dict__[args.arch]()
+                if "dropoutvgg16_bn" == args.arch:
+                    model = dropoutvgg16_bn(args.dropout)
+                elif "dropoutvgg16" == args.arch:
+                    model = dropoutvgg16(args.dropout)
+                elif "vgg16_bn" == args.arch:
+                    model = vgg16_bn()
+                elif "vgg16" == args.arch:
+                    model = vgg16()
+                else:
+                    print("Invalid model name, exiting...")
+                    exit()
 
                 model.featurelayers = torch.nn.DataParallel(model.featurelayers)
                 if args.cpu:
@@ -321,7 +410,7 @@ if __name__ == '__main__':
                 print ('three models check optimizer: ', optimizer)
                 
                 logger = logging.getLogger('res_reg')
-                res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=1, feature_dim=1, model_name=model_name)
+                res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=2, feature_dim=512, model_name=model_name)
                 start = time.time()
                 st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
                 print(st)

@@ -20,7 +20,7 @@ from torchvision.utils import save_image
 from PIL import Image
 import numpy as np
 import argparse
-from res_regularizer import ResRegularizer
+from res_regularizer_diff_dim import ResRegularizerDiffDim
 import time
 import datetime
 
@@ -115,6 +115,111 @@ class Autoencoder(nn.Module):
 
         return x
 
+class DropoutAutoencoder(nn.Module):
+    def __init__(self, dropout):
+        super(DropoutAutoencoder, self).__init__()
+
+        #Encoder
+        # self.enc1 = nn.Linear(in_features=784, out_features=256) # Input image (28*28 = 784)
+        self.enc1 = nn.Sequential(OrderedDict([
+            ('enc1', nn.Linear(784, 256)),
+            ('relu1', nn.ReLU())
+        ]))
+        self.drop2 = nn.Dropout(dropout)
+        # self.enc2 = nn.Linear(in_features=256, out_features=128)
+        self.enc2 = nn.Sequential(OrderedDict([
+            ('enc2', nn.Linear(256, 128)),
+            ('relu2', nn.ReLU())
+        ]))
+        self.enc2.register_forward_hook(get_features_hook)
+        self.drop3 = nn.Dropout(dropout)
+        # self.enc3 = nn.Linear(in_features=128, out_features=64)
+        self.enc3 = nn.Sequential(OrderedDict([
+            ('enc3', nn.Linear(128, 64)),
+            ('relu3', nn.ReLU())
+        ]))
+        self.enc3.register_forward_hook(get_features_hook)
+        self.drop4 = nn.Dropout(dropout)
+        # self.enc4 = nn.Linear(in_features=64, out_features=32)
+        self.enc4 = nn.Sequential(OrderedDict([
+            ('enc4', nn.Linear(64, 32)),
+            ('relu4', nn.ReLU())
+        ]))
+        self.enc4.register_forward_hook(get_features_hook)
+        self.drop5 = nn.Dropout(dropout)
+        # self.enc5 = nn.Linear(in_features=32, out_features=16)
+        self.enc5 = nn.Sequential(OrderedDict([
+            ('enc5', nn.Linear(32, 16)),
+            ('relu5', nn.ReLU())
+        ]))
+        self.enc5.register_forward_hook(get_features_hook)
+
+        #Decoder
+        self.drop6 = nn.Dropout(dropout)
+        # self.dec1 = nn.Linear(in_features=16, out_features=32)
+        self.dec1 = nn.Sequential(OrderedDict([
+            ('dec1', nn.Linear(16, 32)),
+            ('relu6', nn.ReLU())
+        ]))
+        self.dec1.register_forward_hook(get_features_hook)
+        self.drop7 = nn.Dropout(dropout)
+        # self.dec2 = nn.Linear(in_features=32, out_features=64)
+        self.dec2 = nn.Sequential(OrderedDict([
+            ('dec2', nn.Linear(32, 64)),
+            ('relu7', nn.ReLU())
+        ]))
+        self.dec2.register_forward_hook(get_features_hook)
+        self.drop8 = nn.Dropout(dropout)
+        # self.dec3 = nn.Linear(in_features=64, out_features=128)
+        self.dec3 = nn.Sequential(OrderedDict([
+            ('dec3', nn.Linear(64, 128)),
+            ('relu8', nn.ReLU())
+        ]))
+        self.dec3.register_forward_hook(get_features_hook)
+        self.drop9 = nn.Dropout(dropout)
+        # self.dec4 = nn.Linear(in_features=128, out_features=256)
+        self.dec4 = nn.Sequential(OrderedDict([
+            ('dec4', nn.Linear(128, 256)),
+            ('relu9', nn.ReLU())
+        ]))
+        self.dec4.register_forward_hook(get_features_hook)
+        # self.dec5 = nn.Linear(in_features=256, out_features=784) # Output image (28*28 = 784)
+        self.dec5 = nn.Sequential(OrderedDict([
+            ('dec5', nn.Linear(256, 784)),
+            ('relu10', nn.ReLU())
+        ]))
+
+    def forward(self, x):
+        x = self.enc1(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check before blocks norm: %f', x.data.norm())
+        x = self.drop2(x)
+        x = self.enc2(x)
+        x = self.drop3(x)
+        x = self.enc3(x)
+        x = self.drop4(x)
+        x = self.enc4(x)
+        x = self.drop5(x)
+        x = self.enc5(x)
+
+        x = self.drop6(x)
+        x = self.dec1(x)
+        x = self.drop7(x)
+        x = self.dec2(x)
+        x = self.drop8(x)
+        x = self.dec3(x)
+        x = self.drop9(x)
+        x = self.dec4(x)
+        logger.debug ('three models check after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after blocks norm: %f', x.data.norm())
+        x = self.dec5(x)
+
+        return x
+
 def get_features_hook(module, input, output):
     # input is a tuple of packed inputs
     # output is a Tensor. output.data is the Tensor we are interested
@@ -184,7 +289,8 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
 ### The below function will be called to train the model. 
 def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num):
     logger = logging.getLogger('res_reg')
-    res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=1, feature_dim=1, model_name=model_name)
+    feature_dim_vec = [256, 128, 64, 32, 16, 32, 64, 128, 256]
+    res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
     # Keep track of losses for plotting
     start = time.time()
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
@@ -235,7 +341,7 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
                         feature_idx = feature_idx + 1
                         logger.debug ('three models check labelnum: %d', labelnum)
                         logger.debug ('three models check trainnum: %d', len(train_loader.dataset))
-                        res_regularizer_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, data_idx)
+                        res_regularizer_diff_dim_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, data_idx)
                         # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                     else:
                         if weightdecay != 0:
@@ -281,6 +387,7 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='regautoenc or autoenc')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
+    parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
@@ -327,7 +434,10 @@ if __name__ == '__main__':
                 print ('three models check reg_lambda: ', reg_lambda)
                 print ('three models check priot prior_beta: ', prior_beta)
                 # print(train_set.classes)
-                model = Autoencoder()
+                if "dropout" not in args.modelname:
+                    model = Autoencoder()
+                else:
+                    model = DropoutAutoencoder(args.dropout)
                 print(model)
                 criterion = nn.MSELoss()
                 # optimizer = optim.Adam(model.parameters(), lr=Lr_Rate)

@@ -10,7 +10,7 @@ import onnx
 import numpy as np
 import torch.nn.functional as F
 from collections import OrderedDict
-from res_regularizer import ResRegularizer
+from res_regularizer_diff_dim import ResRegularizerDiffDim
 import time
 import datetime
 
@@ -140,6 +140,59 @@ class LeNet5(nn.Module):
         # print ("final output shape: ", output.shape)
         return output
 
+class DropoutLeNet5(nn.Module):
+    """
+    Input - 1x32x32
+    Output - 10
+    """
+    def __init__(self, dropout):
+        super(DropoutLeNet5, self).__init__()
+
+        self.c1 = C1()
+        self.c2_1 = C2() 
+        self.c2_2 = C2()
+        self.drop3 = nn.Dropout(dropout) 
+        self.c3 = C3()
+        self.c3.register_forward_hook(get_features_hook)
+        self.drop4 = nn.Dropout(dropout)
+        self.f4 = F4()
+        self.f4.register_forward_hook(get_features_hook)
+        self.f5 = F5() 
+
+    def forward(self, img):
+        # print ("img shape: ", img.shape)
+        output = self.c1(img)
+        # print ("output shape: ", output.shape)
+        x = self.c2_1(output)
+        # print ("x shape: ", x.shape)
+        output = self.c2_2(output)
+        # print ("output shape: ", output.shape)
+        output += x
+        # print ("after += output shape: ", output.shape)
+
+        output = output.view(img.size(0), -1)
+        # print ("before c3: ", output.shape)
+        features.append(output.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check before blocks size:')
+        logger.debug (output.data.size())
+        logger.debug ('three models check before blocks norm: %f', output.data.norm())
+        output = self.drop3(output)
+        output = self.c3(output)
+        # print ("output shape: ", output.shape)
+        # output = output.view(img.size(0), -1)
+        # print ("output shape: ", output.shape)
+        output = self.drop4(output)
+        output = self.f4(output)
+        # print ("output shape: ", output.shape)
+        logger.debug ('three models check after blocks size:')
+        logger.debug (output.data.size())
+        logger.debug ('three models check after blocks norm: %f', output.data.norm())
+        output = self.f5(output)
+        # print ("final output shape: ", output.shape)
+        return output
+
+
 def get_features_hook(module, input, output):
     # input is a tuple of packed inputs
     # output is a Tensor. output.data is the Tensor we are interested
@@ -164,7 +217,7 @@ def get_features_hook(module, input, output):
     logger.debug('three models check output norm: %f', output.data.norm())
     features.append(output.data)
 
-def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_instance):
+def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance):
     # global cur_batch_win
     net.train()
     loss_list, batch_list = [], []
@@ -227,7 +280,7 @@ def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regul
                     feature_idx = feature_idx + 1
                     logger.debug ('three models check labelnum: %d', labelnum)
                     logger.debug ('three models check trainnum: %d', len(data_train_loader.dataset))
-                    res_regularizer_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(data_train_loader.dataset), epoch, f, name, i)
+                    res_regularizer_diff_dim_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(data_train_loader.dataset), epoch, f, name, i)
                     # res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
                     # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                 else:
@@ -269,10 +322,10 @@ def test(net, data_test_loader, data_test, criterion, final=False):
 
 
 def train_and_test(epoch, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, \
-    modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, logger, res_regularizer_instance, final=False):
+    modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, logger, res_regularizer_diff_dim_instance, final=False):
     # Keep track of losses for plotting
 
-    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_instance)
+    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance)
     if final:
         print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
         test(net, data_test_loader, data_test, criterion, final=final)
@@ -295,6 +348,7 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='reglenet or lenet')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
+    parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
 
@@ -338,8 +392,10 @@ if __name__ == '__main__':
                 print ('three models check reg_lambda: ', reg_lambda)
                 print ('three models check priot prior_beta: ', prior_beta)
                 ########## using for
-
-                net = LeNet5()
+                if "dropout" not in args.modelname:
+                    net = LeNet5()
+                else:
+                    net = DropoutLeNet5(args.dropout)
                 net = net.cuda(0)
                 criterion = nn.CrossEntropyLoss()
                 criterion = criterion.cuda(0)
@@ -359,15 +415,16 @@ if __name__ == '__main__':
                 max_epoch = 600
 
                 logger = logging.getLogger('res_reg')
-                res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=1, feature_dim=1, model_name=model_name)
+                feature_dim_vec = [400, 120, 84]
+                res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
                 start = time.time()
                 st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
                 print(st)
                 for e in range(1, max_epoch):
                     if e != (max_epoch -1):
-                        train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_instance)
+                        train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance)
                     else:  # last epoch ...
-                        train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_instance, final=True)
+                        train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance, final=True)
                 done = time.time()
                 do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
                 print (do)

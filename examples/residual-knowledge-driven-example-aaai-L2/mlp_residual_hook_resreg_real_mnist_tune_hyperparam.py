@@ -68,6 +68,29 @@ class BasicResMLPBlock(nn.Module):
         logger.debug ('out norm: %f', out.data.norm())
         return out
 
+class BasicDropoutMLPBlock(nn.Module):
+    def __init__(self, input_dim, hidden_dim, dropout):
+        super(BasicDropoutMLPBlock, self).__init__()
+        self.drop1 = nn.Dropout(dropout)
+        self.fc1 = InitLinear(input_dim, hidden_dim)
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        """
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size:')
+        logger.debug (x.data.size())
+        logger.debug ('input norm: %f', x.data.norm())
+        """
+        x = self.drop1(x)
+        out = F.sigmoid(self.fc1(x))
+        """
+        logger.debug ('out size: ')
+        logger.debug (out.data.size())
+        logger.debug ('out norm: %f', out.data.norm())
+        """
+        return out
+
 class BasicMLPBlock(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super(BasicMLPBlock, self).__init__()
@@ -115,6 +138,58 @@ class ResNetMLP(nn.Module):
         layers.append(block(input_dim, hidden_dim))
         for i in range(1, blocks):
             layers.append(block(input_dim, hidden_dim))
+        for layer in layers:
+            layer.register_forward_hook(get_features_hook)
+        logger.info ('layers: ')
+        logger.info (layers)
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
+        x = F.sigmoid(self.fc1(x))
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
+        x = self.layer1(x)
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
+        x = F.sigmoid(self.fc2(x)) # dimension 0: # of samples, dimension 1: exponential
+        return x
+
+class ResNetDropoutMLP(nn.Module):
+    def __init__(self, block, input_dim, hidden_dim, output_dim, blocks, dropout):
+        super(ResNetDropoutMLP, self).__init__()
+        self.fc1 = InitLinear(input_dim, hidden_dim)
+        self.layer1 = self._make_layer(block, hidden_dim, hidden_dim, blocks, dropout)
+        self.fc2 = InitLinear(hidden_dim, output_dim)
+
+        logger = logging.getLogger('res_reg')
+        # ??? do I need this?
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
+            if isinstance(m, nn.Conv2d):
+                logger.info ('initialization using kaiming_normal_')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            # elif isinstance(m, nn.BatchNorm2d):
+            #    nn.init.constant_(m.weight, 1)
+            #    nn.init.constant_(m.bias, 0)
+
+    def _make_layer(self, block, input_dim, hidden_dim, blocks, dropout):
+        logger = logging.getLogger('res_reg')
+        layers = []
+        layers.append(block(input_dim, hidden_dim, dropout))
+        for i in range(1, blocks):
+            layers.append(block(input_dim, hidden_dim, dropout))
         for layer in layers:
             layer.register_forward_hook(get_features_hook)
         logger.info ('layers: ')
@@ -190,7 +265,57 @@ class MNISTResNetMLP(nn.Module):
         x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
         return x
 
+class MNISTResNetDropoutMLP(nn.Module):
+    def __init__(self, block, input_dim, hidden_dim, output_dim, blocks, dropout):
+        super(MNISTResNetDropoutMLP, self).__init__()
+        self.fc1 = InitLinear(input_dim, hidden_dim)
+        self.layer1 = self._make_layer(block, hidden_dim, hidden_dim, blocks, dropout)
+        self.fc2 = InitLinear(hidden_dim, output_dim)
 
+        logger = logging.getLogger('res_reg')
+        # ??? do I need this?
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
+            if isinstance(m, nn.Conv2d):
+                logger.info ('initialization using kaiming_normal_')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            # elif isinstance(m, nn.BatchNorm2d):
+            #    nn.init.constant_(m.weight, 1)
+            #    nn.init.constant_(m.bias, 0)
+
+    def _make_layer(self, block, input_dim, hidden_dim, blocks, dropout):
+        logger = logging.getLogger('res_reg')
+        layers = []
+        layers.append(block(input_dim, hidden_dim, dropout))
+        for i in range(1, blocks):
+            layers.append(block(input_dim, hidden_dim, dropout))
+        for layer in layers:
+            layer.register_forward_hook(get_features_hook)
+        logger.info ('layers: ')
+        logger.info (layers)
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
+        x = F.sigmoid(self.fc1(x))
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
+        x = self.layer1(x)
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
+        x = F.log_softmax(self.fc2(x), dim=1) # dimension 0: # of samples, dimension 1: exponential
+        return x
 
 def resnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
     """Constructs a resnetmlp model.
@@ -201,6 +326,18 @@ def resnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNetMLP(BasicResMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
+    return model
+
+def dropoutmlp(blocks, dim_vec, dropout, pretrained=False, **kwargs):
+    """Constructs a dropoutmlp model.
+
+    Args:
+        blocks: how many residual links
+        dim_vec: [input_dim, hidden_dim, output_dim]
+        dropout: dropout ratio
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = ResNetDropoutMLP(BasicDropoutMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks, dropout)
     return model
 
 def mlp(blocks, dim_vec, pretrained=False, **kwargs):
@@ -223,6 +360,18 @@ def mnistresnetmlp(blocks, dim_vec, pretrained=False, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = MNISTResNetMLP(BasicResMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks)
+    return model
+
+def mnistdropoutmlp(blocks, dim_vec, dropout, pretrained=False, **kwargs):
+    """Constructs a mnistdropoutmlp model.
+
+    Args:
+        blocks: how many residual links
+        dim_vec: [input_dim, hidden_dim, output_dim]
+        dropout: dropout ratio
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = MNISTResNetDropoutMLP(BasicDropoutMLPBlock, dim_vec[0], dim_vec[1], dim_vec[2], blocks, dropout)
     return model
 
 def mnistmlp(blocks, dim_vec, pretrained=False, **kwargs):
@@ -475,7 +624,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
     elapsed = done - start
     print(elapsed)
 
-def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
+def initialize_model(model_name, blocks, dim_vec, dropout, use_pretrained=False):
     # Initialize these variables which will be set in this if statement. Each of these
     #   variables is model specific.
     model_ft = None
@@ -486,6 +635,11 @@ def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
         """
         print ("resnetmlp")
         model_ft = resnetmlp(blocks, dim_vec, pretrained=use_pretrained)
+    elif "dropout" in model_name:
+        """ dropoutmlp or regdropoutmlp
+        """
+        print ("dropoutmlp")
+        model_ft = dropoutmlp(blocks, dim_vec, dropout, pretrained=use_pretrained)
     else:
         """ mlp or regmlp
         """
@@ -497,7 +651,7 @@ def initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
     
     return model_ft
 
-def mnist_initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
+def mnist_initialize_model(model_name, blocks, dim_vec, dropout, use_pretrained=False):
     # Initialize these variables which will be set in this if statement. Each of these
     #   variables is model specific.
     model_ft = None
@@ -508,6 +662,11 @@ def mnist_initialize_model(model_name, blocks, dim_vec, use_pretrained=False):
         """
         print ("mnistresnetmlp")
         model_ft = mnistresnetmlp(blocks, dim_vec, pretrained=use_pretrained)
+    elif "dropout" in model_name:
+        """ mnistdropoutmlp or mnistregdropoutmlp
+        """
+        print ("mnistdropoutmlp")
+        model_ft = mnistdropoutmlp(blocks, dim_vec, dropout, pretrained=use_pretrained)
     else:
         """ mnistmlp or mnistregmlp
         """
@@ -536,6 +695,7 @@ if __name__ == '__main__':
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
+    parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--batch_first', action='store_true')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
@@ -630,18 +790,16 @@ if __name__ == '__main__':
                     print ("check label number: ", label_num)
                     dim_vec = [input_dim, 128, label_num] # [input_dim, hidden_dim, output_num]
                     print ("check dim_vec: ", dim_vec)
-                    
 
                     # Initialize the model for this run
-                    model_ft = initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
+                    model_ft = initialize_model(args.modelname, args.blocks, dim_vec, args.dropout, use_pretrained=False)
                 else:
                     label_num = 1 # hard-coded for MNIST
                     print ("check label number: ", label_num)
                     dim_vec = [28*28, 100, 10] # [input_dim, hidden_dim, output_dim]
                     print ("check dim_vec: ", dim_vec)
 
-
-                    model_ft = mnist_initialize_model(args.modelname, args.blocks, dim_vec, use_pretrained=False)
+                    model_ft = mnist_initialize_model(args.modelname, args.blocks, dim_vec, args.dropout, use_pretrained=False)
                 # Print the model we just instantiated
                 print('model:')
                 print(model_ft)

@@ -111,6 +111,53 @@ class BasicRNNBlock(nn.Module):
         # print ('rnn_out/x ratio: ', np.linalg.norm(rnn_out.data.cpu().numpy())/np.linalg.norm(x.data.cpu().numpy()))
         return rnn_out
 
+
+class BasicDropoutRNNBlock(nn.Module):
+    # no seq_length ?? batch_fist not true ??
+    def __init__(self, gpu_id, input_dim, hidden_dim, batch_first, dropout):
+        super(BasicDropoutRNNBlock, self).__init__()
+        self.gpu_id = gpu_id # return init_hidden ...
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.batch_first = batch_first
+        self.drop1 = nn.Dropout(dropout)
+        self.rnn = nn.RNN(input_size=input_dim, hidden_size=hidden_dim, batch_first=batch_first)
+
+    def init_hidden(self, batch_size):
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        # print ('init BasicRNNBlock')
+        if self.gpu_id >= 0:
+            return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id))
+        else:
+            return autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim))
+    ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
+    ### ??? !! rnn_out return [:, -1, :]
+    ## actually, this is useless of the input x is already organized according to batch_first
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size:')
+        logger.debug (x.data.size())
+        logger.debug ('input norm: %f', x.data.norm())
+        if self.batch_first:
+            batch_size = x.size()[0]
+            x = x.view(batch_size, -1, self.input_dim)
+            x = self.drop1(x)
+            rnn_out, self.hidden = self.rnn(
+                x, self.hidden)
+        else:
+            batch_size = x.size()[1]
+            x = x.view(-1, batch_size, self.input_dim)
+            x = self.drop1(x)
+            rnn_out, self.hidden = self.rnn(
+                x, self.hidden)
+        logger.debug ('rnn_out size: ')
+        logger.debug (rnn_out.data.size())
+        logger.debug ('rnn_out norm: %f', rnn_out.data.norm())
+        # print ('rnn_out norm: ', np.linalg.norm(rnn_out.data.cpu().numpy()))
+        # print ('rnn_out/x ratio: ', np.linalg.norm(rnn_out.data.cpu().numpy())/np.linalg.norm(x.data.cpu().numpy()))
+        return rnn_out
+
 class BasicLSTMBlock(nn.Module):
     # no seq_length ?? batch_fist not true ??
     def __init__(self, gpu_id, input_dim, hidden_dim, batch_first):
@@ -147,6 +194,54 @@ class BasicLSTMBlock(nn.Module):
             batch_size = x.size()[1]
             lstm_out, self.hidden = self.lstm(
                 x.view(-1, batch_size, self.input_dim), self.hidden)
+        logger.debug ('lstm_out size: ')
+        logger.debug (lstm_out.data.size())
+        logger.debug ('lstm_out norm: %f', lstm_out.data.norm())
+        # print ('rnn_out norm: ', np.linalg.norm(rnn_out.data.cpu().numpy()))
+        # print ('rnn_out/x ratio: ', np.linalg.norm(rnn_out.data.cpu().numpy())/np.linalg.norm(x.data.cpu().numpy()))
+        return lstm_out
+
+class BasicDropoutLSTMBlock(nn.Module):
+    # no seq_length ?? batch_fist not true ??
+    def __init__(self, gpu_id, input_dim, hidden_dim, batch_first, dropout):
+        super(BasicDropoutLSTMBlock, self).__init__()
+        self.gpu_id = gpu_id # return init_hidden ...
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.batch_first = batch_first
+        self.drop1 = nn.Dropout(dropout)
+        self.lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, batch_first=batch_first)
+
+    def init_hidden(self, batch_size):
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        # print ('init BasicRNNBlock')
+        if self.gpu_id >= 0:
+            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)), 
+                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim).cuda(self.gpu_id)))
+        else:
+            return (autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)),
+                autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim)))
+    ### ??? !! batch_first: inputs.view(batch_size, -1, self.input_dim), self.hidden)
+    ### ??? !! rnn_out return [:, -1, :]
+    ## sequence length is not fixed, so I do not pass in sequence_length
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size:')
+        logger.debug (x.data.size())
+        logger.debug ('input norm: %f', x.data.norm())
+        if self.batch_first:
+            batch_size = x.size()[0]
+            x = x.view(batch_size, -1, self.input_dim)
+            x = self.drop1(x)
+            lstm_out, self.hidden = self.lstm(
+                x, self.hidden)
+        else:
+            batch_size = x.size()[1]
+            x = x.view(-1, batch_size, self.input_dim)
+            x = self.drop1(x)
+            lstm_out, self.hidden = self.lstm(
+                x, self.hidden)
         logger.debug ('lstm_out size: ')
         logger.debug (lstm_out.data.size())
         logger.debug ('lstm_out norm: %f', lstm_out.data.norm())
@@ -320,6 +415,81 @@ class ResNetRNN(nn.Module):
             x = F.sigmoid(self.fc1(x[-1, :, :].view(batch_size, -1)))
         return x
 
+class ResNetDropoutRNN(nn.Module):
+    # no seq_length ?? batch_fist not true ??
+    def __init__(self, gpu_id, block, input_dim, hidden_dim, output_dim, blocks, batch_first, dropout):
+        super(ResNetDropoutRNN, self).__init__()
+        self.gpu_id = gpu_id
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        self.batch_first = batch_first
+        #for this one, I can use init_hidden to initialize hidden layer, also only return rnn_out
+        self.rnn1 = BasicRNNBlock(gpu_id=gpu_id, input_dim=input_dim, hidden_dim=hidden_dim, batch_first=batch_first)
+        self.layer1 = self._make_layer(gpu_id, block, hidden_dim, hidden_dim, blocks, batch_first, dropout)
+        self.fc1 = InitLinear(hidden_dim, output_dim)
+
+        logger = logging.getLogger('res_reg')
+        # ??? do I need this?
+        for idx, m in enumerate(self.modules()):
+            # print ('idx and self.modules():')
+            # print (idx)
+            # print (m)
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
+            if isinstance(m, nn.Conv2d):
+                logger.info ('initialization using kaiming_normal_')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+
+    def init_hidden(self, batch_size):
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        for idx, m in enumerate(self.modules()):
+            # print ('init hidden idx and self.modules():')
+            # print ('init hidden idx: ', idx)
+            # print ('init hidden m: ', m)
+            if isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock):
+                # print ('isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock)')
+                m.hidden = m.init_hidden(batch_size)
+
+    def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first, dropout):
+        logger = logging.getLogger('res_reg')
+        layers = []
+        layers.append(block(gpu_id, input_dim, hidden_dim, batch_first, dropout))
+        for i in range(1, blocks):
+            layers.append(block(gpu_id, input_dim, hidden_dim, batch_first, dropout)) # ?? need init_hidden()??
+        for layer in layers:
+            layer.register_forward_hook(get_features_hook)
+        logger.info ('layers: ')
+        logger.info (layers)
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
+        if self.batch_first:
+            batch_size = x.size()[0]
+        else:
+            batch_size = x.size()[1]
+        x = self.rnn1(x)
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
+        x = self.layer1(x)
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
+        ## ?? softmax loss
+        if self.batch_first:
+            x = F.sigmoid(self.fc1(x[:, -1, :].view(batch_size, -1)))
+        else:
+            x = F.sigmoid(self.fc1(x[-1, :, :].view(batch_size, -1)))
+        return x
+
+
 class ResNetLSTM(nn.Module):
     # no seq_length ?? batch_fist not true ??
     def __init__(self, gpu_id, block, input_dim, hidden_dim, output_dim, blocks, batch_first):
@@ -364,6 +534,82 @@ class ResNetLSTM(nn.Module):
         layers.append(block(gpu_id, input_dim, hidden_dim, batch_first))
         for i in range(1, blocks):
             layers.append(block(gpu_id, input_dim, hidden_dim, batch_first)) # ?? need init_hidden()??
+        for layer in layers:
+            layer.register_forward_hook(get_features_hook)
+        logger.info ('layers: ')
+        logger.info (layers)
+        print ('layers: ')
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
+        if self.batch_first:
+            batch_size = x.size()[0]
+        else:
+            batch_size = x.size()[1]
+        x = self.lstm1(x)
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
+        x = self.layer1(x)
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
+        ## ?? softmax loss
+        if self.batch_first:
+            x = F.sigmoid(self.fc1(x[:, -1, :].view(batch_size, -1)))
+        else:
+            x = F.sigmoid(self.fc1(x[-1, :, :].view(batch_size, -1)))
+        return x
+
+class ResNetDropoutLSTM(nn.Module):
+    # no seq_length ?? batch_fist not true ??
+    def __init__(self, gpu_id, block, input_dim, hidden_dim, output_dim, blocks, batch_first, dropout):
+        super(ResNetDropoutLSTM, self).__init__()
+        self.gpu_id = gpu_id
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        self.batch_first = batch_first
+        #for this one, I can use init_hidden to initialize hidden layer, also only return rnn_out
+        self.lstm1 = BasicLSTMBlock(gpu_id=gpu_id, input_dim=input_dim, hidden_dim=hidden_dim, batch_first=batch_first)
+        self.layer1 = self._make_layer(gpu_id, block, hidden_dim, hidden_dim, blocks, batch_first, dropout)
+        self.fc1 = InitLinear(hidden_dim, output_dim)
+
+        logger = logging.getLogger('res_reg')
+        # ??? do I need this?
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
+            if isinstance(m, nn.Conv2d):
+                logger.info ('initialization using kaiming_normal_')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+
+    def init_hidden(self, batch_size):
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        for idx, m in enumerate(self.modules()):
+            logger.debug ('init hidden idx and self.modules():')
+            # print ('init hidden idx: ', idx)
+            logger.debug ('init hidden m: ')
+            logger.debug (m)
+            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
+                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+                m.hidden = m.init_hidden(batch_size)
+
+    def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first, dropout):
+        logger = logging.getLogger('res_reg')
+        layers = []
+        layers.append(block(gpu_id, input_dim, hidden_dim, batch_first, dropout))
+        for i in range(1, blocks):
+            layers.append(block(gpu_id, input_dim, hidden_dim, batch_first, dropout)) # ?? need init_hidden()??
         for layer in layers:
             layer.register_forward_hook(get_features_hook)
         logger.info ('layers: ')
@@ -480,6 +726,114 @@ class WLMResNetLSTM(nn.Module):
         layers.append(block(gpu_id, input_dim, hidden_dim, batch_first))
         for i in range(1, blocks):
             layers.append(block(gpu_id, input_dim, hidden_dim, batch_first)) # ?? need init_hidden()??
+        for layer in layers:
+            layer.register_forward_hook(get_features_hook)
+        logger.info ('layers: ')
+        logger.info (layers)
+        print ('layers: ')
+        return nn.Sequential(*layers)
+
+
+    def forward(self, x):
+        logger = logging.getLogger('res_reg')
+        logger.debug('x shape')
+        logger.debug (x.shape)
+        if self.batch_first:
+            batch_size = x.size()[0]
+        else:
+            batch_size = x.size()[1]
+        x = self.encoder(x)
+        logger.debug('after encoder x shape')
+        logger.debug (x.shape)
+        x = self.lstm1(x)
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('before blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('before blocks norm: %f', x.data.norm())
+        x = self.layer1(x)
+        logger.debug ('after blocks size:')
+        logger.debug (x.data.size())
+        logger.debug ('after blocks norm: %f', x.data.norm())
+        decoded = self.decoder(x.view(x.size(0)*x.size(1), x.size(2)))
+        return decoded.view(x.size(0), x.size(1), decoded.size(1))
+
+class WLMResNetDropoutLSTM(nn.Module):
+    """Container module with an encoder, a recurrent module, and a decoder."""
+
+    def __init__(self, gpu_id, block, ntoken, input_dim, hidden_dim, blocks, batch_first, dropout, tie_weights=False):
+        super(WLMResNetDropoutLSTM, self).__init__()
+        self.gpu_id = gpu_id
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.batch_first = batch_first
+        self.encoder = nn.Embedding(ntoken, input_dim)
+        self.lstm1 = BasicLSTMBlock(gpu_id=gpu_id, input_dim=input_dim, hidden_dim=hidden_dim, batch_first=batch_first)
+        self.layer1 = self._make_layer(gpu_id, block, hidden_dim, hidden_dim, blocks, batch_first, dropout)
+        self.decoder = nn.Linear(hidden_dim, ntoken)
+        
+        logger = logging.getLogger('res_reg')
+        # ??? do I need this?
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+            logger.info ('idx and self.modules():')
+            logger.info (idx)
+            logger.info (m)
+            if isinstance(m, nn.Conv2d):
+                logger.info ('initialization using kaiming_normal_')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        # Optionally tie weights as in:
+        # "Using the Output Embedding to Improve Language Models" (Press & Wolf 2016)
+        # https://arxiv.org/abs/1608.05859
+        # and
+        # "Tying Word Vectors and Word Classifiers: A Loss Framework for Language Modeling" (Inan et al. 2016)
+        # https://arxiv.org/abs/1611.01462
+        if tie_weights:
+            if hidden_dim != input_dim:
+                raise ValueError('When using the tied flag, nhid must be equal to emsize')
+            self.decoder.weight = self.encoder.weight
+        self.init_weights()
+
+
+    
+    def init_weights(self):
+        initrange = 0.1
+        self.encoder.weight.data.uniform_(-initrange, initrange)
+        self.decoder.bias.data.zero_()
+        self.decoder.weight.data.uniform_(-initrange, initrange)
+
+    def init_hidden(self, batch_size):
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        for idx, m in enumerate(self.modules()):
+            logger.debug ('init hidden idx and self.modules():')
+            # print ('init hidden idx: ', idx)
+            logger.debug ('init hidden m: ')
+            logger.debug (m)
+            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
+                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+                m.hidden = m.init_hidden(batch_size)
+
+    def repackage_hidden(self):
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        for idx, m in enumerate(self.modules()):
+            logger.debug ('init hidden idx and self.modules():')
+            # print ('init hidden idx: ', idx)
+            logger.debug ('init hidden m: ')
+            logger.debug (m)
+            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
+                logger.debug ('wlm repackage_hidden isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+                # print ('before repackage m.hidden: ', m.hidden)
+                m.hidden = repackage_hidden(m.hidden)
+                # print ('after repackage m.hidden: ', m.hidden)
+    
+    def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first, dropout):
+        logger = logging.getLogger('res_reg')
+        layers = []
+        layers.append(block(gpu_id, input_dim, hidden_dim, batch_first, dropout))
+        for i in range(1, blocks):
+            layers.append(block(gpu_id, input_dim, hidden_dim, batch_first, dropout)) # ?? need init_hidden()??
         for layer in layers:
             layer.register_forward_hook(get_features_hook)
         logger.info ('layers: ')
@@ -847,6 +1201,7 @@ if __name__ == '__main__':
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
     # parser.add_argument('--use_cpu', action='store_true')
     parser.add_argument('-gpuid', type=int, help='gpuid')
+    parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--batch_first', action='store_true')
     parser.add_argument('--emsize', type=int, default=200, help='size of word embeddings')
     parser.add_argument('--nhid', type=int, default=200, help='number of hidden units per layer, 200 for word language model, 128 for other datasets')
@@ -954,13 +1309,23 @@ if __name__ == '__main__':
                         rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
                         rnn = rnn.cuda(args.gpuid)
                     elif "res" not in args.modelname and "rnn" in args.modelname:
-                        print ('check rnn model')
-                        rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
+                        if "dropout" not in args.modelname:
+                            print ('check rnn model')
+                            rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+                            rnn = rnn.cuda(args.gpuid)
+                        else:
+                            print ('check dropoutrnn model')
+                            rnn = ResNetDropoutRNN(args.gpuid, BasicDropoutRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first, args.dropout)
+                            rnn = rnn.cuda(args.gpuid)
                     elif "res" not in args.modelname and "lstm" in args.modelname:
-                        print ('check lstm model')
-                        rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
+                        if "dropout" not in args.modelname:
+                            print ('check lstm model')
+                            rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+                            rnn = rnn.cuda(args.gpuid)
+                        else:
+                            print ('check dropoutlstm model')
+                            rnn = ResNetDropoutLSTM(args.gpuid, BasicDropoutLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first, args.dropout)
+                            rnn = rnn.cuda(args.gpuid)
                     else:
                         print("Invalid model name, exiting...")
                         exit()
@@ -969,8 +1334,14 @@ if __name__ == '__main__':
                         rnn = WLMResNetLSTM(args.gpuid, BasicResLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
                         rnn = rnn.cuda(args.gpuid)
                     elif "res" not in args.modelname and "lstm" in args.modelname:
-                        rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-                        rnn = rnn.cuda(args.gpuid)
+                        if "dropout" not in args.modelname:
+                            print ('check wlmlstm model')
+                            rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
+                            rnn = rnn.cuda(args.gpuid)
+                        else:
+                            print ('check dropoutwlmlstm model')
+                            rnn = WLMResNetDropoutLSTM(args.gpuid, BasicDropoutLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, args.dropout, tie_weights=args.tied)
+                            rnn = rnn.cuda(args.gpuid)
                     else:
                         print("Invalid model name, exiting...")
                         exit()
