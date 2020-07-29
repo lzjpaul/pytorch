@@ -2,7 +2,7 @@ import argparse
 import os
 import shutil
 import time
-
+import datetime
 import torch
 import math
 
@@ -15,6 +15,10 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 # import vgg
+import logging
+from collections import OrderedDict
+from res_regularizer import ResRegularizer
+import numpy as np
 
 features = []
 
@@ -72,6 +76,7 @@ class VGG(nn.Module):
 
 
     def forward(self, x):
+        logger = logging.getLogger('res_reg')
         x = self.featurelayers(x)
         x = x.view(x.size(0), -1)
         # x = self.classifier(x)
@@ -262,17 +267,18 @@ def get_features_hook(module, input, output):
 
 best_prec1 = 0
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
     parser.add_argument('-modelname', type=str, help='resnetrnn or reslstm or rnn or lstm')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--arch', '-a', metavar='ARCH', default='vgg19',
-                        choices=model_names,
-                        help='model architecture: ' + ' | '.join(model_names) +
-                        ' (default: vgg19)')
+    # parser.add_argument('--arch', '-a', metavar='ARCH', default='vgg19',
+    #                     choices=model_names,
+    #                     help='model architecture: ' + ' | '.join(model_names) +
+    #                     ' (default: vgg19)')
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
     parser.add_argument('--epochs', default=300, type=int, metavar='N',
@@ -318,7 +324,7 @@ if __name__ == '__main__':
                                      std=[0.229, 0.224, 0.225])
 
     train_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+        datasets.CIFAR10(root='./vgg_data', train=True, transform=transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomCrop(32, 4),
             transforms.ToTensor(),
@@ -328,7 +334,7 @@ if __name__ == '__main__':
         num_workers=args.workers, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
+        datasets.CIFAR10(root='./vgg_data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             normalize,
         ])),
@@ -354,14 +360,24 @@ if __name__ == '__main__':
                 if not os.path.exists(args.save_dir):
                     os.makedirs(args.save_dir)
 
-                if "dropoutvgg16_bn" == args.arch:
-                    model = dropoutvgg16_bn(args.dropout)
-                elif "dropoutvgg16" == args.arch:
-                    model = dropoutvgg16(args.dropout)
-                elif "vgg16_bn" == args.arch:
-                    model = vgg16_bn()
-                elif "vgg16" == args.arch:
-                    model = vgg16()
+                if "vgg16" in args.modelname and "bn" not in args.modelname:
+                    if "dropout" not in args.modelname:
+                        model = vgg16()
+                    else:
+                        model = dropoutvgg16(args.dropout)
+                elif "vgg16" in args.modelname and "bn" in args.modelname:
+                    if "dropout" not in args.modelname:
+                        model = vgg16_bn()
+                    else:
+                        model = dropoutvgg16_bn(args.dropout)
+                # if "dropoutvgg16_bn" == args.arch:
+                #     model = dropoutvgg16_bn(args.dropout)
+                # elif "dropoutvgg16" == args.arch:
+                #     model = dropoutvgg16(args.dropout)
+                # elif "vgg16_bn" == args.arch:
+                #     model = vgg16_bn()
+                # elif "vgg16" == args.arch:
+                #     model = vgg16()
                 else:
                     print("Invalid model name, exiting...")
                     exit()
@@ -408,9 +424,11 @@ if __name__ == '__main__':
                                                 momentum=args.momentum,
                                                 weight_decay=weightdecay)
                 print ('three models check optimizer: ', optimizer)
-                
+               
+                momentum_mu = 0.9 # momentum mu
+                print ('three models check momentum_mu: ', momentum_mu) 
                 logger = logging.getLogger('res_reg')
-                res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=2, feature_dim=512, model_name=model_name)
+                res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=2, feature_dim=512, model_name=args.modelname)
                 start = time.time()
                 st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
                 print(st)
@@ -449,7 +467,7 @@ if __name__ == '__main__':
                 print('Finished Training')
 
 
-def train(train_loader, model, criterion, optimizer, epoch, modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, \
+def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, \
     logger, res_regularizer_instance):
     """
         Run one train epoch
@@ -652,5 +670,5 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()

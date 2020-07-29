@@ -16,7 +16,7 @@ class ResRegularizerDiffDim():
         self.momentum_mu = momentum_mu
         self.feature_dim_vec = feature_dim_vec  # this should be a vector, and blocks is len
         print ("prior model_name: ", model_name)
-        print ("prior self.doc_num: ", self.doc_num)
+        # print ("prior self.doc_num: ", self.doc_num)
         print ("prior self.prior_beta: ", self.prior_beta)
         print ("prior self.reg_lambda: ", self.reg_lambda)
         print ("prior new self.momentum_mu: ", self.momentum_mu)

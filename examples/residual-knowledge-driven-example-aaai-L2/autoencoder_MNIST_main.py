@@ -23,6 +23,8 @@ import argparse
 from res_regularizer_diff_dim import ResRegularizerDiffDim
 import time
 import datetime
+import logging
+from collections import OrderedDict
 
 features = []
 
@@ -287,7 +289,7 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
         print('Test Loss Per Sample: {:.3f}'.format(test_loss))
 
 ### The below function will be called to train the model. 
-def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num):
+def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum):
     logger = logging.getLogger('res_reg')
     feature_dim_vec = [256, 128, 64, 32, 16, 32, 64, 128, 256]
     res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
@@ -411,8 +413,8 @@ if __name__ == '__main__':
         transforms.Normalize((0.5,), (0.5,))
     ])
 
-    train_set = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    test_set = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    train_set = datasets.MNIST(root='./autoencoder_data', train=True, download=True, transform=transform)
+    test_set = datasets.MNIST(root='./autoencoder_data', train=False, download=True, transform=transform)
 
     train_loader = DataLoader(train_set, batch_size=Batch_Size, shuffle=True)
     test_loader = DataLoader(test_set, batch_size=Batch_Size, shuffle=True)

@@ -13,7 +13,8 @@ from collections import OrderedDict
 from res_regularizer_diff_dim import ResRegularizerDiffDim
 import time
 import datetime
-
+import argparse
+import logging
 # viz = visdom.Visdom()
 # cur_batch_win = None
 
@@ -217,7 +218,7 @@ def get_features_hook(module, input, output):
     logger.debug('three models check output norm: %f', output.data.norm())
     features.append(output.data)
 
-def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance):
+def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, model_name, firstepochs, labelnum):
     # global cur_batch_win
     net.train()
     loss_list, batch_list = [], []
@@ -325,7 +326,7 @@ def train_and_test(epoch, net, data_train_loader, data_test_loader, data_test, o
     modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, logger, res_regularizer_diff_dim_instance, final=False):
     # Keep track of losses for plotting
 
-    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance)
+    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, modelname, firstepochs, label_num)
     if final:
         print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
         test(net, data_test_loader, data_test, criterion, final=final)
@@ -363,12 +364,12 @@ if __name__ == '__main__':
     logger = logging.getLogger('res_reg')
     logger.info ('#################################')
 
-    data_train = MNIST('./data/mnist',
+    data_train = MNIST('./lenet_data',
                    download=True,
                    transform=transforms.Compose([
                        transforms.Resize((32, 32)),
                        transforms.ToTensor()]))
-    data_test = MNIST('./data/mnist',
+    data_test = MNIST('./lenet_data',
                       train=False,
                       download=True,
                       transform=transforms.Compose([
@@ -416,7 +417,7 @@ if __name__ == '__main__':
 
                 logger = logging.getLogger('res_reg')
                 feature_dim_vec = [400, 120, 84]
-                res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
+                res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=args.modelname)
                 start = time.time()
                 st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
                 print(st)
