@@ -448,7 +448,7 @@ class ResNetDropoutRNN(nn.Module):
             # print ('init hidden idx and self.modules():')
             # print ('init hidden idx: ', idx)
             # print ('init hidden m: ', m)
-            if isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock):
+            if isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock) or isinstance(m, BasicDropoutRNNBlock):
                 # print ('isinstance(m, BasicRNNBlock) or isinstance(m, BasicResRNNBlock)')
                 m.hidden = m.init_hidden(batch_size)
 
@@ -600,8 +600,8 @@ class ResNetDropoutLSTM(nn.Module):
             # print ('init hidden idx: ', idx)
             logger.debug ('init hidden m: ')
             logger.debug (m)
-            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
-                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock) or isinstance(m, BasicDropoutLSTMBlock):
+                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock) or isinstance(m, BasicDropoutLSTMBlock)')
                 m.hidden = m.init_hidden(batch_size)
 
     def _make_layer(self, gpu_id, block, input_dim, hidden_dim, blocks, batch_first, dropout):
@@ -811,8 +811,8 @@ class WLMResNetDropoutLSTM(nn.Module):
             # print ('init hidden idx: ', idx)
             logger.debug ('init hidden m: ')
             logger.debug (m)
-            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
-                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock) or isinstance(m, BasicDropoutLSTMBlock):
+                logger.debug ('isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock) or isinstance(m, BasicDropoutLSTMBlock)')
                 m.hidden = m.init_hidden(batch_size)
 
     def repackage_hidden(self):
@@ -822,8 +822,8 @@ class WLMResNetDropoutLSTM(nn.Module):
             # print ('init hidden idx: ', idx)
             logger.debug ('init hidden m: ')
             logger.debug (m)
-            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock):
-                logger.debug ('wlm repackage_hidden isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock)')
+            if isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock) or isinstance(m, BasicDropoutLSTMBlock):
+                logger.debug ('wlm repackage_hidden isinstance(m, BasicLSTMBlock) or isinstance(m, BasicResLSTMBlock) or isinstance(m, BasicDropoutLSTMBlock)')
                 # print ('before repackage m.hidden: ', m.hidden)
                 m.hidden = repackage_hidden(m.hidden)
                 # print ('after repackage m.hidden: ', m.hidden)

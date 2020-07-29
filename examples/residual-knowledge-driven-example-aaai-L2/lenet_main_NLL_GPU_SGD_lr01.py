@@ -397,6 +397,7 @@ if __name__ == '__main__':
                     net = LeNet5()
                 else:
                     net = DropoutLeNet5(args.dropout)
+                print ("net: ", net)
                 net = net.cuda(0)
                 criterion = nn.CrossEntropyLoss()
                 criterion = criterion.cuda(0)

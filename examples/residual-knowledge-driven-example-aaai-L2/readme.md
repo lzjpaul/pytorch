@@ -95,3 +95,7 @@ autoencoder_MNIST_main_origin.py: baseline-autoencoder-model/autoencoder_MNIST_m
 (1) res_regularizer_diff_dim.py
 different dimensions of feature vectors
 (2) all have one more dropout model structure options ...
+
+20-7-29:
+(1) debug for L2 corr-reg, three models corr-reg, diff dims and dropout model structures
+(2) also code for L1, maxnorm, etc

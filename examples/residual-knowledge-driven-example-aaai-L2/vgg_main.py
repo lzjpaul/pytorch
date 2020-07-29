@@ -138,6 +138,7 @@ class DropoutVGG(nn.Module):
 
 
     def forward(self, x):
+        logger = logging.getLogger('res_reg')
         x = self.featurelayers(x)
         x = x.view(x.size(0), -1)
         # x = self.classifier(x)
@@ -381,6 +382,8 @@ def main():
                 else:
                     print("Invalid model name, exiting...")
                     exit()
+
+                print ("model: ", model)
 
                 model.featurelayers = torch.nn.DataParallel(model.featurelayers)
                 if args.cpu:
