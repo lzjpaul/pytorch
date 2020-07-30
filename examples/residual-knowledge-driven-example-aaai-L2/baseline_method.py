@@ -8,7 +8,7 @@ class BaselineMethod():
         pass
 
     def lasso_regularization(self, param, lasso_strength):
-    	param.grad.data.add_(float(lassostrenth), torch.sign(param.data))  # can not use inplace ...
+    	param.grad.data.add_(float(lasso_strength), torch.sign(param.data))  # can not use inplace ...
 
     def max_norm(self, param, max_val, eps=1e-8):
     	norm = param.data.norm(2, dim=1, keepdim=True)

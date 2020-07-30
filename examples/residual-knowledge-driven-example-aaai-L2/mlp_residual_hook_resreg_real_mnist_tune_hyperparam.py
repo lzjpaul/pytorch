@@ -456,18 +456,18 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res-reg
             if "reg" in model_name:
-                if regmethod == 6 and epoch >= firstepochs:
+                if reg_method == 6 and epoch >= firstepochs:
                     feature_idx = -1 # which feature to use for regularization
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
-                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        if reg_method == 6 and epoch >= firstepochs:  # corr-reg
                             logger.debug ('corr_reg param name: '+ name)
                             feature_idx = feature_idx + 1
                             res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
-                        elif regmethod == 7:  # L1-norm
+                        elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
                             baseline_method_instance.lasso_regularization(param, lasso_strength)
                         else:  # maxnorm and dropout
@@ -483,7 +483,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
             ### print norm
             optimizer.step()
             ### maxnorm constraist
-            if "reg" in model_name and regmethod == 8:
+            if "reg" in model_name and reg_method == 8:
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
@@ -580,18 +580,18 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res-reg
             if "reg" in model_name:
-                if regmethod == 6 and epoch >= firstepochs:
+                if reg_method == 6 and epoch >= firstepochs:
                     feature_idx = -1 # which feature to use for regularization
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
-                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        if reg_method == 6 and epoch >= firstepochs:  # corr-reg
                             logger.debug ('corr_reg param name: '+ name)
                             feature_idx = feature_idx + 1
                             res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
-                        elif regmethod == 7:  # L1-norm
+                        elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
                             baseline_method_instance.lasso_regularization(param, lasso_strength)
                         else:  # maxnorm and dropout
@@ -609,7 +609,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             optimizer.step()
 
             ### maxnorm constraist
-            if "reg" in model_name and regmethod == 8:
+            if "reg" in model_name and reg_method == 8:
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")

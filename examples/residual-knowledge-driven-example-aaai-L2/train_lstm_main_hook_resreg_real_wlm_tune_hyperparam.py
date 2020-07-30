@@ -957,22 +957,22 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
             ### when to use res_reg
                 
             if "reg" in model_name:
-                if regmethod == 6 and epoch >= firstepochs:
+                if reg_method == 6 and epoch >= firstepochs:
                     feature_idx = -1 # which feature to use for regularization
                 for name, f in rnn.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (f.size())
                     if "layer1" in name and "weight_ih" in name:
-                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        if reg_method == 6 and epoch >= firstepochs:  # corr-reg
                             logger.debug ('corr_reg param name: '+ name)
                             feature_idx = feature_idx + 1
                             cal_all_timesteps=False
                             res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
                             # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
-                        elif regmethod == 7:  # L1-norm
+                        elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
-                            baseline_method_instance.lasso_regularization(param, lasso_strength)
+                            baseline_method_instance.lasso_regularization(f, lasso_strength)
                         else:  # maxnorm and dropout
                             logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                     else:
@@ -987,7 +987,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
             optimizer.step()
 
             ### maxnorm constraist
-            if "reg" in model_name and regmethod == 8:
+            if "reg" in model_name and reg_method == 8:
                 for name, param in rnn.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
@@ -1102,20 +1102,20 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res_reg
             if "reg" in model_name:
-                if regmethod == 6 and epoch >= firstepochs:
+                if reg_method == 6 and epoch >= firstepochs:
                     feature_idx = -1 # which feature to use for regularization
                 for name, f in rnn.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (f.size())
                     if "layer1" in name and "weight_ih" in name:
-                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        if reg_method == 6 and epoch >= firstepochs:  # corr-reg
                             logger.debug ('corr_reg param name: '+ name)
                             feature_idx = feature_idx + 1
                             cal_all_timesteps=True
                             res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
                             # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
-                        elif regmethod == 7:  # L1-norm
+                        elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
                             baseline_method_instance.lasso_regularization(f, lasso_strength)
                         else:  # maxnorm and dropout
@@ -1133,7 +1133,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
             optimizer.step()
 
             ### maxnorm constraist
-            if "reg" in model_name and regmethod == 8:
+            if "reg" in model_name and reg_method == 8:
                 for name, param in rnn.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
