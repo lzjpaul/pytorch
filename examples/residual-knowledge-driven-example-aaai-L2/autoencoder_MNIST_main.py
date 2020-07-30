@@ -25,6 +25,7 @@ import time
 import datetime
 import logging
 from collections import OrderedDict
+from baseline_method import BaselineMethod
 
 features = []
 
@@ -193,27 +194,62 @@ class DropoutAutoencoder(nn.Module):
 
     def forward(self, x):
         x = self.enc1(x)
+        x = self.drop2(x)
         features.append(x.data)
         logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('three models check before blocks size:')
+        logger.debug ('three models check after dropout2 data size:')
         logger.debug (x.data.size())
-        logger.debug ('three models check before blocks norm: %f', x.data.norm())
-        x = self.drop2(x)
+        logger.debug ('three models check after dropout2 data norm: %f', x.data.norm())
         x = self.enc2(x)
         x = self.drop3(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout3 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout3 data norm: %f', x.data.norm())
         x = self.enc3(x)
         x = self.drop4(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout4 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout4 data norm: %f', x.data.norm())
         x = self.enc4(x)
         x = self.drop5(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout5 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout5 data norm: %f', x.data.norm())
         x = self.enc5(x)
 
         x = self.drop6(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout6 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout6 data norm: %f', x.data.norm())
         x = self.dec1(x)
         x = self.drop7(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout7 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout7 data norm: %f', x.data.norm())
         x = self.dec2(x)
         x = self.drop8(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout8 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout8 data norm: %f', x.data.norm())
         x = self.dec3(x)
         x = self.drop9(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout9 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout9 data norm: %f', x.data.norm())
         x = self.dec4(x)
         logger.debug ('three models check after blocks size:')
         logger.debug (x.data.size())
@@ -289,10 +325,11 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
         print('Test Loss Per Sample: {:.3f}'.format(test_loss))
 
 ### The below function will be called to train the model. 
-def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum):
+def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
     feature_dim_vec = [256, 128, 64, 32, 16, 32, 64, 128, 256]
     res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
+    baseline_method_instance = BaselineMethod()
     # Keep track of losses for plotting
     start = time.time()
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
@@ -329,22 +366,28 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
                     print ('three models check param norm: ', np.linalg.norm(f.data.cpu().numpy()))
                     print ('three models check lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res_reg
-
-            if "reg" in model_name and epoch >= firstepochs:
-                feature_idx = -1 # which feature to use for regularization
+            if "reg" in model_name:
+                if regmethod == 6 and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
                 for name, f in model.named_parameters():
                     logger.debug ("three models check param name: " +  name)
                     logger.debug ("three models check param size:")
                     logger.debug (f.size())
                     if "enc2.enc2.weight" in name or "enc3.enc3.weight" in name or "enc4.enc4.weight" in name or "enc5.enc5.weight" in name \
                         or "dec1.dec1.weight" in name or "dec2.dec2.weight" in name or "dec3.dec3.weight" in name or "dec4.dec4.weight" in name:
-                        # print ("check res_reg param name: ", name)
-                        logger.debug ('three models check res_reg param name: '+ name)
-                        feature_idx = feature_idx + 1
-                        logger.debug ('three models check labelnum: %d', labelnum)
-                        logger.debug ('three models check trainnum: %d', len(train_loader.dataset))
-                        res_regularizer_diff_dim_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, data_idx)
-                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('three models check res_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            logger.debug ('three models check labelnum: %d', labelnum)
+                            logger.debug ('three models check trainnum: %d', len(train_loader.dataset))
+                            res_regularizer_diff_dim_instance.apply(model_name, 0, features, feature_idx, regmethod, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, data_idx)
+                            # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        elif regmethod == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            ### !! change param name to f ..
+                            baseline_method_instance.lasso_regularization(f, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                     else:
                         if weightdecay != 0:
                             logger.debug ('three models check weightdecay name: ' + name)
@@ -355,6 +398,19 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
                             logger.debug ('three models check lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### print norm
             optimizer.step()
+
+            ### maxnorm constraist
+            if "reg" in model_name and regmethod == 8:
+                for name, param in model.named_parameters():  ##!!change model name!!
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "enc2.enc2.weight" in name or "enc3.enc3.weight" in name or "enc4.enc4.weight" in name or "enc5.enc5.weight" in name \
+                        or "dec1.dec1.weight" in name or "dec2.dec2.weight" in name or "dec3.dec3.weight" in name or "dec4.dec4.weight" in name:  ##!!change layer name!!
+                        logger.debug ('max norm constraint for param name: '+ name)
+                        baseline_method_instance.max_norm(param, max_val)
+            ### maxnorm constraist
+
             running_loss += loss.item()
             data_idx = data_idx + 1
             
@@ -389,6 +445,7 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='regautoenc or autoenc')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
+    parser.add_argument('-regmethod', type=int, help='regmethod: : 6-corr-reg, 7-Lasso, 8-maxnorm, 9-dropout')
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
@@ -428,40 +485,46 @@ if __name__ == '__main__':
     weightdecay_list = [0.0000001, 0.000001]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
+    lasso_strength_list = [0.0000001, 0.000001]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
             for prior_beta in priorbeta_list:
-                print ('three models check weightdecay: ', weightdecay)
-                print ('three models check reg_lambda: ', reg_lambda)
-                print ('three models check priot prior_beta: ', prior_beta)
-                # print(train_set.classes)
-                if "dropout" not in args.modelname:
-                    model = Autoencoder()
-                else:
-                    model = DropoutAutoencoder(args.dropout)
-                print(model)
-                criterion = nn.MSELoss()
-                # optimizer = optim.Adam(model.parameters(), lr=Lr_Rate)
-                # optimizer = optim.SGD(model.parameters(), lr=10.0, momentum=0.9)
-                if "reg" in args.modelname:
-                    print ('three models check optimizer without wd')
-                    optimizer = optim.SGD(model.parameters(), lr=10.0)
-                else:
-                    print ('three models check optimizer with wd')
-                    optimizer = optim.SGD(model.parameters(), lr=10.0, weight_decay=weightdecay)
-                print ('three models check optimizer: ', optimizer)
-                ### Before training, the model will be pushed to the CUDA environment and the directory will be created to save the result images using the functions defined above.
-                device = get_device()
-                model.to(device)
-                make_dir()
-                momentum_mu = 0.9 # momentum mu
-                print ('three models check momentum_mu: ', momentum_mu)
-                ### Now, the training of the model will be performed.
-                train_loss = training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num)
+                for lasso_strength in lasso_strength_list:
+                    for max_val in max_val_list:
+                        print ('three models check weightdecay: ', weightdecay)
+                        print ('three models check reg_lambda: ', reg_lambda)
+                        print ('three models check priot prior_beta: ', prior_beta)
+                        print ('lasso_strength: ', lasso_strength)
+                        print ('max_val: ', max_val)
+                        # print(train_set.classes)
+                        if "dropout" not in args.modelname:
+                            model = Autoencoder()
+                        else:
+                            model = DropoutAutoencoder(args.dropout)
+                        print(model)
+                        criterion = nn.MSELoss()
+                        # optimizer = optim.Adam(model.parameters(), lr=Lr_Rate)
+                        # optimizer = optim.SGD(model.parameters(), lr=10.0, momentum=0.9)
+                        if "reg" in args.modelname:
+                            print ('three models check optimizer without wd')
+                            optimizer = optim.SGD(model.parameters(), lr=10.0)
+                        else:
+                            print ('three models check optimizer with wd')
+                            optimizer = optim.SGD(model.parameters(), lr=10.0, weight_decay=weightdecay)
+                        print ('three models check optimizer: ', optimizer)
+                        ### Before training, the model will be pushed to the CUDA environment and the directory will be created to save the result images using the functions defined above.
+                        device = get_device()
+                        model.to(device)
+                        make_dir()
+                        momentum_mu = 0.9 # momentum mu
+                        print ('three models check momentum_mu: ', momentum_mu)
+                        ### Now, the training of the model will be performed.
+                        train_loss = training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, args.regmethod, lasso_strength, max_val)
 
-                ### image plot
+                        ### image plot
 
-                ### In the last step, we will test our autoencoder model to reconstruct the images.
-                # test_image_reconstruct(model, test_loader, device, criterion)
+                        ### In the last step, we will test our autoencoder model to reconstruct the images.
+                        # test_image_reconstruct(model, test_loader, device, criterion)
 

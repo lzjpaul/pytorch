@@ -316,6 +316,17 @@ class ResRegularizerDiffDim():
         logger.debug (np.linalg.norm(correlation_abs_matrix))
         # logger.debug ("correlation_abs_matrix")
         # logger.debug (correlation_abs_matrix)
+        """normalization
+        correlation_abs_matrix_sum = np.sum(correlation_abs_matrix, axis=1).reshape((-1,1))
+        print("correlation_abs_matrix_sum shape: \n", correlation_abs_matrix_sum.shape)
+        print("correlation_abs_matrix_sum: \n", correlation_abs_matrix_sum)
+        correlation_abs_matrix_sum = correlation_abs_matrix_sum.astype(float)
+        print("after float correlation_abs_matrix_sum: \n", correlation_abs_matrix_sum)
+        correlation_abs_matrix = correlation_abs_matrix / correlation_abs_matrix_sum
+        print ("after normalization correlation_abs_matrix: \n", correlation_abs_matrix)
+        print ("np.sum(correlation_abs_matrix, axis=1): \n", np.sum(correlation_abs_matrix, axis=1))
+
+        """
         self.prior_alpha = 1.0 + self.reg_lambda * self.prior_beta * correlation_abs_matrix
         logger.debug ('prior check self.prior_alpha shape: ')
         logger.debug (self.prior_alpha.shape)
@@ -363,8 +374,12 @@ class ResRegularizerDiffDim():
         self.model_name = model_name
         self.batch_first = batch_first
         self.feature_idx = feature_idx
-        self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
-        self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
+        if 'dropout' not in model_name:
+            self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
+            self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
+        else:
+            self.feature_matrix = features[2 * self.feature_idx].data.cpu().numpy()
+            self.second_feature_matrix = features[2 * self.feature_idx + 1].data.cpu().numpy()
         logger.debug ("diff dim check self.feature_idx: %d", self.feature_idx)
         logger.debug ("diff dim check self.feature_matrix shape:")
         logger.debug (self.feature_matrix.shape)

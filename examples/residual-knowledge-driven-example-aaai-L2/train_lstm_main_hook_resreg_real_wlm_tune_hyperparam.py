@@ -66,7 +66,7 @@ import datetime
 import torch.nn.functional as F
 from mimic_metric import *
 import data
-
+from baseline_method import BaselineMethod
 
 features = []
 
@@ -143,12 +143,22 @@ class BasicDropoutRNNBlock(nn.Module):
             batch_size = x.size()[0]
             x = x.view(batch_size, -1, self.input_dim)
             x = self.drop1(x)
+            features.append(x.data)
+            logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+            logger.debug ('after dropout data size:')
+            logger.debug (x.data.size())
+            logger.debug ('after dropout data norm: %f', x.data.norm())
             rnn_out, self.hidden = self.rnn(
                 x, self.hidden)
         else:
             batch_size = x.size()[1]
             x = x.view(-1, batch_size, self.input_dim)
             x = self.drop1(x)
+            features.append(x.data)
+            logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+            logger.debug ('after dropout data size:')
+            logger.debug (x.data.size())
+            logger.debug ('after dropout data norm: %f', x.data.norm())
             rnn_out, self.hidden = self.rnn(
                 x, self.hidden)
         logger.debug ('rnn_out size: ')
@@ -234,12 +244,22 @@ class BasicDropoutLSTMBlock(nn.Module):
             batch_size = x.size()[0]
             x = x.view(batch_size, -1, self.input_dim)
             x = self.drop1(x)
+            features.append(x.data)
+            logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+            logger.debug ('after dropout data size:')
+            logger.debug (x.data.size())
+            logger.debug ('after dropout data norm: %f', x.data.norm())
             lstm_out, self.hidden = self.lstm(
                 x, self.hidden)
         else:
             batch_size = x.size()[1]
             x = x.view(-1, batch_size, self.input_dim)
             x = self.drop1(x)
+            features.append(x.data)
+            logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+            logger.debug ('after dropout data size:')
+            logger.debug (x.data.size())
+            logger.debug ('after dropout data norm: %f', x.data.norm())
             lstm_out, self.hidden = self.lstm(
                 x, self.hidden)
         logger.debug ('lstm_out size: ')
@@ -473,11 +493,6 @@ class ResNetDropoutRNN(nn.Module):
         else:
             batch_size = x.size()[1]
         x = self.rnn1(x)
-        features.append(x.data)
-        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('before blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('before blocks norm: %f', x.data.norm())
         x = self.layer1(x)
         logger.debug ('after blocks size:')
         logger.debug (x.data.size())
@@ -626,11 +641,6 @@ class ResNetDropoutLSTM(nn.Module):
         else:
             batch_size = x.size()[1]
         x = self.lstm1(x)
-        features.append(x.data)
-        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('before blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('before blocks norm: %f', x.data.norm())
         x = self.layer1(x)
         logger.debug ('after blocks size:')
         logger.debug (x.data.size())
@@ -854,11 +864,6 @@ class WLMResNetDropoutLSTM(nn.Module):
         logger.debug('after encoder x shape')
         logger.debug (x.shape)
         x = self.lstm1(x)
-        features.append(x.data)
-        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('before blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('before blocks norm: %f', x.data.norm())
         x = self.layer1(x)
         logger.debug ('after blocks size:')
         logger.debug (x.data.size())
@@ -908,9 +913,10 @@ def batchify(data, bsz, gpu_id):
     return data.cuda(gpu_id)
 
 
-def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
+def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=n_hidden, model_name=model_name)
+    baseline_method_instance = BaselineMethod()
     # Keep track of losses for plotting
     start = time.time()
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
@@ -950,19 +956,25 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res_reg
                 
-            if "reg" in model_name and epoch >= firstepochs:
-                feature_idx = -1 # which feature to use for regularization
+            if "reg" in model_name:
+                if regmethod == 6 and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
                 for name, f in rnn.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (f.size())
                     if "layer1" in name and "weight_ih" in name:
-                        # print ("check res_reg param name: ", name)
-                        logger.debug ('res_reg param name: '+ name)
-                        feature_idx = feature_idx + 1
-                        cal_all_timesteps=False
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
-                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            cal_all_timesteps=False
+                            res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
+                            # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        elif regmethod == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            baseline_method_instance.lasso_regularization(param, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -973,6 +985,18 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### print norm
             optimizer.step()
+
+            ### maxnorm constraist
+            if "reg" in model_name and regmethod == 8:
+                for name, param in rnn.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight_ih" in name:
+                        logger.debug ('max norm constraint for param name: '+ name)
+                        baseline_method_instance.max_norm(param, max_val)
+            ### maxnorm constraist
+
             running_loss += loss.item() * len(data_x)
             # print ('check!! len(data_x) --> last batch? : ', len(data_x))
             running_accuracy += accuracy * len(data_x)
@@ -1031,9 +1055,10 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
-def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs):
+def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, test_data, seqnum, clip, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=n_hidden, model_name=model_name)
+    baseline_method_instance = BaselineMethod()
     # Keep track of losses for plotting
     start = time.time()
     st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
@@ -1076,20 +1101,25 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                     print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res_reg
-                
-            if "reg" in model_name and epoch >= firstepochs:
-                feature_idx = -1 # which feature to use for regularization
+            if "reg" in model_name:
+                if regmethod == 6 and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
                 for name, f in rnn.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (f.size())
                     if "layer1" in name and "weight_ih" in name:
-                        # print ("check res_reg param name: ", name)
-                        logger.debug ('res_reg param name: '+ name)
-                        feature_idx = feature_idx + 1
-                        cal_all_timesteps=True
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
-                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            cal_all_timesteps=True
+                            res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
+                            # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        elif regmethod == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            baseline_method_instance.lasso_regularization(f, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -1101,6 +1131,18 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
             ### print norm
             torch.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
             optimizer.step()
+
+            ### maxnorm constraist
+            if "reg" in model_name and regmethod == 8:
+                for name, param in rnn.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight_ih" in name:
+                        logger.debug ('max norm constraint for param name: '+ name)
+                        baseline_method_instance.max_norm(param, max_val)
+            ### maxnorm constraist
+
             total_loss += loss.item()
             # print ('check!! len(data_x) --> last batch? : ', len(data_x))
 
@@ -1195,7 +1237,7 @@ if __name__ == '__main__':
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-lr', type=float, help='0.001 for MIMIC-III')
     parser.add_argument('-batchsize', type=int, help='batch_size')
-    parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
+    parser.add_argument('-regmethod', type=int, help='regmethod: : 6-corr-reg, 7-Lasso, 8-maxnorm, 9-dropout')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
@@ -1288,92 +1330,98 @@ if __name__ == '__main__':
     weightdecay_list = [0.0000001, 0.000001]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
+    lasso_strength_list = [0.0000001, 0.000001]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
             for prior_beta in priorbeta_list:
-                print ('weightdecay: ', weightdecay)
-                print ('reg_lambda: ', reg_lambda)
-                print ('priot prior_beta: ', prior_beta)
-                ########## using for
-                n_hidden = args.nhid
-                n_epochs = args.maxepoch
+                for lasso_strength in lasso_strength_list:
+                    for max_val in max_val_list:
+                        print ('weightdecay: ', weightdecay)
+                        print ('reg_lambda: ', reg_lambda)
+                        print ('priot prior_beta: ', prior_beta)
+                        print ('lasso_strength: ', lasso_strength)
+                        print ('max_val: ', max_val)
+                        ########## using for
+                        n_hidden = args.nhid
+                        n_epochs = args.maxepoch
 
-                if "wikitext" not in args.traindatadir:
-                    if "res" in args.modelname and "rnn" in args.modelname:
-                        print ('check resrnn model')
-                        rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" in args.modelname and "lstm" in args.modelname:
-                        print ('check reslstm model')
-                        rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" not in args.modelname and "rnn" in args.modelname:
-                        if "dropout" not in args.modelname:
-                            print ('check rnn model')
-                            rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                            rnn = rnn.cuda(args.gpuid)
+                        if "wikitext" not in args.traindatadir:
+                            if "res" in args.modelname and "rnn" in args.modelname:
+                                print ('check resrnn model')
+                                rnn = ResNetRNN(args.gpuid, BasicResRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+                                rnn = rnn.cuda(args.gpuid)
+                            elif "res" in args.modelname and "lstm" in args.modelname:
+                                print ('check reslstm model')
+                                rnn = ResNetLSTM(args.gpuid, BasicResLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+                                rnn = rnn.cuda(args.gpuid)
+                            elif "res" not in args.modelname and "rnn" in args.modelname:
+                                if "dropout" not in args.modelname:
+                                    print ('check rnn model')
+                                    rnn = ResNetRNN(args.gpuid, BasicRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+                                    rnn = rnn.cuda(args.gpuid)
+                                else:
+                                    print ('check dropoutrnn model')
+                                    rnn = ResNetDropoutRNN(args.gpuid, BasicDropoutRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first, args.dropout)
+                                    rnn = rnn.cuda(args.gpuid)
+                            elif "res" not in args.modelname and "lstm" in args.modelname:
+                                if "dropout" not in args.modelname:
+                                    print ('check lstm model')
+                                    rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
+                                    rnn = rnn.cuda(args.gpuid)
+                                else:
+                                    print ('check dropoutlstm model')
+                                    rnn = ResNetDropoutLSTM(args.gpuid, BasicDropoutLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first, args.dropout)
+                                    rnn = rnn.cuda(args.gpuid)
+                            else:
+                                print("Invalid model name, exiting...")
+                                exit()
                         else:
-                            print ('check dropoutrnn model')
-                            rnn = ResNetDropoutRNN(args.gpuid, BasicDropoutRNNBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first, args.dropout)
-                            rnn = rnn.cuda(args.gpuid)
-                    elif "res" not in args.modelname and "lstm" in args.modelname:
-                        if "dropout" not in args.modelname:
-                            print ('check lstm model')
-                            rnn = ResNetLSTM(args.gpuid, BasicLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first)
-                            rnn = rnn.cuda(args.gpuid)
+                            if "res" in args.modelname and "lstm" in args.modelname:
+                                rnn = WLMResNetLSTM(args.gpuid, BasicResLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
+                                rnn = rnn.cuda(args.gpuid)
+                            elif "res" not in args.modelname and "lstm" in args.modelname:
+                                if "dropout" not in args.modelname:
+                                    print ('check wlmlstm model')
+                                    rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
+                                    rnn = rnn.cuda(args.gpuid)
+                                else:
+                                    print ('check dropoutwlmlstm model')
+                                    rnn = WLMResNetDropoutLSTM(args.gpuid, BasicDropoutLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, args.dropout, tie_weights=args.tied)
+                                    rnn = rnn.cuda(args.gpuid)
+                            else:
+                                print("Invalid model name, exiting...")
+                                exit()
+
+
+                        if "reg" in args.modelname:
+                            print ('optimizer without wd')
+                            # optimizer = Adam(rnn.parameters(), lr=args.lr)
+                            if "wikitext" not in args.traindatadir:
+                                optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
+                            else:
+                                optimizer = optim.SGD(rnn.parameters(), lr=args.lr)
                         else:
-                            print ('check dropoutlstm model')
-                            rnn = ResNetDropoutLSTM(args.gpuid, BasicDropoutLSTMBlock, input_dim, n_hidden, label_num, args.blocks, args.batch_first, args.dropout)
-                            rnn = rnn.cuda(args.gpuid)
-                    else:
-                        print("Invalid model name, exiting...")
-                        exit()
-                else:
-                    if "res" in args.modelname and "lstm" in args.modelname:
-                        rnn = WLMResNetLSTM(args.gpuid, BasicResLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-                        rnn = rnn.cuda(args.gpuid)
-                    elif "res" not in args.modelname and "lstm" in args.modelname:
-                        if "dropout" not in args.modelname:
-                            print ('check wlmlstm model')
-                            rnn = WLMResNetLSTM(args.gpuid, BasicLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, tie_weights=args.tied)
-                            rnn = rnn.cuda(args.gpuid)
+                            print ('optimizer with wd')
+                            # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
+                            if "wikitext" not in args.traindatadir:
+                                optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=weightdecay)
+                            else:
+                                optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=weightdecay)
+                            # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
+                        print ('optimizer: ', optimizer)
+
+                        if "wikitext" not in args.traindatadir:
+                            criterion = nn.BCELoss()
                         else:
-                            print ('check dropoutwlmlstm model')
-                            rnn = WLMResNetDropoutLSTM(args.gpuid, BasicDropoutLSTMBlock, ntokens, input_dim, n_hidden, args.blocks, args.batch_first, args.dropout, tie_weights=args.tied)
-                            rnn = rnn.cuda(args.gpuid)
-                    else:
-                        print("Invalid model name, exiting...")
-                        exit()
-
-
-                if "reg" in args.modelname:
-                    print ('optimizer without wd')
-                    # optimizer = Adam(rnn.parameters(), lr=args.lr)
-                    if "wikitext" not in args.traindatadir:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9)
-                    else:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr)
-                else:
-                    print ('optimizer with wd')
-                    # optimizer = Adam(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-                    if "wikitext" not in args.traindatadir:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, momentum=0.9, weight_decay=weightdecay)
-                    else:
-                        optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=weightdecay)
-                    # optimizer = optim.SGD(rnn.parameters(), lr=args.lr, weight_decay=args.decay)
-                print ('optimizer: ', optimizer)
-
-                if "wikitext" not in args.traindatadir:
-                    criterion = nn.BCELoss()
-                else:
-                    criterion = nn.CrossEntropyLoss()
-                print ('criterion: ', criterion)
-                momentum_mu = 0.9 # momentum mu
-                if "wikitext" not in args.traindatadir:
-                    train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
-                else:
-                    trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch)
+                            criterion = nn.CrossEntropyLoss()
+                        print ('criterion: ', criterion)
+                        momentum_mu = 0.9 # momentum mu
+                        if "wikitext" not in args.traindatadir:
+                            train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch, lasso_strength, max_val)
+                        else:
+                            trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch, lasso_strength, max_val)
 
 ####### real and real_wlm
 # CUDA_VISIBLE_DEVICES=1 python train_lstm_main_hook_resreg_real_wlm.py -traindatadir ./data/wikitext-2 -trainlabel ./data/wikitext-2 -testdatadir ./data/wikitext-2 -testlabeldir ./data/wikitext-2 -seqnum 35 -modelname lstm -blocks 1 -lr 20.0 -decay 0.0 -reglambda 0.0 -batchsize 20 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 6 -gpuid 0 --priorbeta 0.0 --emsize 200 --nhid 200 --clip 0.25 --seed 1111

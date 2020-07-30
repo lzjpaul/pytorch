@@ -19,6 +19,7 @@ import logging
 from collections import OrderedDict
 from res_regularizer import ResRegularizer
 import numpy as np
+from baseline_method import BaselineMethod
 
 features = []
 
@@ -143,15 +144,20 @@ class DropoutVGG(nn.Module):
         x = x.view(x.size(0), -1)
         # x = self.classifier(x)
         # x = self.drop1(x)
+        x = self.drop1(x)
         features.append(x.data)
         logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('three models check before blocks size:')
+        logger.debug ('three models check after dropout1 data size:')
         logger.debug (x.data.size())
-        logger.debug ('three models check before blocks norm: %f', x.data.norm())
-        x = self.drop1(x)
+        logger.debug ('three models check after dropout1 data norm: %f', x.data.norm())
         x = self.fc1(x)
         # x = self.drop2(x)
         x = self.drop2(x)
+        features.append(x.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout2 data size:')
+        logger.debug (x.data.size())
+        logger.debug ('three models check after dropout2 data norm: %f', x.data.norm())
         x = self.fc2(x)
         logger.debug ('three models check after blocks size:')
         logger.debug (x.data.size())
@@ -274,6 +280,7 @@ def main():
     parser.add_argument('-modelname', type=str, help='resnetrnn or reslstm or rnn or lstm')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
+    parser.add_argument('-regmethod', type=int, help='regmethod: : 6-corr-reg, 7-Lasso, 8-maxnorm, 9-dropout')
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
     # parser.add_argument('--arch', '-a', metavar='ARCH', default='vgg19',
@@ -349,129 +356,137 @@ def main():
     weightdecay_list = [0.0000001, 0.000001]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
+    lasso_strength_list = [0.0000001, 0.000001]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
             for prior_beta in priorbeta_list:
-                print ('three models check weightdecay: ', weightdecay)
-                print ('three models check reg_lambda: ', reg_lambda)
-                print ('three models check priot prior_beta: ', prior_beta)
-                ########## using for
-                # Check the save_dir exists or not
-                if not os.path.exists(args.save_dir):
-                    os.makedirs(args.save_dir)
+                for lasso_strength in lasso_strength_list:
+                    for max_val in max_val_list:
+                        print ('three models check weightdecay: ', weightdecay)
+                        print ('three models check reg_lambda: ', reg_lambda)
+                        print ('three models check priot prior_beta: ', prior_beta)
+                        print ('lasso_strength: ', lasso_strength)
+                        print ('max_val: ', max_val)
+                        ########## using for
+                        # Check the save_dir exists or not
+                        if not os.path.exists(args.save_dir):
+                            os.makedirs(args.save_dir)
 
-                if "vgg16" in args.modelname and "bn" not in args.modelname:
-                    if "dropout" not in args.modelname:
-                        model = vgg16()
-                    else:
-                        model = dropoutvgg16(args.dropout)
-                elif "vgg16" in args.modelname and "bn" in args.modelname:
-                    if "dropout" not in args.modelname:
-                        model = vgg16_bn()
-                    else:
-                        model = dropoutvgg16_bn(args.dropout)
-                # if "dropoutvgg16_bn" == args.arch:
-                #     model = dropoutvgg16_bn(args.dropout)
-                # elif "dropoutvgg16" == args.arch:
-                #     model = dropoutvgg16(args.dropout)
-                # elif "vgg16_bn" == args.arch:
-                #     model = vgg16_bn()
-                # elif "vgg16" == args.arch:
-                #     model = vgg16()
-                else:
-                    print("Invalid model name, exiting...")
-                    exit()
+                        if "vgg16" in args.modelname and "bn" not in args.modelname:
+                            if "dropout" not in args.modelname:
+                                model = vgg16()
+                            else:
+                                model = dropoutvgg16(args.dropout)
+                        elif "vgg16" in args.modelname and "bn" in args.modelname:
+                            if "dropout" not in args.modelname:
+                                model = vgg16_bn()
+                            else:
+                                model = dropoutvgg16_bn(args.dropout)
+                        # if "dropoutvgg16_bn" == args.arch:
+                        #     model = dropoutvgg16_bn(args.dropout)
+                        # elif "dropoutvgg16" == args.arch:
+                        #     model = dropoutvgg16(args.dropout)
+                        # elif "vgg16_bn" == args.arch:
+                        #     model = vgg16_bn()
+                        # elif "vgg16" == args.arch:
+                        #     model = vgg16()
+                        else:
+                            print("Invalid model name, exiting...")
+                            exit()
 
-                print ("model: ", model)
+                        print ("model: ", model)
 
-                model.featurelayers = torch.nn.DataParallel(model.featurelayers)
-                if args.cpu:
-                    model.cpu()
-                else:
-                    model.cuda()
+                        model.featurelayers = torch.nn.DataParallel(model.featurelayers)
+                        if args.cpu:
+                            model.cpu()
+                        else:
+                            model.cuda()
 
-                # optionally resume from a checkpoint
-                if args.resume:
-                    if os.path.isfile(args.resume):
-                        print("=> loading checkpoint '{}'".format(args.resume))
-                        checkpoint = torch.load(args.resume)
-                        args.start_epoch = checkpoint['epoch']
-                        best_prec1 = checkpoint['best_prec1']
-                        model.load_state_dict(checkpoint['state_dict'])
-                        print("=> loaded checkpoint '{}' (epoch {})"
-                              .format(args.evaluate, checkpoint['epoch']))
-                    else:
-                        print("=> no checkpoint found at '{}'".format(args.resume))
+                        # optionally resume from a checkpoint
+                        if args.resume:
+                            if os.path.isfile(args.resume):
+                                print("=> loading checkpoint '{}'".format(args.resume))
+                                checkpoint = torch.load(args.resume)
+                                args.start_epoch = checkpoint['epoch']
+                                best_prec1 = checkpoint['best_prec1']
+                                model.load_state_dict(checkpoint['state_dict'])
+                                print("=> loaded checkpoint '{}' (epoch {})"
+                                      .format(args.evaluate, checkpoint['epoch']))
+                            else:
+                                print("=> no checkpoint found at '{}'".format(args.resume))
 
-                cudnn.benchmark = True
+                        cudnn.benchmark = True
 
-                # define loss function (criterion) and pptimizer
-                criterion = nn.CrossEntropyLoss()
-                if args.cpu:
-                    criterion = criterion.cpu()
-                else:
-                    criterion = criterion.cuda()
+                        # define loss function (criterion) and pptimizer
+                        criterion = nn.CrossEntropyLoss()
+                        if args.cpu:
+                            criterion = criterion.cpu()
+                        else:
+                            criterion = criterion.cuda()
 
-                if args.half:
-                    model.half()
-                    criterion.half()
+                        if args.half:
+                            model.half()
+                            criterion.half()
 
-                if "reg" in args.modelname:
-                    print ('three models check optimizer without wd')
-                    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                                momentum=args.momentum)
-                else:
-                    print ('three models check optimizer with wd')
-                    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                                momentum=args.momentum,
-                                                weight_decay=weightdecay)
-                print ('three models check optimizer: ', optimizer)
-               
-                momentum_mu = 0.9 # momentum mu
-                print ('three models check momentum_mu: ', momentum_mu) 
-                logger = logging.getLogger('res_reg')
-                res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=2, feature_dim=512, model_name=args.modelname)
-                start = time.time()
-                st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
-                print(st)
+                        if "reg" in args.modelname:
+                            print ('three models check optimizer without wd')
+                            optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                                        momentum=args.momentum)
+                        else:
+                            print ('three models check optimizer with wd')
+                            optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                                        momentum=args.momentum,
+                                                        weight_decay=weightdecay)
+                        print ('three models check optimizer: ', optimizer)
+                       
+                        momentum_mu = 0.9 # momentum mu
+                        print ('three models check momentum_mu: ', momentum_mu) 
+                        logger = logging.getLogger('res_reg')
+                        res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=2, feature_dim=512, model_name=args.modelname)
+                        baseline_method_instance = BaselineMethod()
+                        start = time.time()
+                        st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+                        print(st)
 
-                if args.evaluate:
-                    validate(val_loader, model, criterion)
-                    return
+                        if args.evaluate:
+                            validate(val_loader, model, criterion)
+                            return
 
-                for epoch in range(args.start_epoch, args.epochs):
-                    adjust_learning_rate(optimizer, epoch)
+                        for epoch in range(args.start_epoch, args.epochs):
+                            adjust_learning_rate(optimizer, epoch)
 
-                    # train for one epoch
-                    train(train_loader, model, criterion, optimizer, epoch, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_instance)
+                            # train for one epoch
+                            train(train_loader, model, criterion, optimizer, epoch, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, \
+                                args.firstepochs, label_num, logger, res_regularizer_instance, baseline_method_instance, args.regmethod, lasso_strength, max_val)
 
-                    # evaluate on validation set
-                    if epoch != (args.epochs - 1):
-                        prec1 = validate(val_loader, model, criterion)
-                    else:  # last epoch
-                        print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
-                        prec1 = validate(val_loader, model, criterion, final=True)
+                            # evaluate on validation set
+                            if epoch != (args.epochs - 1):
+                                prec1 = validate(val_loader, model, criterion)
+                            else:  # last epoch
+                                print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+                                prec1 = validate(val_loader, model, criterion, final=True)
 
-                    # remember best prec@1 and save checkpoint
-                    is_best = prec1 > best_prec1
-                    best_prec1 = max(prec1, best_prec1)
-                    save_checkpoint({
-                        'epoch': epoch + 1,
-                        'state_dict': model.state_dict(),
-                        'best_prec1': best_prec1,
-                    }, is_best, filename=os.path.join(args.save_dir, 'checkpoint_{}.tar'.format(epoch)))
-                
-                done = time.time()
-                do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
-                print (do)
-                elapsed = done - start
-                print (elapsed)
-                print('Finished Training')
+                            # remember best prec@1 and save checkpoint
+                            is_best = prec1 > best_prec1
+                            best_prec1 = max(prec1, best_prec1)
+                            save_checkpoint({
+                                'epoch': epoch + 1,
+                                'state_dict': model.state_dict(),
+                                'best_prec1': best_prec1,
+                            }, is_best, filename=os.path.join(args.save_dir, 'checkpoint_{}.tar'.format(epoch)))
+                        
+                        done = time.time()
+                        do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
+                        print (do)
+                        elapsed = done - start
+                        print (elapsed)
+                        print('Finished Training')
 
 
 def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, \
-    logger, res_regularizer_instance):
+    logger, res_regularizer_instance, baseline_method_instance, regmethod, lasso_strength, max_val):
     """
         Run one train epoch
     """
@@ -522,22 +537,28 @@ def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_be
                 print ('three models check param norm: ', np.linalg.norm(f.data.cpu().numpy()))
                 print ('three models check lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
         ### when to use res_reg
-
-        if "reg" in model_name and epoch >= firstepochs:
-            feature_idx = -1 # which feature to use for regularization
+        if "reg" in model_name:
+            if regmethod == 6 and epoch >= firstepochs:
+                feature_idx = -1 # which feature to use for regularization
             for name, f in model.named_parameters():
                 logger.debug ("three models check param name: " +  name)
                 logger.debug ("three models check param size:")
                 logger.debug (f.size())
                 if "fc1.fc1.weight" in name or "fc2.fc2.weight" in name:
-                    # print ("check res_reg param name: ", name)
-                    logger.debug ('three models check res_reg param name: '+ name)
-                    feature_idx = feature_idx + 1
-                    logger.debug ('three models check labelnum: %d', labelnum)
-                    logger.debug ('three models check trainnum: %d', len(train_loader.dataset))
-                    res_regularizer_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, i)
-                    # res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
-                    # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                    if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        logger.debug ('three models check res_reg param name: '+ name)
+                        feature_idx = feature_idx + 1
+                        logger.debug ('three models check labelnum: %d', labelnum)
+                        logger.debug ('three models check trainnum: %d', len(train_loader.dataset))
+                        res_regularizer_instance.apply(model_name, 0, features, feature_idx, regmethod, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, i)
+                        # res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
+                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                    elif regmethod == 7:  # L1-norm
+                        logger.debug ('L1 norm param name: '+ name)
+                        ### !! change param name to f ..
+                        baseline_method_instance.lasso_regularization(f, lasso_strength)
+                    else:  # maxnorm and dropout
+                        logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                 else:
                     if weightdecay != 0:
                         logger.debug ('three models check weightdecay name: ' + name)
@@ -549,6 +570,17 @@ def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_be
         
         ### print norm
         optimizer.step()
+
+        ### maxnorm constraist
+        if "reg" in model_name and regmethod == 8:
+            for name, param in model.named_parameters():  ##!!change model name!!
+                logger.debug ("param name: " +  name)
+                logger.debug ("param size:")
+                logger.debug (param.size())
+                if "fc1.fc1.weight" in name or "fc2.fc2.weight" in name:  ##!!change layer name!!
+                    logger.debug ('max norm constraint for param name: '+ name)
+                    baseline_method_instance.max_norm(param, max_val)
+        ### maxnorm constraist
 
         output = output.float()
         loss = loss.float()

@@ -94,8 +94,11 @@ autoencoder_MNIST_main_origin.py: baseline-autoencoder-model/autoencoder_MNIST_m
 20-7-28:
 (1) res_regularizer_diff_dim.py
 different dimensions of feature vectors
-(2) all have one more dropout model structure options ...
+(2) all have one more dropout model structure options ... 
+both res_regularizer.py and res_regularizer_diff_dim.py:
+and dropout takes the (2 times i) and (2 times i + 1) as the first and second feature matrix ...
 
 20-7-29:
 (1) debug for L2 corr-reg, three models corr-reg, diff dims and dropout model structures
-(2) also code for L1, maxnorm, etc
+(2) code for correlation normalization for both res_regularizer.py and res_regularizer_diff_dim.py
+(3) also code for L1, maxnorm, etc

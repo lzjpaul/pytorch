@@ -46,6 +46,7 @@ import datetime
 import logging
 import torch.utils.data as Data
 from torch.autograd import Variable
+from baseline_method import BaselineMethod
 
 features = []
 
@@ -83,6 +84,11 @@ class BasicDropoutMLPBlock(nn.Module):
         logger.debug ('input norm: %f', x.data.norm())
         """
         x = self.drop1(x)
+        features.append(x.data)
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('after dropout data size:')
+        logger.debug (x.data.size())
+        logger.debug ('after dropout data norm: %f', x.data.norm())
         out = F.sigmoid(self.fc1(x))
         """
         logger.debug ('out size: ')
@@ -201,11 +207,6 @@ class ResNetDropoutMLP(nn.Module):
         logger.debug('x shape')
         logger.debug (x.shape)
         x = F.sigmoid(self.fc1(x))
-        features.append(x.data)
-        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('before blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('before blocks norm: %f', x.data.norm())
         x = self.layer1(x)
         logger.debug ('after blocks size:')
         logger.debug (x.data.size())
@@ -305,11 +306,6 @@ class MNISTResNetDropoutMLP(nn.Module):
         logger.debug('x shape')
         logger.debug (x.shape)
         x = F.sigmoid(self.fc1(x))
-        features.append(x.data)
-        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('before blocks size:')
-        logger.debug (x.data.size())
-        logger.debug ('before blocks norm: %f', x.data.norm())
         x = self.layer1(x)
         logger.debug ('after blocks size:')
         logger.debug (x.data.size())
@@ -410,9 +406,10 @@ def get_features_hook(module, input, output):
     
     features.append(output.data)
 
-def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, max_epoch=25):
+def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, lasso_strength, max_val, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=hidden_dim, model_name=model_name)
+    baseline_method_instance = BaselineMethod()
     # hyper parameters
     print('Beginning Training')
     start = time.time()
@@ -458,17 +455,23 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res-reg
-            if "reg" in model_name and epoch >= firstepochs:
-                feature_idx = -1 # which feature to use for regularization
+            if "reg" in model_name:
+                if regmethod == 6 and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
-                        # print ('check res_reg param name: ', name)
-                        logger.debug ('res_reg param name: '+ name)
-                        feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        elif regmethod == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            baseline_method_instance.lasso_regularization(param, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -479,6 +482,18 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
             ### print norm
             optimizer.step()
+            ### maxnorm constraist
+            if "reg" in model_name and regmethod == 8:
+                for name, param in model.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight" in name:
+                        logger.debug ('max norm constraint for param name: '+ name)
+                        baseline_method_instance.max_norm(param, max_val)
+            ### maxnorm constraist
+
+
             running_loss += loss.item() * len(data_x)
             # print ('len(data_x): ', len(data_x))
             running_accuracy += accuracy * len(data_x)
@@ -519,9 +534,10 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
     elapsed = done - start
     print(elapsed)
 
-def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, max_epoch=25):
+def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, lasso_strength, max_val, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=hidden_dim, model_name=model_name)
+    baseline_method_instance = BaselineMethod()
     # hyper parameters
     print('Beginning Training')
     start = time.time()
@@ -563,16 +579,23 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     print ('param norm: ', np.linalg.norm(f.data.cpu().numpy()))
                     print ('lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
             ### when to use res-reg
-            if "reg" in model_name and epoch >= firstepochs:
-                feature_idx = -1 # which feature to use for regularization
+            if "reg" in model_name:
+                if regmethod == 6 and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
                 for name, param in model.named_parameters():
                     logger.debug ("param name: " +  name)
                     logger.debug ("param size:")
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
-                        logger.debug ('res_reg param name: '+ name)
-                        feature_idx = feature_idx + 1
-                        res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        elif regmethod == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            baseline_method_instance.lasso_regularization(param, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                     else:
                         if weightdecay != 0:
                             logger.debug ('weightdecay name: ' + name)
@@ -582,7 +605,20 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
             ### print norm
+
             optimizer.step()
+
+            ### maxnorm constraist
+            if "reg" in model_name and regmethod == 8:
+                for name, param in model.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight" in name:
+                        logger.debug ('max norm constraint for param name: '+ name)
+                        baseline_method_instance.max_norm(param, max_val)
+            ### maxnorm constraist
+
             '''
             if batch_idx % 10 == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -689,7 +725,7 @@ if __name__ == '__main__':
     parser.add_argument('-blocks', type=int, help='number of blocks')
     parser.add_argument('-lr', type=float, help='0.08 for MIMIC-III, 0.01 for MNIST')
     parser.add_argument('-batchsize', type=int, help='batch_size, default 100, mnist hard-coded 64')
-    parser.add_argument('-regmethod', type=int, help='regmethod: : 0-calcRegGradAvg, 1-calcRegGradAvg_Exp, 2-calcRegGradAvg_Linear, 3-calcRegGradAvg_Inverse')
+    parser.add_argument('-regmethod', type=int, help='regmethod: : 6-corr-reg, 7-Lasso, 8-maxnorm, 9-dropout')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
     parser.add_argument('-maxepoch', type=int, help='max_epoch')
@@ -777,80 +813,86 @@ if __name__ == '__main__':
     weightdecay_list = [0.0000001, 0.000001]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
+    lasso_strength_list = [0.0000001, 0.000001]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
             for prior_beta in priorbeta_list:
-                print ('weightdecay: ', weightdecay)
-                print ('reg_lambda: ', reg_lambda)
-                print ('priot prior_beta: ', prior_beta)
-                ########## using for
-                if "MNIST" not in args.traindatadir:
-                    label_num = train_y.shape[1]
-                    print ("check label number: ", label_num)
-                    dim_vec = [input_dim, 128, label_num] # [input_dim, hidden_dim, output_num]
-                    print ("check dim_vec: ", dim_vec)
+                for lasso_strength in lasso_strength_list:
+                    for max_val in max_val_list:
+                        print ('weightdecay: ', weightdecay)
+                        print ('reg_lambda: ', reg_lambda)
+                        print ('priot prior_beta: ', prior_beta)
+                        print ('lasso_strength: ', lasso_strength)
+                        print ('max_val: ', max_val)
+                        ########## using for
+                        if "MNIST" not in args.traindatadir:
+                            label_num = train_y.shape[1]
+                            print ("check label number: ", label_num)
+                            dim_vec = [input_dim, 128, label_num] # [input_dim, hidden_dim, output_num]
+                            print ("check dim_vec: ", dim_vec)
 
-                    # Initialize the model for this run
-                    model_ft = initialize_model(args.modelname, args.blocks, dim_vec, args.dropout, use_pretrained=False)
-                else:
-                    label_num = 1 # hard-coded for MNIST
-                    print ("check label number: ", label_num)
-                    dim_vec = [28*28, 100, 10] # [input_dim, hidden_dim, output_dim]
-                    print ("check dim_vec: ", dim_vec)
+                            # Initialize the model for this run
+                            model_ft = initialize_model(args.modelname, args.blocks, dim_vec, args.dropout, use_pretrained=False)
+                        else:
+                            label_num = 1 # hard-coded for MNIST
+                            print ("check label number: ", label_num)
+                            dim_vec = [28*28, 100, 10] # [input_dim, hidden_dim, output_dim]
+                            print ("check dim_vec: ", dim_vec)
 
-                    model_ft = mnist_initialize_model(args.modelname, args.blocks, dim_vec, args.dropout, use_pretrained=False)
-                # Print the model we just instantiated
-                print('model:')
-                print(model_ft)
+                            model_ft = mnist_initialize_model(args.modelname, args.blocks, dim_vec, args.dropout, use_pretrained=False)
+                        # Print the model we just instantiated
+                        print('model:')
+                        print(model_ft)
 
-                
-                ######################################################################
-                # Create the Optimizer
-                # --------------------
-                # Send the model to GPU
-                model_ft = model_ft.cuda(gpu_id)
+                        
+                        ######################################################################
+                        # Create the Optimizer
+                        # --------------------
+                        # Send the model to GPU
+                        model_ft = model_ft.cuda(gpu_id)
 
-                # Gather the parameters to be optimized/updated in this run.
-                params_to_update = model_ft.parameters()
-                print("Params to learn:")
-                for name,param in model_ft.named_parameters():
-                    if param.requires_grad == True:
-                        print("\t",name)
-                
-                # Observe that all parameters are being optimized
-                if "reg" in args.modelname:
-                    print ('optimizer without wd')
-                    optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9) ## correct for Helathcare or MNIST????
-                    # optimizer_ft = optim.Adam(params_to_update, lr=args.lr) ## correct for Helathcare or MNIST????
-                else:
-                    print ('optimizer with wd')
-                    # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9)
-                    # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, weight_decay=args.decay)
-                    optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9, weight_decay=weightdecay)
-                    # optimizer_ft = optim.Adam(params_to_update, lr=args.lr, weight_decay=args.decay)
-                # optimizer_ft = optim.Adam(params_to_update, lr=0.01) ## correct for Helathcare or MNIST????
+                        # Gather the parameters to be optimized/updated in this run.
+                        params_to_update = model_ft.parameters()
+                        print("Params to learn:")
+                        for name,param in model_ft.named_parameters():
+                            if param.requires_grad == True:
+                                print("\t",name)
+                        
+                        # Observe that all parameters are being optimized
+                        if "reg" in args.modelname:
+                            print ('optimizer without wd')
+                            optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9) ## correct for Helathcare or MNIST????
+                            # optimizer_ft = optim.Adam(params_to_update, lr=args.lr) ## correct for Helathcare or MNIST????
+                        else:
+                            print ('optimizer with wd')
+                            # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9)
+                            # optimizer_ft = optim.SGD(params_to_update, lr=args.lr, weight_decay=args.decay)
+                            optimizer_ft = optim.SGD(params_to_update, lr=args.lr, momentum=0.9, weight_decay=weightdecay)
+                            # optimizer_ft = optim.Adam(params_to_update, lr=args.lr, weight_decay=args.decay)
+                        # optimizer_ft = optim.Adam(params_to_update, lr=0.01) ## correct for Helathcare or MNIST????
 
-                ######################################################################
-                # Run Training and Validation Step
-                # --------------------------------
-                #
+                        ######################################################################
+                        # Run Training and Validation Step
+                        # --------------------------------
+                        #
 
-                # Setup the loss fxn
-                if "MNIST" not in args.traindatadir: 
-                    criterion = nn.BCELoss() # ??? nn.loss or F.loss???
-                    print("using BCELoss")
-                else:
-                    criterion = nn.CrossEntropyLoss() # ??? nn.loss or F.loss???
-                    print("MNIST using CrossEntropyLoss")
-                # Train and evaluate
-                # train_validate_test_model(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, max_epoch=args.maxepoch)
-                momentum_mu = 0.9 # momentum mu
-                # Train and evaluate MNIST on resmlp or mlp model
-                if "MNIST" not in args.traindatadir: 
-                    train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
-                else:
-                    train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, max_epoch=args.maxepoch)
+                        # Setup the loss fxn
+                        if "MNIST" not in args.traindatadir: 
+                            criterion = nn.BCELoss() # ??? nn.loss or F.loss???
+                            print("using BCELoss")
+                        else:
+                            criterion = nn.CrossEntropyLoss() # ??? nn.loss or F.loss???
+                            print("MNIST using CrossEntropyLoss")
+                        # Train and evaluate
+                        # train_validate_test_model(model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, max_epoch=args.maxepoch)
+                        momentum_mu = 0.9 # momentum mu
+                        # Train and evaluate MNIST on resmlp or mlp model
+                        if "MNIST" not in args.traindatadir: 
+                            train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, lasso_strength, max_val, max_epoch=args.maxepoch)
+                        else:
+                            train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, lasso_strength, max_val, max_epoch=args.maxepoch)
 
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname regmlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --priorbeta 1.0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname mlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 --priorbeta 1.0

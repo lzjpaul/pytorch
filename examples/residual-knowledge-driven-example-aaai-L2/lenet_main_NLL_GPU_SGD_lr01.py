@@ -15,6 +15,7 @@ import time
 import datetime
 import argparse
 import logging
+from baseline_method import BaselineMethod
 # viz = visdom.Visdom()
 # cur_batch_win = None
 
@@ -173,17 +174,22 @@ class DropoutLeNet5(nn.Module):
 
         output = output.view(img.size(0), -1)
         # print ("before c3: ", output.shape)
+        output = self.drop3(output)
         features.append(output.data)
         logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('three models check before blocks size:')
+        logger.debug ('three models check after dropout3 data size:')
         logger.debug (output.data.size())
-        logger.debug ('three models check before blocks norm: %f', output.data.norm())
-        output = self.drop3(output)
+        logger.debug ('three models check after dropout3 data norm: %f', output.data.norm())
         output = self.c3(output)
         # print ("output shape: ", output.shape)
         # output = output.view(img.size(0), -1)
         # print ("output shape: ", output.shape)
         output = self.drop4(output)
+        features.append(output.data)
+        logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('three models check after dropout4 data size:')
+        logger.debug (output.data.size())
+        logger.debug ('three models check after dropout4 data norm: %f', output.data.norm())
         output = self.f4(output)
         # print ("output shape: ", output.shape)
         logger.debug ('three models check after blocks size:')
@@ -218,7 +224,8 @@ def get_features_hook(module, input, output):
     logger.debug('three models check output norm: %f', output.data.norm())
     features.append(output.data)
 
-def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, model_name, firstepochs, labelnum):
+def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, model_name, firstepochs, labelnum,\
+    baseline_method_instance, regmethod, lasso_strength, max_val):
     # global cur_batch_win
     net.train()
     loss_list, batch_list = [], []
@@ -269,21 +276,28 @@ def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regul
                 print ('three models check lr 1.0 * param grad norm: ', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
         ### when to use res_reg
 
-        if "reg" in model_name and epoch >= firstepochs:
-            feature_idx = -1 # which feature to use for regularization
+        if "reg" in model_name:
+            if regmethod == 6 and epoch >= firstepochs:
+                feature_idx = -1 # which feature to use for regularization
             for name, f in net.named_parameters():
                 logger.debug ("three models check param name: " +  name)
                 logger.debug ("three models check param size:")
                 logger.debug (f.size())
                 if "c3.c3.c3.weight" in name or "f4.f4.f4.weight" in name:
-                    # print ("check res_reg param name: ", name)
-                    logger.debug ('three models check res_reg param name: '+ name)
-                    feature_idx = feature_idx + 1
-                    logger.debug ('three models check labelnum: %d', labelnum)
-                    logger.debug ('three models check trainnum: %d', len(data_train_loader.dataset))
-                    res_regularizer_diff_dim_instance.apply(model_name, 0, features, feature_idx, 6, reg_lambda, labelnum, 1, len(data_train_loader.dataset), epoch, f, name, i)
-                    # res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
-                    # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                    if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        logger.debug ('three models check res_reg param name: '+ name)
+                        feature_idx = feature_idx + 1
+                        logger.debug ('three models check labelnum: %d', labelnum)
+                        logger.debug ('three models check trainnum: %d', len(data_train_loader.dataset))
+                        res_regularizer_diff_dim_instance.apply(model_name, 0, features, feature_idx, regmethod, reg_lambda, labelnum, 1, len(data_train_loader.dataset), epoch, f, name, i)
+                        # res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
+                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                    elif regmethod == 7:  # L1-norm
+                        logger.debug ('L1 norm param name: '+ name)
+                        ### !! change param name to f ..
+                        baseline_method_instance.lasso_regularization(f, lasso_strength)
+                    else:  # maxnorm and dropout
+                        logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
                 else:
                     if weightdecay != 0:
                         logger.debug ('three models check weightdecay name: ' + name)
@@ -295,6 +309,17 @@ def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regul
 
         ### print norm
         optimizer.step()
+
+        ### maxnorm constraist
+        if "reg" in model_name and regmethod == 8:
+            for name, param in net.named_parameters():  ##!!change model name!!
+                logger.debug ("param name: " +  name)
+                logger.debug ("param size:")
+                logger.debug (param.size())
+                if "c3.c3.c3.weight" in name or "f4.f4.f4.weight" in name:  ##!!change layer name!!
+                    logger.debug ('max norm constraint for param name: '+ name)
+                    baseline_method_instance.max_norm(param, max_val)
+        ### maxnorm constraist
     avg_train_loss /= 60000
     print('Train Avg. Loss: %f' % (avg_train_loss))
 
@@ -323,10 +348,12 @@ def test(net, data_test_loader, data_test, criterion, final=False):
 
 
 def train_and_test(epoch, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, \
-    modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, logger, res_regularizer_diff_dim_instance, final=False):
+    modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, logger, res_regularizer_diff_dim_instance, \
+    baseline_method_instance, regmethod, lasso_strength, max_val, final=False):
     # Keep track of losses for plotting
 
-    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, modelname, firstepochs, label_num)
+    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, modelname, firstepochs, label_num, \
+        baseline_method_instance, regmethod, lasso_strength, max_val)
     if final:
         print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
         test(net, data_test_loader, data_test, criterion, final=final)
@@ -349,6 +376,7 @@ if __name__ == '__main__':
     parser.add_argument('-modelname', type=str, help='reglenet or lenet')
     parser.add_argument('-firstepochs', type=int, help='first epochs when no regularization is imposed')
     parser.add_argument('-considerlabelnum', type=int, help='just a reminder, need to consider label number because the loss is averaged across labels')
+    parser.add_argument('-regmethod', type=int, help='regmethod: : 6-corr-reg, 7-Lasso, 8-maxnorm, 9-dropout')
     parser.add_argument('--dropout', type=float, default=0.5, help='dropout ratio')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
@@ -385,54 +413,63 @@ if __name__ == '__main__':
     weightdecay_list = [0.0000001, 0.000001]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
+    lasso_strength_list = [0.0000001, 0.000001]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
             for prior_beta in priorbeta_list:
-                print ('three models check weightdecay: ', weightdecay)
-                print ('three models check reg_lambda: ', reg_lambda)
-                print ('three models check priot prior_beta: ', prior_beta)
-                ########## using for
-                if "dropout" not in args.modelname:
-                    net = LeNet5()
-                else:
-                    net = DropoutLeNet5(args.dropout)
-                print ("net: ", net)
-                net = net.cuda(0)
-                criterion = nn.CrossEntropyLoss()
-                criterion = criterion.cuda(0)
-                # optimizer = optim.Adam(net.parameters(), lr=2e-3)
-                if "reg" in args.modelname:
-                    print ('three models check optimizer without wd')
-                    optimizer = optim.SGD(net.parameters(), lr=0.1)
-                else:
-                    print ('three models check optimizer with wd')
-                    optimizer = optim.SGD(net.parameters(), lr=0.1, weight_decay=weightdecay)
-                print ('three models check optimizer: ', optimizer)
+                for lasso_strength in lasso_strength_list:
+                    for max_val in max_val_list:
+                        print ('three models check weightdecay: ', weightdecay)
+                        print ('three models check reg_lambda: ', reg_lambda)
+                        print ('three models check priot prior_beta: ', prior_beta)
+                        print ('lasso_strength: ', lasso_strength)
+                        print ('max_val: ', max_val)
+                        ########## using for
+                        if "dropout" not in args.modelname:
+                            net = LeNet5()
+                        else:
+                            net = DropoutLeNet5(args.dropout)
+                        print ("net: ", net)
+                        net = net.cuda(0)
+                        criterion = nn.CrossEntropyLoss()
+                        criterion = criterion.cuda(0)
+                        # optimizer = optim.Adam(net.parameters(), lr=2e-3)
+                        if "reg" in args.modelname:
+                            print ('three models check optimizer without wd')
+                            optimizer = optim.SGD(net.parameters(), lr=0.1)
+                        else:
+                            print ('three models check optimizer with wd')
+                            optimizer = optim.SGD(net.parameters(), lr=0.1, weight_decay=weightdecay)
+                        print ('three models check optimizer: ', optimizer)
 
-                print ("len(data_train): ", len(data_train))
-                # for e in range(1, 16):
-                momentum_mu = 0.9 # momentum mu
+                        print ("len(data_train): ", len(data_train))
+                        # for e in range(1, 16):
+                        momentum_mu = 0.9 # momentum mu
 
-                max_epoch = 600
+                        max_epoch = 600
 
-                logger = logging.getLogger('res_reg')
-                feature_dim_vec = [400, 120, 84]
-                res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=args.modelname)
-                start = time.time()
-                st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
-                print(st)
-                for e in range(1, max_epoch):
-                    if e != (max_epoch -1):
-                        train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance)
-                    else:  # last epoch ...
-                        train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance, final=True)
-                done = time.time()
-                do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
-                print (do)
-                elapsed = done - start
-                print (elapsed)
-                print('Finished Training')
+                        logger = logging.getLogger('res_reg')
+                        feature_dim_vec = [400, 120, 84]
+                        res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=args.modelname)
+                        baseline_method_instance = BaselineMethod()
+                        start = time.time()
+                        st = datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
+                        print(st)
+                        for e in range(1, max_epoch):
+                            if e != (max_epoch -1):
+                                train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, \
+                                    reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance, baseline_method_instance, args.regmethod, lasso_strength, max_val)
+                            else:  # last epoch ...
+                                train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, \
+                                    reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance, baseline_method_instance, args.regmethod, lasso_strength, max_val, final=True)
+                        done = time.time()
+                        do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')
+                        print (do)
+                        elapsed = done - start
+                        print (elapsed)
+                        print('Finished Training')
 
 # if __name__ == '__main__':
 #     main()
