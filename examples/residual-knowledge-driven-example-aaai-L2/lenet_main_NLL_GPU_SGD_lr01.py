@@ -62,7 +62,14 @@ class C3(nn.Module):
         ]))
 
     def forward(self, img):
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size:')
+        logger.debug (img.data.size())
+        logger.debug ('input norm: %f', img.data.norm())
         output = self.c3(img)
+        logger.debug ('out size: ')
+        logger.debug (output.data.size())
+        logger.debug ('out norm: %f', output.data.norm())
         return output
 
 
@@ -76,7 +83,14 @@ class F4(nn.Module):
         ]))
 
     def forward(self, img):
+        logger.debug('Inside ' + self.__class__.__name__ + ' forward')
+        logger.debug ('input size:')
+        logger.debug (img.data.size())
+        logger.debug ('input norm: %f', img.data.norm())
         output = self.f4(img)
+        logger.debug ('out size: ')
+        logger.debug (output.data.size())
+        logger.debug ('out norm: %f', output.data.norm())
         return output
 
 
@@ -109,8 +123,12 @@ class LeNet5(nn.Module):
         self.c3.register_forward_hook(get_features_hook)
         self.f4 = F4()
         self.f4.register_forward_hook(get_features_hook)
-        self.f5 = F5() 
-
+        self.f5 = F5()
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+ 
     def forward(self, img):
         # print ("img shape: ", img.shape)
         output = self.c1(img)
@@ -130,6 +148,9 @@ class LeNet5(nn.Module):
         logger.debug (output.data.size())
         logger.debug ('three models check before blocks norm: %f', output.data.norm())
         output = self.c3(output)
+        logger.debug ('three models check after c3 size:')
+        logger.debug (output.data.size())
+        logger.debug ('three models check after c3 blocks norm: %f', output.data.norm())
         # print ("output shape: ", output.shape)
         # output = output.view(img.size(0), -1)
         # print ("output shape: ", output.shape)
@@ -159,7 +180,11 @@ class DropoutLeNet5(nn.Module):
         self.drop4 = nn.Dropout(dropout)
         self.f4 = F4()
         self.f4.register_forward_hook(get_features_hook)
-        self.f5 = F5() 
+        self.f5 = F5()
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
 
     def forward(self, img):
         # print ("img shape: ", img.shape)
@@ -410,7 +435,8 @@ if __name__ == '__main__':
     print ("three models check label number: ", label_num)
 
     ########## using for
-    weightdecay_list = [0.0000001, 0.000001]
+    # weightdecay_list = [0.0000001, 0.000001]
+    weightdecay_list = [0.0]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
     lasso_strength_list = [0.0000001, 0.000001]

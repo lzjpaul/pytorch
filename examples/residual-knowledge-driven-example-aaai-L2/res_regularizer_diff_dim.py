@@ -253,6 +253,14 @@ class ResRegularizerDiffDim():
         else:
             normalization_coefficient = float(labelnum * trainnum)
         # print ("normalization_coefficient: ", normalization_coefficient)
+        logger.debug ("labelnum: ")
+        logger.debug (labelnum)
+        logger.debug ("seqnum: ")
+        logger.debug (seqnum)
+        logger.debug ("trainnum: ")
+        logger.debug (trainnum)
+        logger.debug ("normalization_coefficient: ")
+        logger.debug (normalization_coefficient)
         if 'lstm' not in self.model_name:
             logger.debug ('not lstm')
             reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/(normalization_coefficient)
@@ -284,6 +292,14 @@ class ResRegularizerDiffDim():
         else:
             normalization_coefficient = float(labelnum * trainnum)
         # print ("normalization_coefficient: ", normalization_coefficient)
+        logger.debug ("labelnum: ")
+        logger.debug (labelnum)
+        logger.debug ("seqnum: ")
+        logger.debug (seqnum)
+        logger.debug ("trainnum: ")
+        logger.debug (trainnum)
+        logger.debug ("normalization_coefficient: ")
+        logger.debug (normalization_coefficient)
         '''
         if 'lstm' not in self.model_name:
             logger.debug ('prior not lstm')

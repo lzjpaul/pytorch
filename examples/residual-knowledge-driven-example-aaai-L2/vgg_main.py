@@ -75,6 +75,12 @@ class VGG(nn.Module):
                 m.weight.data.normal_(0, math.sqrt(2. / n))
                 m.bias.data.zero_()
 
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+
+
 
     def forward(self, x):
         logger = logging.getLogger('res_reg')
@@ -136,6 +142,11 @@ class DropoutVGG(nn.Module):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
                 m.bias.data.zero_()
+
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
 
 
     def forward(self, x):
@@ -353,7 +364,7 @@ def main():
     print ("three models check label number: ", label_num)
 
     ########## using for
-    weightdecay_list = [0.0000001, 0.000001]
+    weightdecay_list = [5e-4]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
     lasso_strength_list = [0.0000001, 0.000001]

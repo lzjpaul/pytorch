@@ -94,6 +94,10 @@ class Autoencoder(nn.Module):
             ('dec5', nn.Linear(256, 784)),
             ('relu10', nn.ReLU())
         ]))
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
 
     def forward(self, x):
         x = self.enc1(x)
@@ -101,15 +105,22 @@ class Autoencoder(nn.Module):
         logger.debug('three models check Inside ' + self.__class__.__name__ + ' forward')
         logger.debug ('three models check before blocks size:')
         logger.debug (x.data.size())
+        # logger.debug ('three models check before blocks size: %s', x.data.size())
         logger.debug ('three models check before blocks norm: %f', x.data.norm())
         x = self.enc2(x)
+        logger.debug ('three models check after enc2  size: %s', x.data.size())
+        logger.debug ('three models check after enc2  norm: %f', x.data.norm())
         x = self.enc3(x)
+        logger.debug ('three models check after enc3  size: %s', x.data.size())
+        logger.debug ('three models check after enc3  norm: %f', x.data.norm())
         x = self.enc4(x)
         x = self.enc5(x)
 
         x = self.dec1(x)
         x = self.dec2(x)
         x = self.dec3(x)
+        logger.debug ('three models check after dec3  size: %s', x.data.size())
+        logger.debug ('three models check after dec3  norm: %f', x.data.norm())
         x = self.dec4(x)
         logger.debug ('three models check after blocks size:')
         logger.debug (x.data.size())
@@ -191,6 +202,11 @@ class DropoutAutoencoder(nn.Module):
             ('dec5', nn.Linear(256, 784)),
             ('relu10', nn.ReLU())
         ]))
+        for idx, m in enumerate(self.modules()):
+            print ('idx and self.modules():')
+            print (idx)
+            print (m)
+
 
     def forward(self, x):
         x = self.enc1(x)
@@ -482,7 +498,8 @@ if __name__ == '__main__':
     print ("three models check label number: ", label_num)
 
     ########## using for
-    weightdecay_list = [0.0000001, 0.000001]
+    # weightdecay_list = [0.0000001, 0.000001]
+    weightdecay_list = [0.0]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
     lasso_strength_list = [0.0000001, 0.000001]

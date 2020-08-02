@@ -77,12 +77,10 @@ class BasicDropoutMLPBlock(nn.Module):
 
     def forward(self, x):
         logger = logging.getLogger('res_reg')
-        """
         logger.debug('Inside ' + self.__class__.__name__ + ' forward')
-        logger.debug ('input size:')
+        logger.debug ('before dropout input size:')
         logger.debug (x.data.size())
-        logger.debug ('input norm: %f', x.data.norm())
-        """
+        logger.debug ('before dropout input norm: %f', x.data.norm())
         x = self.drop1(x)
         features.append(x.data)
         logger.debug('Inside ' + self.__class__.__name__ + ' forward')
