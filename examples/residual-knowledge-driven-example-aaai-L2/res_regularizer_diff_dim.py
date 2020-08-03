@@ -306,12 +306,12 @@ class ResRegularizerDiffDim():
         '''
         logger.debug ("self.reg_lambda: %f",self.reg_lambda)
         logger.debug ("self.w_array norm: %f", np.linalg.norm(self.w_array))
-        logger.debug ("self.w_array[0]: %s", self.w_array[0])
+        # logger.debug ("self.w_array[0]: %s", self.w_array[0])
         logger.debug ("theta_current_layer_log norm: %f", np.linalg.norm(theta_current_layer_log))
-        logger.debug ("theta_current_layer_log[0]: %s", theta_current_layer_log[0])
+        # logger.debug ("theta_current_layer_log[0]: %s", theta_current_layer_log[0])
         reg_grad_w = (-2 * self.reg_lambda * self.w_array * theta_current_layer_log)/(normalization_coefficient)
-        logger.debug ("reg_grad_w norm: %f", np.linalg.norm(reg_grad_w))
-        logger.debug ("reg_grad_w[0]: %s", reg_grad_w[0])
+        logger.debug ("reg_grad_w norm: ")
+        logger.debug (np.linalg.norm(reg_grad_w))
         '''
         else:
             logger.debug ('prior lstm')
