@@ -972,6 +972,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                             # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                         elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
                             baseline_method_instance.lasso_regularization(f, lasso_strength)
                         else:  # maxnorm and dropout
                             logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
@@ -994,6 +995,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                     logger.debug (param.size())
                     if "layer1" in name and "weight_ih" in name:
                         logger.debug ('max norm constraint for param name: '+ name)
+                        logger.debug ('max_val: %f', max_val)
                         baseline_method_instance.max_norm(param, max_val)
             ### maxnorm constraist
 
@@ -1035,7 +1037,7 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
             test_loss = test_loss / len(test_loader.dataset)
             print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(test_loss, accuracy, macro_auc, micro_auc))
             if epoch == (n_epochs - 1):
-                print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+                print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
                 print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(test_loss, accuracy, macro_auc, micro_auc))
 
     done = time.time()
@@ -1117,6 +1119,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                             # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                         elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
                             baseline_method_instance.lasso_regularization(f, lasso_strength)
                         else:  # maxnorm and dropout
                             logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
@@ -1140,6 +1143,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                     logger.debug (param.size())
                     if "layer1" in name and "weight_ih" in name:
                         logger.debug ('max norm constraint for param name: '+ name)
+                        logger.debug ('max_val: %f', max_val)
                         baseline_method_instance.max_norm(param, max_val)
             ### maxnorm constraist
 
@@ -1212,7 +1216,7 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
         print('=' * 89)
         if epoch == (n_epochs - 1):
             print('=' * 89)
-            print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+            print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
             print('| End of training | final test loss {:.8f} | final test ppl {:8.2f}'.format(average_test_loss, math.exp(average_test_loss)))
             print('=' * 89)
             

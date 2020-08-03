@@ -481,7 +481,7 @@ def main():
                             if epoch != (args.epochs - 1):
                                 prec1 = validate(val_loader, model, criterion)
                             else:  # last epoch
-                                print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+                                print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
                                 prec1 = validate(val_loader, model, criterion, final=True)
 
                             # remember best prec@1 and save checkpoint
@@ -571,6 +571,7 @@ def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_be
                         # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                     elif regmethod == 7:  # L1-norm
                         logger.debug ('L1 norm param name: '+ name)
+                        logger.debug ('lasso_strength: %f', lasso_strength)
                         ### !! change param name to f ..
                         baseline_method_instance.lasso_regularization(f, lasso_strength)
                     else:  # maxnorm and dropout
@@ -595,6 +596,7 @@ def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_be
                 logger.debug (param.size())
                 if "fc1.fc1.weight" in name or "fc2.fc2.weight" in name:  ##!!change layer name!!
                     logger.debug ('max norm constraint for param name: '+ name)
+                    logger.debug ('max_val: %f', max_val)
                     baseline_method_instance.max_norm(param, max_val)
         ### maxnorm constraist
 

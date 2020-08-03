@@ -467,6 +467,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                             res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
                         elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
                             baseline_method_instance.lasso_regularization(param, lasso_strength)
                         else:  # maxnorm and dropout
                             logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
@@ -488,6 +489,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
                         logger.debug ('max norm constraint for param name: '+ name)
+                        logger.debug ('max_val: %f', max_val)
                         baseline_method_instance.max_norm(param, max_val)
             ### maxnorm constraist
 
@@ -523,7 +525,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                 accuracy, macro_auc, micro_auc = metrics[0], metrics[1], metrics[2]
                 print ('test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.item(), accuracy, macro_auc, micro_auc))
                 if epoch == (max_epoch - 1):
-                    print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+                    print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
                     print ('final test loss = %f, test accuracy = %f, test macro auc = %f, test micro auc = %f'%(loss.item(), accuracy, macro_auc, micro_auc))
 
     done = time.time()
@@ -591,6 +593,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                             res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
                         elif reg_method == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
                             baseline_method_instance.lasso_regularization(param, lasso_strength)
                         else:  # maxnorm and dropout
                             logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
@@ -614,6 +617,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     logger.debug (param.size())
                     if "layer1" in name and "weight" in name:
                         logger.debug ('max norm constraint for param name: '+ name)
+                        logger.debug ('max_val: %f', max_val)
                         baseline_method_instance.max_norm(param, max_val)
             ### maxnorm constraist
 
@@ -647,7 +651,7 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
         if epoch == (max_epoch-1):
-            print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+            print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
             print('\nfinal Test set: final Average loss: {:.4f}, final Accuracy: {}/{} ({:.0f}%)\n'.format(
                 test_loss, correct, len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset)))
@@ -811,7 +815,7 @@ if __name__ == '__main__':
     weightdecay_list = [0.0000001, 0.000001]
     reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
-    lasso_strength_list = [0.0000001, 0.000001]
+    lasso_strength_list = [0.001, 0.000001]
     max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:

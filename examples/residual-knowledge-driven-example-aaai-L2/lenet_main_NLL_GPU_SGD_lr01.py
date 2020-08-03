@@ -319,7 +319,9 @@ def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regul
                         # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                     elif regmethod == 7:  # L1-norm
                         logger.debug ('L1 norm param name: '+ name)
+                        logger.debug ('lasso_strength: %f', lasso_strength)
                         ### !! change param name to f ..
+                        # print ("lasso param f: ", f)
                         baseline_method_instance.lasso_regularization(f, lasso_strength)
                     else:  # maxnorm and dropout
                         logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
@@ -343,6 +345,8 @@ def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regul
                 logger.debug (param.size())
                 if "c3.c3.c3.weight" in name or "f4.f4.f4.weight" in name:  ##!!change layer name!!
                     logger.debug ('max norm constraint for param name: '+ name)
+                    logger.debug ('max_val: %f', max_val)
+                    print ("max norm param param: ", param)
                     baseline_method_instance.max_norm(param, max_val)
         ### maxnorm constraist
     avg_train_loss /= 60000
@@ -380,7 +384,7 @@ def train_and_test(epoch, net, data_train_loader, data_test_loader, data_test, o
     train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, modelname, firstepochs, label_num, \
         baseline_method_instance, regmethod, lasso_strength, max_val)
     if final:
-        print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+        print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
         test(net, data_test_loader, data_test, criterion, final=final)
     else:
         test(net, data_test_loader, data_test, criterion)
@@ -437,7 +441,7 @@ if __name__ == '__main__':
     ########## using for
     # weightdecay_list = [0.0000001, 0.000001]
     weightdecay_list = [0.0]
-    reglambda_list = [20, 0.002]
+    reglambda_list = [0.0002, 0.002]
     priorbeta_list = [0.0001, 0.001]
     lasso_strength_list = [0.0000001, 0.000001]
     max_val_list = [3.0, 4.0]

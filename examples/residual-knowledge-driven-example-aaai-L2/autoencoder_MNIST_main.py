@@ -400,6 +400,7 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
                             # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
                         elif regmethod == 7:  # L1-norm
                             logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
                             ### !! change param name to f ..
                             baseline_method_instance.lasso_regularization(f, lasso_strength)
                         else:  # maxnorm and dropout
@@ -424,6 +425,7 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
                     if "enc2.enc2.weight" in name or "enc3.enc3.weight" in name or "enc4.enc4.weight" in name or "enc5.enc5.weight" in name \
                         or "dec1.dec1.weight" in name or "dec2.dec2.weight" in name or "dec3.dec3.weight" in name or "dec4.dec4.weight" in name:  ##!!change layer name!!
                         logger.debug ('max norm constraint for param name: '+ name)
+                        logger.debug ('max_val: %f', max_val)
                         baseline_method_instance.max_norm(param, max_val)
             ### maxnorm constraist
 
@@ -439,7 +441,7 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
         if epoch != (Epochs-1):
             test_image_reconstruct(model, test_loader, device, criterion)
         else:  # last epoch
-            print('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f}'.format(weightdecay, prior_beta, reg_lambda))
+            print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
             test_image_reconstruct(model, test_loader, device, criterion, final=True)
         # evaluation
 
