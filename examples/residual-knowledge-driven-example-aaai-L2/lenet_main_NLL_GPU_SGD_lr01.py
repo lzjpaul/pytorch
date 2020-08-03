@@ -437,7 +437,7 @@ if __name__ == '__main__':
     ########## using for
     # weightdecay_list = [0.0000001, 0.000001]
     weightdecay_list = [0.0]
-    reglambda_list = [0.0002, 0.002]
+    reglambda_list = [20, 0.002]
     priorbeta_list = [0.0001, 0.001]
     lasso_strength_list = [0.0000001, 0.000001]
     max_val_list = [3.0, 4.0]

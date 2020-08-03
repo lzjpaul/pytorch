@@ -304,7 +304,14 @@ class ResRegularizerDiffDim():
         if 'lstm' not in self.model_name:
             logger.debug ('prior not lstm')
         '''
+        logger.debug ("self.reg_lambda: %f",self.reg_lambda)
+        logger.debug ("self.w_array norm: %f", np.linalg.norm(self.w_array))
+        logger.debug ("self.w_array[0]: %s", self.w_array[0])
+        logger.debug ("theta_current_layer_log norm: %f", np.linalg.norm(theta_current_layer_log))
+        logger.debug ("theta_current_layer_log[0]: %s", theta_current_layer_log[0])
         reg_grad_w = (-2 * self.reg_lambda * self.w_array * theta_current_layer_log)/(normalization_coefficient)
+        logger.debug ("reg_grad_w norm: %f", np.linalg.norm(reg_grad_w))
+        logger.debug ("reg_grad_w[0]: %s", reg_grad_w[0])
         '''
         else:
             logger.debug ('prior lstm')
@@ -390,6 +397,11 @@ class ResRegularizerDiffDim():
         self.model_name = model_name
         self.batch_first = batch_first
         self.feature_idx = feature_idx
+        logger.debug ("apply reg_method: %d", reg_method)
+        logger.debug ("apply reg_lambda: %f", reg_lambda)
+        logger.debug ("apply name: %s", name)
+        logger.debug ("apply step: %d", step)
+        logger.debug ("apply cal_all_timesteps: %s", cal_all_timesteps)
         if 'dropout' not in model_name:
             self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
             self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
