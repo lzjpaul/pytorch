@@ -102,3 +102,42 @@ and dropout takes the (2 times i) and (2 times i + 1) as the first and second fe
 (1) debug for L2 corr-reg, three models corr-reg, diff dims and dropout model structures
 (2) code for correlation normalization for both res_regularizer.py and res_regularizer_diff_dim.py
 (3) also code for L1, maxnorm, etc
+
+20-8-3:
+20-8-3-lenet-lr-005.sh/20-8-3-lenet-lr-01.sh/lenet_main_NLL_GPU_SGD_lr..._momentum_reproduce.py: only has one wd and run once
+
+20-8-4:
+thinking of transfer autoencoder to adam ...
+autoencoder_MNIST_main.py --> autoencoder_MNIST_main_SGD.py
+
+20-8-3-wd-autoencoder-1.sh/autoencoder_MNIST_main_tune_wd_1.py: still SGD, but try to use 1e-10, 1e-9... much smaller wd
+
+20-8-5:
+XXXX_origin.py: see 20-7-26
+
+mlp_residual_hook_resreg_real_mnist_wd0001/00001/01.py from mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py 
+train_lstm_main_hook_resreg_real_wlm_wd0001/00001.py from train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py 
+
+20-8-5 overall code evolution logic:
+
+####### list of hyperparameters
+mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py
+train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py
+autoencoder_MNIST_main_SGD.py
+lenet_main_NLL_GPU_SGD_lr005.py
+vgg_main.py
+
+####### fixed weightdecay for L2 baseline
+mlp_residual_hook_resreg_real_mnist_wd00001.py
+train_lstm_main_hook_resreg_real_wlm_wd00001.py
+autoencoder_MNIST_main_SGD_lr10_wd000001.py
+lenet_main_NLL_GPU_SGD_lr005_wd0001.py
+vgg_main_lr05_wd0005.py
+
+####### then tune Lasso, maxnorm, dropout ...
+
+20-8-6
+lenet_main_NLL_GPU_Adam_wd0.py: for lenet, even adam without wd can be 0.993X, similar to dropout (0.9935)...
+
+20-8-7
+debug for nan correlation of autoencoder and lenet ...
