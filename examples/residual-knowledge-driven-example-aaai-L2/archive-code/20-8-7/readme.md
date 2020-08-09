@@ -124,14 +124,14 @@ train_lstm_main_hook_resreg_real_wlm_wd0001/00001.py from train_lstm_main_hook_r
 mlp_residual_hook_resreg_real_mnist_tune_hyperparam.py
 train_lstm_main_hook_resreg_real_wlm_tune_hyperparam.py
 autoencoder_MNIST_main_SGD.py
-(now using Adam!!!)lenet_main_NLL_GPU_SGD_lr005.py (now using Adam!!!)
+lenet_main_NLL_GPU_SGD_lr005.py
 vgg_main.py
 
 ####### fixed weightdecay for L2 baseline
 mlp_residual_hook_resreg_real_mnist_wd00001.py
 train_lstm_main_hook_resreg_real_wlm_wd00001.py
 autoencoder_MNIST_main_SGD_lr10_wd000001.py
-(now using Adam!!!) lenet_main_NLL_GPU_SGD_lr005_wd0001.py (now using Adam!!!)
+lenet_main_NLL_GPU_SGD_lr005_wd0001.py
 vgg_main_lr05_wd0005.py
 
 ####### then tune Lasso, maxnorm, dropout ...
