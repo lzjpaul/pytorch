@@ -4,6 +4,7 @@ import logging
 
 # Attention
 # (1) self.feature_dim if not equal for two layers, then "for idx in range(self.feature_dim):" in "update_Theta_Current_Layer" need to be changed
+small_value = np.finfo(float).eps
 
 class ResRegularizer():
     '''Res regularization
@@ -126,6 +127,10 @@ class ResRegularizer():
             logger.debug ('self.feature_correlation[i] norm: ')
             logger.debug (np.linalg.norm(self.feature_correlation[i]))
             ## not adding all nan correlation
+            if np.isnan(np.linalg.norm(self.feature_correlation[i])):
+                # print ('nan correlation matrix: ', self.feature_correlation[i])
+                self.feature_correlation[i][np.isnan(self.feature_correlation[i])]=small_value
+                # print ('replace nan correlation matrix: ', self.feature_correlation[i])
             if not np.isnan(np.linalg.norm(self.feature_correlation[i])):
                 self.correlation_moving_average[self.feature_idx] = self.momentum_mu * self.correlation_moving_average[self.feature_idx] + (1-self.momentum_mu) * self.feature_correlation[i]
             logger.debug ("after adding self.correlation_moving_average[self.feature_idx] norm: ")
@@ -393,6 +398,11 @@ class ResRegularizer():
         logger.debug (self.w_array.shape)
         logger.debug ("self.w_array norm")
         logger.debug (np.linalg.norm(self.w_array))
+        # print ("self.w_array[0]: ", self.w_array[0])
+        # print ("update theta average self.w_array*self.w_array: ", (np.linalg.norm(self.w_array) * np.linalg.norm(self.w_array) / self.w_array.size))
+        # print ("correlation_abs_matrix[0]: ", correlation_abs_matrix[0])
+        # print ("step: ", step)
+        # print ("update theta average corr: ", np.sqrt(np.linalg.norm(correlation_abs_matrix) * np.linalg.norm(correlation_abs_matrix) / correlation_abs_matrix.size))
         # logger.debug ("self.w_array")
         # logger.debug (self.w_array)
         logger.debug ("self.w_array[0:self.feature_dim] norm")
@@ -434,6 +444,22 @@ class ResRegularizer():
         logger.debug ("apply name: %s", name)
         logger.debug ("apply step: %d", step)
         logger.debug ("apply cal_all_timesteps: %s", cal_all_timesteps)
+        uptfreq = 1
+        if trainnum == 12379:  # MIMIC-III
+            uptfreq = 12
+        elif trainnum == 5788:  # Movie Review
+            uptfreq = 5
+        elif trainnum == 60000 and 'mlp' in model_name:  # MNIST + mlp
+            uptfreq = 90
+        elif 'vgg' in model_name:  # vgg
+            uptfreq = 39
+        elif 'lenet' in model_name:  # lenet
+            uptfreq = 23
+        elif 'autoenc' in model_name:  # autoencoder
+            uptfreq = 45
+        else:
+            uptfreq = 1
+        # print ("uptfreq: ", uptfreq)
         if 'dropout' not in model_name:
             self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
             self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
@@ -445,6 +471,12 @@ class ResRegularizer():
         logger.debug (self.feature_matrix.shape)
         logger.debug ("self.second_feature_matrix shape:")
         logger.debug (self.second_feature_matrix.shape)
+        # print ("self.feature_matrix shape:", self.feature_matrix.shape)
+        # print ("self.feature_matrix: ", self.feature_matrix)
+        # np.savetxt('/hdd2/zhaojing/res-regularization/home_code_edit/coding-area/20-8-7/first_feature_matrix.csv', self.feature_matrix, delimiter=',')
+        # print ("self.second_feature_matrix shape:", self.second_feature_matrix.shape)
+        # print ("self.second_feature_matrix: ", self.second_feature_matrix)
+        # np.savetxt('/hdd2/zhaojing/res-regularization/home_code_edit/coding-area/20-8-7/second_feature_matrix.csv', self.second_feature_matrix, delimiter=',')
         logger.debug ("self.feature_matrix norm: %f", np.linalg.norm(self.feature_matrix))
         logger.debug ("new self.second_feature_matrix norm: %f", np.linalg.norm(self.second_feature_matrix))
         self.reg_lambda = reg_lambda
@@ -453,8 +485,9 @@ class ResRegularizer():
         logger.debug ("prior self.w_array shape: ")
         logger.debug (self.w_array.shape)
         # self.calcCorrelation()
-        self.calcCorrelation_two_layers()
-        self.calAvgCorrelation()
+        if epoch < 3 or step % uptfreq == 0:
+            self.calcCorrelation_two_layers()
+            self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
         # print ("trainnum: ", trainnum)
         # print ("seqnum: ", seqnum)
@@ -474,7 +507,8 @@ class ResRegularizer():
         # generation probablity using prior
         elif reg_method == 6:
             # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
-            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
+            if epoch < 3 or (step-1) % uptfreq == 0:  # delay one step to let theta updates first ...
+                self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()
@@ -498,7 +532,8 @@ class ResRegularizer():
         logger.debug ("delta w (data grad + reg grad) norm: %f", np.linalg.norm(param.grad.data.cpu().numpy()))
         logger.debug ("w norm: %f", np.linalg.norm(param.data.cpu().numpy()))
         if reg_method == 6:
-            self.update_Theta_Current_Layer(step)
-            if epoch <= 3 or epoch == 50:
+            if epoch < 3 or step % uptfreq == 0:
+                self.update_Theta_Current_Layer(step)
+            if epoch < 3 or epoch == 50:
                 print ("prior self.feature_idx: ", self.feature_idx)
-                print ('prior self.theta_all_layer:', self.theta_all_layer)
+                print ('prior self.theta_all_layer[0][0, :5]:', self.theta_all_layer[0][0, :5])
