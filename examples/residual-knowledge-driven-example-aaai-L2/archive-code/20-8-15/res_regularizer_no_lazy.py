@@ -28,12 +28,9 @@ class ResRegularizer():
         print ("prior new self.feature_dim: ", self.feature_dim)
         print ("prior blocks: ", blocks)
         self.correlation_moving_average = []
-        self.reg_grad_w = []
         self.theta_all_layer = []
         for i in range(blocks):
             self.correlation_moving_average.append(np.zeros((self.feature_dim, self.feature_dim)))
-        for i in range(blocks):
-            self.reg_grad_w.append(np.zeros((self.feature_dim, self.feature_dim)))
         for i in range(blocks):
             self.theta_all_layer.append(np.full((self.doc_num, self.feature_dim), 1./self.feature_dim))
         print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
@@ -404,7 +401,6 @@ class ResRegularizer():
         # print ("self.w_array[0]: ", self.w_array[0])
         # print ("update theta average self.w_array*self.w_array: ", (np.linalg.norm(self.w_array) * np.linalg.norm(self.w_array) / self.w_array.size))
         # print ("correlation_abs_matrix[0]: ", correlation_abs_matrix[0])
-        # print ("step: ", step)
         # print ("update theta average corr: ", np.sqrt(np.linalg.norm(correlation_abs_matrix) * np.linalg.norm(correlation_abs_matrix) / correlation_abs_matrix.size))
         # logger.debug ("self.w_array")
         # logger.debug (self.w_array)
@@ -447,22 +443,6 @@ class ResRegularizer():
         logger.debug ("apply name: %s", name)
         logger.debug ("apply step: %d", step)
         logger.debug ("apply cal_all_timesteps: %s", cal_all_timesteps)
-        uptfreq = 1
-        if trainnum == 12379:  # MIMIC-III
-            uptfreq = 12
-        elif trainnum == 5788:  # Movie Review
-            uptfreq = 5
-        elif trainnum == 60000 and 'mlp' in model_name:  # MNIST + mlp
-            uptfreq = 90
-        elif 'vgg' in model_name:  # vgg
-            uptfreq = 39
-        elif 'lenet' in model_name:  # lenet
-            uptfreq = 23
-        elif 'autoenc' in model_name:  # autoencoder
-            uptfreq = 45
-        else:
-            uptfreq = 1
-        # print ("uptfreq: ", uptfreq)
         if 'dropout' not in model_name:
             self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
             self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
@@ -488,9 +468,8 @@ class ResRegularizer():
         logger.debug ("prior self.w_array shape: ")
         logger.debug (self.w_array.shape)
         # self.calcCorrelation()
-        if epoch < 3 or step % uptfreq == 0:
-            self.calcCorrelation_two_layers()
-            self.calAvgCorrelation()
+        self.calcCorrelation_two_layers()
+        self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
         # print ("trainnum: ", trainnum)
         # print ("seqnum: ", seqnum)
@@ -510,12 +489,11 @@ class ResRegularizer():
         # generation probablity using prior
         elif reg_method == 6:
             # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
-            if epoch < 3 or (step-1) % uptfreq == 0:  # delay one step to let theta updates first ...
-                self.reg_grad_w[self.feature_idx] = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
+            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()
-        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w[self.feature_idx])).float()
+        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
         if (epoch == 0 and step <= 1000) or step % 1000 == 0:
             print ('step: ', step)
             print ('name: ', name)
@@ -535,8 +513,7 @@ class ResRegularizer():
         logger.debug ("delta w (data grad + reg grad) norm: %f", np.linalg.norm(param.grad.data.cpu().numpy()))
         logger.debug ("w norm: %f", np.linalg.norm(param.data.cpu().numpy()))
         if reg_method == 6:
-            if epoch < 3 or step % uptfreq == 0:
-                self.update_Theta_Current_Layer(step)
-            if epoch < 3 or epoch == 50:
+            self.update_Theta_Current_Layer(step)
+            if epoch <= 3 or epoch == 50:
                 print ("prior self.feature_idx: ", self.feature_idx)
                 print ('prior self.theta_all_layer[0][0, :5]:', self.theta_all_layer[0][0, :5])

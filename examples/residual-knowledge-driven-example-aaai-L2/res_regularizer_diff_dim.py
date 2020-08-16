@@ -24,9 +24,12 @@ class ResRegularizerDiffDim():
         print ("diff dim check new self.feature_dim_vec: ", self.feature_dim_vec)
         print ("diff dim check blocks: ", blocks)
         self.correlation_moving_average = []
+        self.reg_grad_w = []
         self.theta_all_layer = []
         for i in range(blocks):
             self.correlation_moving_average.append(np.zeros((self.feature_dim_vec[i+1], self.feature_dim_vec[i])))  # [output*input]
+        for i in range(blocks):
+            self.reg_grad_w.append(np.zeros((self.feature_dim_vec[i+1], self.feature_dim_vec[i])))  # [output*input]
         for i in range(blocks):
             self.theta_all_layer.append(np.full((self.feature_dim_vec[i+1], self.feature_dim_vec[i]), 1./self.feature_dim_vec[i]))
         print ('diff dim check len(self.correlation_moving_average): ', len(self.correlation_moving_average))
@@ -476,11 +479,11 @@ class ResRegularizerDiffDim():
         elif reg_method == 6:
             # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
             if epoch < 3 or (step-1) % uptfreq == 0:
-                self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
+                self.reg_grad_w[self.feature_idx] = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()
-        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
+        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w[self.feature_idx])).float()
         if (epoch == 0 and step <= 1000) or step % 1000 == 0:
             print ('step: ', step)
             print ('name: ', name)

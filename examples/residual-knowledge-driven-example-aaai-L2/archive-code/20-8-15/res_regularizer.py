@@ -28,12 +28,9 @@ class ResRegularizer():
         print ("prior new self.feature_dim: ", self.feature_dim)
         print ("prior blocks: ", blocks)
         self.correlation_moving_average = []
-        self.reg_grad_w = []
         self.theta_all_layer = []
         for i in range(blocks):
             self.correlation_moving_average.append(np.zeros((self.feature_dim, self.feature_dim)))
-        for i in range(blocks):
-            self.reg_grad_w.append(np.zeros((self.feature_dim, self.feature_dim)))
         for i in range(blocks):
             self.theta_all_layer.append(np.full((self.doc_num, self.feature_dim), 1./self.feature_dim))
         print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
@@ -511,11 +508,11 @@ class ResRegularizer():
         elif reg_method == 6:
             # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
             if epoch < 3 or (step-1) % uptfreq == 0:  # delay one step to let theta updates first ...
-                self.reg_grad_w[self.feature_idx] = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
+                self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()
-        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w[self.feature_idx])).float()
+        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
         if (epoch == 0 and step <= 1000) or step % 1000 == 0:
             print ('step: ', step)
             print ('name: ', name)

@@ -6,40 +6,33 @@ import logging
 # (1) self.feature_dim if not equal for two layers, then "for idx in range(self.feature_dim):" in "update_Theta_Current_Layer" need to be changed
 small_value = np.finfo(float).eps
 
-class ResRegularizer():
+class ResRegularizerDiffDim():
     '''Res regularization
     Args:
         hyperparameters: a, b, alpha (like the coefficient of L2), uptfreq
     '''
-    def __init__(self, prior_beta=None, reg_lambda=None, momentum_mu=None, blocks=None, feature_dim=None, model_name=None):
+    def __init__(self, prior_beta=None, reg_lambda=None, momentum_mu=None, blocks=None, feature_dim_vec=None, model_name=None):
         self.prior_beta = prior_beta
         self.reg_lambda = reg_lambda
         self.momentum_mu = momentum_mu
-        self.feature_dim = feature_dim
-        if "lstm" in model_name:
-            self.doc_num = 4 * self.feature_dim
-        else:
-            self.doc_num = self.feature_dim
+        self.feature_dim_vec = feature_dim_vec  # this should be a vector, and blocks is len
         print ("prior model_name: ", model_name)
-        print ("prior self.doc_num: ", self.doc_num)
+        # print ("prior self.doc_num: ", self.doc_num)
         print ("prior self.prior_beta: ", self.prior_beta)
         print ("prior self.reg_lambda: ", self.reg_lambda)
         print ("prior new self.momentum_mu: ", self.momentum_mu)
-        print ("prior new self.feature_dim: ", self.feature_dim)
-        print ("prior blocks: ", blocks)
+        print ("diff dim check new self.feature_dim_vec: ", self.feature_dim_vec)
+        print ("diff dim check blocks: ", blocks)
         self.correlation_moving_average = []
-        self.reg_grad_w = []
         self.theta_all_layer = []
         for i in range(blocks):
-            self.correlation_moving_average.append(np.zeros((self.feature_dim, self.feature_dim)))
+            self.correlation_moving_average.append(np.zeros((self.feature_dim_vec[i+1], self.feature_dim_vec[i])))  # [output*input]
         for i in range(blocks):
-            self.reg_grad_w.append(np.zeros((self.feature_dim, self.feature_dim)))
-        for i in range(blocks):
-            self.theta_all_layer.append(np.full((self.doc_num, self.feature_dim), 1./self.feature_dim))
-        print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
-        print ('prior new check len(self.theta_all_layer): ', len(self.theta_all_layer))
-        print ('prior new check self.theta_all_layer[0]: ', self.theta_all_layer[0])
-        print ('prior new check self.theta_all_layer[0] shape: ', self.theta_all_layer[0].shape)
+            self.theta_all_layer.append(np.full((self.feature_dim_vec[i+1], self.feature_dim_vec[i]), 1./self.feature_dim_vec[i]))
+        print ('diff dim check len(self.correlation_moving_average): ', len(self.correlation_moving_average))
+        print ('diff dim check len(self.theta_all_layer): ', len(self.theta_all_layer))
+        print ('diff dim check self.theta_all_layer[0]: ', self.theta_all_layer[0])
+        print ('diff dim check self.theta_all_layer[0] shape: ', self.theta_all_layer[0].shape)
    
     def chunk_array(self, arr, chunks, dim):
         if dim == 0:
@@ -63,58 +56,25 @@ class ResRegularizer():
         logger = logging.getLogger('res_reg')
         # not rnn
         if self.feature_matrix.ndim == 2:
-            feature_dim = self.feature_matrix.shape[1]
-            logger.debug ("new using two layers self.feature_dim: %d", feature_dim)
-            self.feature_correlation.append(np.corrcoef(self.feature_matrix, self.second_feature_matrix, rowvar=False)[feature_dim:, 0:feature_dim])
-            logger.debug ("new using two layers self.feature_correlation[0].shape:")
+            out_feature_dim = self.feature_dim_vec[self.feature_idx + 1]
+            assert self.second_feature_matrix.shape[1] == out_feature_dim
+            in_feature_dim = self.feature_dim_vec[self.feature_idx]
+            assert self.feature_matrix.shape[1] == in_feature_dim
+            logger.debug ("diff dim check two layers out_feature_dim: %d", out_feature_dim)
+            logger.debug ("diff dim check two layers in_feature_dim: %d", in_feature_dim)
+            self.feature_correlation.append(np.corrcoef(self.feature_matrix, self.second_feature_matrix, rowvar=False)[in_feature_dim:, 0:in_feature_dim])
+            logger.debug ("diff dim check using two layers self.feature_correlation[0].shape:")
             logger.debug (self.feature_correlation[0].shape)
         # rnn
         else:
-            feature_dim = self.feature_matrix.shape[2]
-            logger.debug ("rnn new using two layers self.feature_dim: %d", feature_dim)
-            logger.debug ("self.batch_first")
-            logger.debug (self.batch_first)
-            logger.debug ("feature_dim")
-            logger.debug (feature_dim)
-            if self.batch_first:
-                for i in range(self.feature_matrix.shape[1]):
-                    self.feature_correlation.append(np.corrcoef(self.feature_matrix[:,i,:], self.second_feature_matrix[:,i,:], rowvar=False)[feature_dim:, 0:feature_dim])
-                    logger.debug ('index i:')
-                    logger.debug (i)
-                    logger.debug ('self.feature_matrix[:,i,:] shape:')
-                    logger.debug (self.feature_matrix[:,i,:].shape)
-                    logger.debug ('self.feature_matrix[:,i,:] norm:')
-                    logger.debug (np.linalg.norm(self.feature_matrix[:,i,:]))
-                    logger.debug ('self.feature_matrix[:,i,:]:')
-                    logger.debug (self.feature_matrix[:,i,:])
-                    logger.debug ('self.second_feature_matrix[:,i,:] shape')
-                    logger.debug (self.second_feature_matrix[:,i,:].shape)
-                    logger.debug ('self.second_feature_matrix[:,i,:] norm:')
-                    logger.debug (np.linalg.norm(self.second_feature_matrix[:,i,:]))
-                    logger.debug ('self.second_feature_matrix[:,i,:]')
-                    logger.debug (self.second_feature_matrix[:,i,:])
-                    logger.debug ("new using two layers self.feature_correlation[i].shape:")
-                    logger.debug (self.feature_correlation[i].shape)
-                    logger.debug ('self.feature_correlation[i] norm')
-                    logger.debug (np.linalg.norm(self.feature_correlation[i]))
-                    logger.debug ('self.feature_correlation[i]')
-                    logger.debug (self.feature_correlation[i])
-            else:
-                for i in range(self.feature_matrix.shape[0]):
-                    self.feature_correlation.append(np.corrcoef(self.feature_matrix[i,:,:], self.second_feature_matrix[i,:,:], rowvar=False)[feature_dim:, 0:feature_dim])
-                    logger.debug ("19-4-13 using two layers self.feature_correlation[i].shape:")
-                    logger.debug (self.feature_correlation[i].shape)
-                    logger.debug ('19-4-13 self.feature_correlation[i] norm')
-                    logger.debug (np.linalg.norm(self.feature_correlation[i]))
-                    logger.debug ('19-4-13 self.feature_correlation[i]')
-                    logger.debug (self.feature_correlation[i])
+            print ("Not Implemented for RNN")
     
     # calc moving average
     def calAvgCorrelation(self):
         logger = logging.getLogger('res_reg')
         logger.debug ("len(self.feature_correlation):")
         logger.debug (len(self.feature_correlation))
-        logger.debug ("before updating self.correlation_moving_average[self.feature_idx] norm:")
+        logger.debug ("diff dim check before updating self.correlation_moving_average[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.correlation_moving_average[self.feature_idx]))
         for i in range(len(self.feature_correlation)):
             logger.debug ("index i:")
@@ -130,7 +90,7 @@ class ResRegularizer():
             logger.debug ('self.feature_correlation[i] norm: ')
             logger.debug (np.linalg.norm(self.feature_correlation[i]))
             ## not adding all nan correlation
-            if np.isnan(np.linalg.norm(self.feature_correlation[i])):
+            if np.isnan(np.linalg.norm(self.feature_correlation[i])):   
                 # print ('nan correlation matrix: ', self.feature_correlation[i])
                 self.feature_correlation[i][np.isnan(self.feature_correlation[i])]=small_value
                 # print ('replace nan correlation matrix: ', self.feature_correlation[i])
@@ -297,6 +257,7 @@ class ResRegularizer():
             normalization_coefficient = float(labelnum * seqnum * trainnum)
         else:
             normalization_coefficient = float(labelnum * trainnum)
+        # print ("normalization_coefficient: ", normalization_coefficient)
         logger.debug ("labelnum: ")
         logger.debug (labelnum)
         logger.debug ("seqnum: ")
@@ -324,9 +285,9 @@ class ResRegularizer():
 
     def calcRegGradAvg_Gen_Prob_Prior(self, labelnum, seqnum, trainnum, cal_all_timesteps):
         logger = logging.getLogger('res_reg')
-        logger.debug ('prior calcRegGradAvg_Gen_Prob_Prior self.theta_all_layer self.feature_idx: ')
+        logger.debug ('diff dim check calcRegGradAvg_Gen_Prob_Prior self.theta_all_layer self.feature_idx: ')
         logger.debug (self.feature_idx)
-        logger.debug ("prior check theta norm reggrad self.theta_all_layer[self.feature_idx] norm:")
+        logger.debug ("diff dim check theta norm reggrad self.theta_all_layer[self.feature_idx] norm:")
         logger.debug (np.linalg.norm(self.theta_all_layer[self.feature_idx]))
         theta_current_layer_log = np.log(self.theta_all_layer[self.feature_idx])
         logger.debug ("prior theta_current_layer_log shape: ") 
@@ -403,21 +364,24 @@ class ResRegularizer():
         logger.debug (np.linalg.norm(self.w_array))
         # print ("self.w_array[0]: ", self.w_array[0])
         # print ("update theta average self.w_array*self.w_array: ", (np.linalg.norm(self.w_array) * np.linalg.norm(self.w_array) / self.w_array.size))
-        # print ("correlation_abs_matrix[0]: ", correlation_abs_matrix[0])
-        # print ("step: ", step)
+        # print ("correlation_abs_matrix: ", correlation_abs_matrix)
         # print ("update theta average corr: ", np.sqrt(np.linalg.norm(correlation_abs_matrix) * np.linalg.norm(correlation_abs_matrix) / correlation_abs_matrix.size))
         # logger.debug ("self.w_array")
         # logger.debug (self.w_array)
-        logger.debug ("self.w_array[0:self.feature_dim] norm")
-        logger.debug (np.linalg.norm(self.w_array[0:self.feature_dim]))
-        for doc_idx in range(self.doc_num):
+        # logger.debug ("self.w_array[0:self.feature_dim] norm")
+        # logger.debug (np.linalg.norm(self.w_array[0:self.feature_dim]))
+        doc_num = self.feature_dim_vec[self.feature_idx + 1]
+        in_feature_dim = self.feature_dim_vec[self.feature_idx]
+        logger.debug ("diff dim check doc_num: ")
+        logger.debug (doc_num)
+        logger.debug ("diff dim check in_feature_dim: ")
+        logger.debug (in_feature_dim)
+        for doc_idx in range(doc_num):
             logger.debug ("prior doc_idx")
             logger.debug (doc_idx)
-            logger.debug ("prior doc_idx%self.feature_dim")
-            logger.debug (doc_idx%self.feature_dim)
-            theta_doc = (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) / np.sum(self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) # here: self.w_array[doc_idx, :]
-            logger.debug ('prior (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) shape: ')
-            logger.debug ((self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)).shape)
+            theta_doc = (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx] - 1.0)) / np.sum(self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx] - 1.0)) # here: self.w_array[doc_idx, :]
+            logger.debug ('prior (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx] - 1.0)) shape: ')
+            logger.debug ((self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx] - 1.0)).shape)
             logger.debug ("prior check self.theta_all_layer[self.feature_idx] shape: ")
             logger.debug (self.theta_all_layer[self.feature_idx].shape)
             logger.debug ("prior check theta_doc shape: ")
@@ -447,32 +411,16 @@ class ResRegularizer():
         logger.debug ("apply name: %s", name)
         logger.debug ("apply step: %d", step)
         logger.debug ("apply cal_all_timesteps: %s", cal_all_timesteps)
-        uptfreq = 1
-        if trainnum == 12379:  # MIMIC-III
-            uptfreq = 12
-        elif trainnum == 5788:  # Movie Review
-            uptfreq = 5
-        elif trainnum == 60000 and 'mlp' in model_name:  # MNIST + mlp
-            uptfreq = 90
-        elif 'vgg' in model_name:  # vgg
-            uptfreq = 39
-        elif 'lenet' in model_name:  # lenet
-            uptfreq = 23
-        elif 'autoenc' in model_name:  # autoencoder
-            uptfreq = 45
-        else:
-            uptfreq = 1
-        # print ("uptfreq: ", uptfreq)
         if 'dropout' not in model_name:
             self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
             self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
         else:
             self.feature_matrix = features[2 * self.feature_idx].data.cpu().numpy()
             self.second_feature_matrix = features[2 * self.feature_idx + 1].data.cpu().numpy()
-        logger.debug ("self.feature_idx: %d", self.feature_idx)
-        logger.debug ("self.feature_matrix shape:")
+        logger.debug ("diff dim check self.feature_idx: %d", self.feature_idx)
+        logger.debug ("diff dim check self.feature_matrix shape:")
         logger.debug (self.feature_matrix.shape)
-        logger.debug ("self.second_feature_matrix shape:")
+        logger.debug ("diff dim check self.second_feature_matrix shape:")
         logger.debug (self.second_feature_matrix.shape)
         # print ("self.feature_matrix shape:", self.feature_matrix.shape)
         # print ("self.feature_matrix: ", self.feature_matrix)
@@ -480,17 +428,16 @@ class ResRegularizer():
         # print ("self.second_feature_matrix shape:", self.second_feature_matrix.shape)
         # print ("self.second_feature_matrix: ", self.second_feature_matrix)
         # np.savetxt('/hdd2/zhaojing/res-regularization/home_code_edit/coding-area/20-8-7/second_feature_matrix.csv', self.second_feature_matrix, delimiter=',')
-        logger.debug ("self.feature_matrix norm: %f", np.linalg.norm(self.feature_matrix))
-        logger.debug ("new self.second_feature_matrix norm: %f", np.linalg.norm(self.second_feature_matrix))
+        logger.debug ("diff dim check self.feature_matrix norm: %f", np.linalg.norm(self.feature_matrix))
+        logger.debug ("diff dim check self.second_feature_matrix norm: %f", np.linalg.norm(self.second_feature_matrix))
         self.reg_lambda = reg_lambda
         logger.debug ("self.reg_lambda: %f", self.reg_lambda)
         self.w_array = param.data.cpu().numpy()
-        logger.debug ("prior self.w_array shape: ")
+        logger.debug ("diff dim check self.w_array shape: ")
         logger.debug (self.w_array.shape)
         # self.calcCorrelation()
-        if epoch < 3 or step % uptfreq == 0:
-            self.calcCorrelation_two_layers()
-            self.calAvgCorrelation()
+        self.calcCorrelation_two_layers()
+        self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
         # print ("trainnum: ", trainnum)
         # print ("seqnum: ", seqnum)
@@ -510,12 +457,11 @@ class ResRegularizer():
         # generation probablity using prior
         elif reg_method == 6:
             # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
-            if epoch < 3 or (step-1) % uptfreq == 0:  # delay one step to let theta updates first ...
-                self.reg_grad_w[self.feature_idx] = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
+            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()
-        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w[self.feature_idx])).float()
+        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
         if (epoch == 0 and step <= 1000) or step % 1000 == 0:
             print ('step: ', step)
             print ('name: ', name)
@@ -535,8 +481,7 @@ class ResRegularizer():
         logger.debug ("delta w (data grad + reg grad) norm: %f", np.linalg.norm(param.grad.data.cpu().numpy()))
         logger.debug ("w norm: %f", np.linalg.norm(param.data.cpu().numpy()))
         if reg_method == 6:
-            if epoch < 3 or step % uptfreq == 0:
-                self.update_Theta_Current_Layer(step)
-            if epoch < 3 or epoch == 50:
+            self.update_Theta_Current_Layer(step)
+            if epoch <= 3 or epoch == 50:
                 print ("prior self.feature_idx: ", self.feature_idx)
                 print ('prior self.theta_all_layer[0][0, :5]:', self.theta_all_layer[0][0, :5])

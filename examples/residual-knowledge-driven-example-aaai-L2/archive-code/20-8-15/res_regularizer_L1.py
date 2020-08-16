@@ -4,7 +4,6 @@ import logging
 
 # Attention
 # (1) self.feature_dim if not equal for two layers, then "for idx in range(self.feature_dim):" in "update_Theta_Current_Layer" need to be changed
-small_value = np.finfo(float).eps
 
 class ResRegularizer():
     '''Res regularization
@@ -28,12 +27,9 @@ class ResRegularizer():
         print ("prior new self.feature_dim: ", self.feature_dim)
         print ("prior blocks: ", blocks)
         self.correlation_moving_average = []
-        self.reg_grad_w = []
         self.theta_all_layer = []
         for i in range(blocks):
             self.correlation_moving_average.append(np.zeros((self.feature_dim, self.feature_dim)))
-        for i in range(blocks):
-            self.reg_grad_w.append(np.zeros((self.feature_dim, self.feature_dim)))
         for i in range(blocks):
             self.theta_all_layer.append(np.full((self.doc_num, self.feature_dim), 1./self.feature_dim))
         print ('new len(self.correlation_moving_average): ', len(self.correlation_moving_average))
@@ -130,10 +126,6 @@ class ResRegularizer():
             logger.debug ('self.feature_correlation[i] norm: ')
             logger.debug (np.linalg.norm(self.feature_correlation[i]))
             ## not adding all nan correlation
-            if np.isnan(np.linalg.norm(self.feature_correlation[i])):
-                # print ('nan correlation matrix: ', self.feature_correlation[i])
-                self.feature_correlation[i][np.isnan(self.feature_correlation[i])]=small_value
-                # print ('replace nan correlation matrix: ', self.feature_correlation[i])
             if not np.isnan(np.linalg.norm(self.feature_correlation[i])):
                 self.correlation_moving_average[self.feature_idx] = self.momentum_mu * self.correlation_moving_average[self.feature_idx] + (1-self.momentum_mu) * self.feature_correlation[i]
             logger.debug ("after adding self.correlation_moving_average[self.feature_idx] norm: ")
@@ -297,14 +289,7 @@ class ResRegularizer():
             normalization_coefficient = float(labelnum * seqnum * trainnum)
         else:
             normalization_coefficient = float(labelnum * trainnum)
-        logger.debug ("labelnum: ")
-        logger.debug (labelnum)
-        logger.debug ("seqnum: ")
-        logger.debug (seqnum)
-        logger.debug ("trainnum: ")
-        logger.debug (trainnum)
-        logger.debug ("normalization_coefficient: ")
-        logger.debug (normalization_coefficient)
+        # print ("normalization_coefficient: ", normalization_coefficient)
         if 'lstm' not in self.model_name:
             logger.debug ('not lstm')
             reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * correlation_abs_matrix_normalize_log)/(normalization_coefficient)
@@ -336,26 +321,11 @@ class ResRegularizer():
         else:
             normalization_coefficient = float(labelnum * trainnum)
         # print ("normalization_coefficient: ", normalization_coefficient)
-        logger.debug ("labelnum: ")
-        logger.debug (labelnum)
-        logger.debug ("seqnum: ")
-        logger.debug (seqnum)
-        logger.debug ("trainnum: ")
-        logger.debug (trainnum)
-        logger.debug ("normalization_coefficient: ")
-        logger.debug (normalization_coefficient)
         '''
         if 'lstm' not in self.model_name:
             logger.debug ('prior not lstm')
         '''
-        logger.debug ("self.reg_lambda: %f",self.reg_lambda)
-        logger.debug ("self.w_array norm: %f", np.linalg.norm(self.w_array))
-        # logger.debug ("self.w_array[0]: %s", self.w_array[0])
-        logger.debug ("theta_current_layer_log norm: %f", np.linalg.norm(theta_current_layer_log))
-        # logger.debug ("theta_current_layer_log[0]: %s", theta_current_layer_log[0])
-        reg_grad_w = (-2 * self.reg_lambda * self.w_array * theta_current_layer_log)/(normalization_coefficient)
-        logger.debug ("reg_grad_w norm: ")
-        logger.debug (np.linalg.norm(reg_grad_w))
+        reg_grad_w = (-self.reg_lambda * np.sign(self.w_array) * theta_current_layer_log)/(normalization_coefficient)
         '''
         else:
             logger.debug ('prior lstm')
@@ -383,17 +353,6 @@ class ResRegularizer():
         logger.debug (np.linalg.norm(correlation_abs_matrix))
         # logger.debug ("correlation_abs_matrix")
         # logger.debug (correlation_abs_matrix)
-        """normalization
-        correlation_abs_matrix_sum = np.sum(correlation_abs_matrix, axis=1).reshape((-1,1))
-        print("correlation_abs_matrix_sum shape: \n", correlation_abs_matrix_sum.shape)
-        print("correlation_abs_matrix_sum: \n", correlation_abs_matrix_sum)
-        correlation_abs_matrix_sum = correlation_abs_matrix_sum.astype(float)
-        print("after float correlation_abs_matrix_sum: \n", correlation_abs_matrix_sum)
-        correlation_abs_matrix = correlation_abs_matrix / correlation_abs_matrix_sum
-        print ("after normalization correlation_abs_matrix: \n", correlation_abs_matrix)
-        print ("np.sum(correlation_abs_matrix, axis=1): \n", np.sum(correlation_abs_matrix, axis=1))
-
-        """
         self.prior_alpha = 1.0 + self.reg_lambda * self.prior_beta * correlation_abs_matrix
         logger.debug ('prior check self.prior_alpha shape: ')
         logger.debug (self.prior_alpha.shape)
@@ -401,11 +360,6 @@ class ResRegularizer():
         logger.debug (self.w_array.shape)
         logger.debug ("self.w_array norm")
         logger.debug (np.linalg.norm(self.w_array))
-        # print ("self.w_array[0]: ", self.w_array[0])
-        # print ("update theta average self.w_array*self.w_array: ", (np.linalg.norm(self.w_array) * np.linalg.norm(self.w_array) / self.w_array.size))
-        # print ("correlation_abs_matrix[0]: ", correlation_abs_matrix[0])
-        # print ("step: ", step)
-        # print ("update theta average corr: ", np.sqrt(np.linalg.norm(correlation_abs_matrix) * np.linalg.norm(correlation_abs_matrix) / correlation_abs_matrix.size))
         # logger.debug ("self.w_array")
         # logger.debug (self.w_array)
         logger.debug ("self.w_array[0:self.feature_dim] norm")
@@ -415,9 +369,9 @@ class ResRegularizer():
             logger.debug (doc_idx)
             logger.debug ("prior doc_idx%self.feature_dim")
             logger.debug (doc_idx%self.feature_dim)
-            theta_doc = (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) / np.sum(self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) # here: self.w_array[doc_idx, :]
-            logger.debug ('prior (self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) shape: ')
-            logger.debug ((self.reg_lambda * self.w_array[doc_idx, :] * self.w_array[doc_idx, :] + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)).shape)
+            theta_doc = (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) / np.sum(self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) # here: self.w_array[doc_idx, :]
+            logger.debug ('prior (self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)) shape: ')
+            logger.debug ((self.reg_lambda * np.absolute(self.w_array[doc_idx, :]) + (self.prior_alpha[doc_idx%self.feature_dim] - 1.0)).shape)
             logger.debug ("prior check self.theta_all_layer[self.feature_idx] shape: ")
             logger.debug (self.theta_all_layer[self.feature_idx].shape)
             logger.debug ("prior check theta_doc shape: ")
@@ -442,44 +396,13 @@ class ResRegularizer():
         self.model_name = model_name
         self.batch_first = batch_first
         self.feature_idx = feature_idx
-        logger.debug ("apply reg_method: %d", reg_method)
-        logger.debug ("apply reg_lambda: %f", reg_lambda)
-        logger.debug ("apply name: %s", name)
-        logger.debug ("apply step: %d", step)
-        logger.debug ("apply cal_all_timesteps: %s", cal_all_timesteps)
-        uptfreq = 1
-        if trainnum == 12379:  # MIMIC-III
-            uptfreq = 12
-        elif trainnum == 5788:  # Movie Review
-            uptfreq = 5
-        elif trainnum == 60000 and 'mlp' in model_name:  # MNIST + mlp
-            uptfreq = 90
-        elif 'vgg' in model_name:  # vgg
-            uptfreq = 39
-        elif 'lenet' in model_name:  # lenet
-            uptfreq = 23
-        elif 'autoenc' in model_name:  # autoencoder
-            uptfreq = 45
-        else:
-            uptfreq = 1
-        # print ("uptfreq: ", uptfreq)
-        if 'dropout' not in model_name:
-            self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
-            self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
-        else:
-            self.feature_matrix = features[2 * self.feature_idx].data.cpu().numpy()
-            self.second_feature_matrix = features[2 * self.feature_idx + 1].data.cpu().numpy()
+        self.feature_matrix = features[self.feature_idx].data.cpu().numpy()
+        self.second_feature_matrix = features[self.feature_idx + 1].data.cpu().numpy()
         logger.debug ("self.feature_idx: %d", self.feature_idx)
         logger.debug ("self.feature_matrix shape:")
         logger.debug (self.feature_matrix.shape)
         logger.debug ("self.second_feature_matrix shape:")
         logger.debug (self.second_feature_matrix.shape)
-        # print ("self.feature_matrix shape:", self.feature_matrix.shape)
-        # print ("self.feature_matrix: ", self.feature_matrix)
-        # np.savetxt('/hdd2/zhaojing/res-regularization/home_code_edit/coding-area/20-8-7/first_feature_matrix.csv', self.feature_matrix, delimiter=',')
-        # print ("self.second_feature_matrix shape:", self.second_feature_matrix.shape)
-        # print ("self.second_feature_matrix: ", self.second_feature_matrix)
-        # np.savetxt('/hdd2/zhaojing/res-regularization/home_code_edit/coding-area/20-8-7/second_feature_matrix.csv', self.second_feature_matrix, delimiter=',')
         logger.debug ("self.feature_matrix norm: %f", np.linalg.norm(self.feature_matrix))
         logger.debug ("new self.second_feature_matrix norm: %f", np.linalg.norm(self.second_feature_matrix))
         self.reg_lambda = reg_lambda
@@ -488,9 +411,8 @@ class ResRegularizer():
         logger.debug ("prior self.w_array shape: ")
         logger.debug (self.w_array.shape)
         # self.calcCorrelation()
-        if epoch < 3 or step % uptfreq == 0:
-            self.calcCorrelation_two_layers()
-            self.calAvgCorrelation()
+        self.calcCorrelation_two_layers()
+        self.calAvgCorrelation()
         # self.reg_grad_w = self.calcRegGrad()
         # print ("trainnum: ", trainnum)
         # print ("seqnum: ", seqnum)
@@ -510,12 +432,11 @@ class ResRegularizer():
         # generation probablity using prior
         elif reg_method == 6:
             # print ("in self.calcRegGradAvg_Gen_Prob_Prior")
-            if epoch < 3 or (step-1) % uptfreq == 0:  # delay one step to let theta updates first ...
-                self.reg_grad_w[self.feature_idx] = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
+            self.reg_grad_w = self.calcRegGradAvg_Gen_Prob_Prior(labelnum, seqnum, trainnum, cal_all_timesteps)
         else:
             print("Invalid regularization method, exiting...")
             exit()
-        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w[self.feature_idx])).float()
+        reg_grad_w_dev = (torch.from_numpy(self.reg_grad_w)).float()
         if (epoch == 0 and step <= 1000) or step % 1000 == 0:
             print ('step: ', step)
             print ('name: ', name)
@@ -535,8 +456,7 @@ class ResRegularizer():
         logger.debug ("delta w (data grad + reg grad) norm: %f", np.linalg.norm(param.grad.data.cpu().numpy()))
         logger.debug ("w norm: %f", np.linalg.norm(param.data.cpu().numpy()))
         if reg_method == 6:
-            if epoch < 3 or step % uptfreq == 0:
-                self.update_Theta_Current_Layer(step)
-            if epoch < 3 or epoch == 50:
+            self.update_Theta_Current_Layer(step)
+            if epoch <= 3 or epoch == 50:
                 print ("prior self.feature_idx: ", self.feature_idx)
-                print ('prior self.theta_all_layer[0][0, :5]:', self.theta_all_layer[0][0, :5])
+                print ('prior self.theta_all_layer:', self.theta_all_layer)
