@@ -152,17 +152,6 @@ debug for nan correlation of autoencoder and lenet ...
 (1) for lazy update, self.reg_grad_w needs to be a list ...
 self.reg_grad_w[self.feature_idx]
 
-20-8-16
-(1) fine tune parameters:
-
-tune_corr_reg_mlp_movie.py
-tune_corr_reg_mlp_mimic_iii.py
-tune_corr_reg_mlp_movie_autoencoder.py
-etc ...
-
 20-8-17 
 (1) visualization of correlation and weights ...
 (code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-res_regularizer_diff_dim_vis.py and res_regularizer_vis.py
-autoencoder_MNIST_main_SGD_lr10_wd000001_tune_corr_reg_vis.py: best lambda and beta for corr_reg
-train_lstm_main_hook_resreg_real_wlm_wd00001_tune_corr_reg_vis.py: best lambda and beta for corr_reg

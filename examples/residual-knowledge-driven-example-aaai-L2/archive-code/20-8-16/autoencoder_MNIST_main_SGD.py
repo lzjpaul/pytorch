@@ -337,10 +337,8 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
     test_loss /= len(test_loader.dataset)
     if final:
         print('final Test Loss Per Sample: {:.3f}'.format(test_loss))
-        print('final Test Loss All Samples: {:.3f}'.format(test_loss * len(test_loader.dataset)))
     else:
         print('Test Loss Per Sample: {:.3f}'.format(test_loss))
-        print('Test Loss All Samples: {:.3f}'.format(test_loss * len(test_loader.dataset)))
 
 ### The below function will be called to train the model. 
 def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
@@ -503,11 +501,11 @@ if __name__ == '__main__':
 
     ########## using for
     # weightdecay_list = [0.0000001, 0.000001]
-    weightdecay_list = [0.000001]
-    reglambda_list = [1.0]
-    priorbeta_list = [1.0]
-    lasso_strength_list = [1.0]
-    max_val_list = [3.0]
+    weightdecay_list = [0.0]
+    reglambda_list = [0.0002, 0.002]
+    priorbeta_list = [0.0001, 0.001]
+    lasso_strength_list = [0.0000001, 0.000001]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:

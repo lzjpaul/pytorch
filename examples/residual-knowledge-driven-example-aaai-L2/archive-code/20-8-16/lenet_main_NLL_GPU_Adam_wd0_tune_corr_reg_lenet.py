@@ -442,8 +442,8 @@ if __name__ == '__main__':
     # weightdecay_list = [0.0000001, 0.000001]
     # weightdecay_list = [0.0001]
     weightdecay_list = [0.0]
-    reglambda_list = [1.0]
-    priorbeta_list = [1.0]
+    reglambda_list = [1e-8, 1e-7, 1e-6, 1e-5]
+    priorbeta_list = [1e-4, 1e-3, 1e-2, 1e-1, 1., 10., 100.]
     lasso_strength_list = [1.0]
     max_val_list = [3.0]
 

@@ -503,7 +503,7 @@ if __name__ == '__main__':
 
     ########## using for
     # weightdecay_list = [0.0000001, 0.000001]
-    weightdecay_list = [0.000001]
+    weightdecay_list = [0.0]
     reglambda_list = [1.0]
     priorbeta_list = [1.0]
     lasso_strength_list = [1.0]

@@ -445,7 +445,7 @@ if __name__ == '__main__':
     reglambda_list = [1.0]
     priorbeta_list = [1.0]
     lasso_strength_list = [1.0]
-    max_val_list = [3.0]
+    max_val_list = [3.0, 4.0]
 
     for weightdecay in weightdecay_list:
         for reg_lambda in reglambda_list:
