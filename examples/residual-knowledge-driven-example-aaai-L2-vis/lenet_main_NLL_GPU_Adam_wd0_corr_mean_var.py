@@ -357,14 +357,14 @@ def train(epoch, net, data_train_loader, vis_data_train_loader, optimizer, crite
     print('Train Avg. Loss: %f' % (avg_train_loss))
 
     ### 20-8-20 visualization
-    if epoch == 0 or ((epoch+1) % int(max_epoch/4)) == 0:
+    if epoch == 1 or ((epoch+1) % int(max_epoch/4)) == 0:
         non_nan_count = np.zeros(len(feature_dim_vec)-1)
-        model.eval()
+        net.eval()
         verify_correlation_avg = []
         for i in range(len(feature_dim_vec)-1):
             verify_correlation_avg.append(np.zeros((feature_dim_vec[i+1], feature_dim_vec[i])))  # [output*input]
         with torch.no_grad():
-            for i, (images, labels) in enumerate(vis_data_train_loader):
+            for data_i, (images, labels) in enumerate(vis_data_train_loader):
                 images = images.cuda(0)
                 labels = labels.cuda(0)
 
@@ -395,12 +395,12 @@ def train(epoch, net, data_train_loader, vis_data_train_loader, optimizer, crite
             verify_correlation_avg[i] = verify_correlation_avg[i] / float(non_nan_count[i])
 
         non_nan_count = np.zeros(len(feature_dim_vec)-1)
-        model.eval()
+        net.eval()
         verify_correlation_var_avg = []
         for i in range(len(feature_dim_vec)-1):
             verify_correlation_var_avg.append(np.zeros((feature_dim_vec[i+1], feature_dim_vec[i])))  # [output*input]
         with torch.no_grad():
-            for i, (images, labels) in enumerate(vis_data_train_loader):
+            for data_i, (images, labels) in enumerate(vis_data_train_loader):
                 images = images.cuda(0)
                 labels = labels.cuda(0)
 

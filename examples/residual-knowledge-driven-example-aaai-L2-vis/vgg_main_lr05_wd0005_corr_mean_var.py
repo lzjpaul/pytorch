@@ -637,14 +637,14 @@ def train(train_loader, vis_train_loader, model, criterion, optimizer, epoch, mo
     
 
     ### 20-8-20 correlation printing
-    if epoch == 0 or ((epoch+1) % int(Epochs/4)) == 0:
+    if epoch == 0 or ((epoch+1) % int(max_epoch/4)) == 0:
         non_nan_count = np.zeros(blocks)
         model.eval()
         verify_correlation_avg = []
         for i in range(blocks):
             verify_correlation_avg.append(np.zeros((feature_dim, feature_dim)))  # [output*input]
         with torch.no_grad():
-            for i, (input, target) in enumerate(vis_train_loader):
+            for data_i, (input, target) in enumerate(vis_train_loader):
                 if args.cpu == False:
                     input = input.cuda(non_blocking=True)
                     target = target.cuda(non_blocking=True)
@@ -677,7 +677,7 @@ def train(train_loader, vis_train_loader, model, criterion, optimizer, epoch, mo
         for i in range(blocks):
             verify_correlation_var_avg.append(np.zeros((feature_dim, feature_dim)))  # [output*input]
         with torch.no_grad():
-            for i, (input, target) in enumerate(vis_train_loader):
+            for data_i, (input, target) in enumerate(vis_train_loader):
                 if args.cpu == False:
                     input = input.cuda(non_blocking=True)
                     target = target.cuda(non_blocking=True)
