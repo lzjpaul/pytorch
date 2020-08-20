@@ -343,7 +343,7 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
         print('Test Loss All Samples: {:.3f}'.format(test_loss * len(test_loader.dataset)))
 
 ### The below function will be called to train the model. 
-def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
+def training(model, train_loader, vis_train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
     feature_dim_vec = [256, 128, 64, 32, 16, 32, 64, 128, 256]
     res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
@@ -574,6 +574,7 @@ if __name__ == '__main__':
     test_set = datasets.MNIST(root='./autoencoder_data', train=False, download=True, transform=transform)
 
     train_loader = DataLoader(train_set, batch_size=Batch_Size, shuffle=True)
+    vis_train_loader = DataLoader(train_set, batch_size=Batch_Size, shuffle=False)
     test_loader = DataLoader(test_set, batch_size=Batch_Size, shuffle=True)
 
     print(train_set)
@@ -622,7 +623,7 @@ if __name__ == '__main__':
                         momentum_mu = 0.9 # momentum mu
                         print ('three models check momentum_mu: ', momentum_mu)
                         ### Now, the training of the model will be performed.
-                        train_loss = training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, args.regmethod, lasso_strength, max_val)
+                        train_loss = training(model, train_loader, vis_train_loader, Epochs, test_loader, device, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, args.regmethod, lasso_strength, max_val)
 
                         ### image plot
 

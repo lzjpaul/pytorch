@@ -249,7 +249,7 @@ def get_features_hook(module, input, output):
     logger.debug('three models check output norm: %f', output.data.norm())
     features.append(output.data)
 
-def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, model_name, firstepochs, labelnum,\
+def train(epoch, net, data_train_loader, vis_data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, model_name, firstepochs, labelnum,\
     baseline_method_instance, regmethod, lasso_strength, max_val):
     # global cur_batch_win
     #### in order for corr_mean_var
@@ -461,12 +461,12 @@ def test(net, data_test_loader, data_test, criterion, final=False):
         print('Test Avg. Loss: %f, Accuracy: %f' % ((avg_loss.detach().cpu().item(), float(total_correct) / len(data_test))))
 
 
-def train_and_test(epoch, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, \
+def train_and_test(epoch, net, data_train_loader, vis_data_train_loader, data_test_loader, data_test, optimizer, criterion, \
     modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, label_num, logger, res_regularizer_diff_dim_instance, \
     baseline_method_instance, regmethod, lasso_strength, max_val, final=False):
     # Keep track of losses for plotting
 
-    train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, modelname, firstepochs, label_num, \
+    train(epoch, net, data_train_loader, vis_data_train_loader, optimizer, criterion, logger, res_regularizer_diff_dim_instance, modelname, firstepochs, label_num, \
         baseline_method_instance, regmethod, lasso_strength, max_val)
     if final:
         print ('| final weightdecay {:.10f} | final prior_beta {:.10f} | final reg_lambda {:.10f} | final lasso_strength {:.10f} | final max_val {:.10f}'.format(weightdecay, prior_beta, reg_lambda, lasso_strength, max_val))
@@ -518,6 +518,7 @@ if __name__ == '__main__':
                           transforms.Resize((32, 32)),
                           transforms.ToTensor()]))
     data_train_loader = DataLoader(data_train, batch_size=256, shuffle=True, num_workers=8)
+    vis_data_train_loader = DataLoader(data_train, batch_size=256, shuffle=False, num_workers=8)
     data_test_loader = DataLoader(data_test, batch_size=1024, num_workers=8)
 
     label_num = 1 # for MNIST
@@ -577,10 +578,10 @@ if __name__ == '__main__':
                         print(st)
                         for e in range(1, max_epoch):
                             if e != (max_epoch -1) and e != 100:
-                                train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, \
+                                train_and_test(e, net, data_train_loader, vis_data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, \
                                     reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance, baseline_method_instance, args.regmethod, lasso_strength, max_val)
                             else:  # last epoch ...
-                                train_and_test(e, net, data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, \
+                                train_and_test(e, net, data_train_loader, vis_data_train_loader, data_test_loader, data_test, optimizer, criterion, args.modelname, prior_beta, \
                                     reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, logger, res_regularizer_diff_dim_instance, baseline_method_instance, args.regmethod, lasso_strength, max_val, final=True)
                         done = time.time()
                         do = datetime.datetime.fromtimestamp(done).strftime('%Y-%m-%d %H:%M:%S')

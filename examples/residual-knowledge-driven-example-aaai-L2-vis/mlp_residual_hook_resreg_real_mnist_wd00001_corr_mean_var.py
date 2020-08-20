@@ -404,7 +404,7 @@ def get_features_hook(module, input, output):
     
     features.append(output.data)
 
-def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, lasso_strength, max_val, max_epoch=25):
+def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, vis_train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, lasso_strength, max_val, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=hidden_dim, model_name=model_name)
     baseline_method_instance = BaselineMethod()
@@ -522,6 +522,9 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     features.clear()
                     outputs = model(data_x)
                     correlation_added = np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim]
+                    small_value = np.finfo(float).eps
+                    if np.isnan(np.linalg.norm(correlation_added)):
+                        correlation_added[np.isnan(correlation_added)]=small_value
                     if not np.isnan(np.linalg.norm(correlation_added)):
                         non_nan_count = non_nan_count + 1
                         verify_correlation_avg = verify_correlation_avg + correlation_added
@@ -539,6 +542,9 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                     features.clear()
                     outputs = model(data_x)
                     correlation_added = np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim]
+                    small_value = np.finfo(float).eps
+                    if np.isnan(np.linalg.norm(correlation_added)):  
+                        correlation_added[np.isnan(correlation_added)]=small_value
                     if not np.isnan(np.linalg.norm(correlation_added)):
                         non_nan_count = non_nan_count + 1
                         verify_correlation_var_avg = verify_correlation_var_avg + np.square(correlation_added - verify_correlation_avg)
@@ -578,7 +584,7 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
     elapsed = done - start
     print(elapsed)
 
-def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, lasso_strength, max_val, max_epoch=25):
+def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_loader, vis_train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, hidden_dim, weightdecay, firstepochs, labelnum, lasso_strength, max_val, max_epoch=25):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=hidden_dim, model_name=model_name)
     baseline_method_instance = BaselineMethod()
@@ -689,6 +695,9 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     features.clear()
                     output = model(data)
                     correlation_added = np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim]
+                    small_value = np.finfo(float).eps
+                    if np.isnan(np.linalg.norm(correlation_added)):  
+                        correlation_added[np.isnan(correlation_added)]=small_value
                     if not np.isnan(np.linalg.norm(correlation_added)):
                         non_nan_count = non_nan_count + 1
                         verify_correlation_avg = verify_correlation_avg + correlation_added
@@ -708,6 +717,9 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                     features.clear()
                     output = model(data)
                     correlation_added = np.corrcoef(features[0].data.cpu().numpy(), features[1].data.cpu().numpy(), rowvar=False)[hidden_dim:, 0:hidden_dim]
+                    small_value = np.finfo(float).eps
+                    if np.isnan(np.linalg.norm(correlation_added)):  
+                        correlation_added[np.isnan(correlation_added)]=small_value
                     if not np.isnan(np.linalg.norm(correlation_added)):
                         non_nan_count = non_nan_count + 1
                         verify_correlation_var_avg = verify_correlation_var_avg + np.square(correlation_added - verify_correlation_avg)
@@ -875,6 +887,9 @@ if __name__ == '__main__':
         train_loader = Data.DataLoader(dataset=train_dataset,
                                        batch_size=args.batchsize,
                                        shuffle=True)
+        vis_train_loader = Data.DataLoader(dataset=train_dataset,
+                                       batch_size=args.batchsize,
+                                       shuffle=False)
         print ('len(train_dataset): ', len(train_dataset))
         test_dataset = Data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_y))
         test_loader = Data.DataLoader(dataset=test_dataset,
@@ -890,6 +905,12 @@ if __name__ == '__main__':
                                transforms.ToTensor(),
                                transforms.Normalize((0.1307,), (0.3081,))
                         ])), batch_size=64, shuffle=True, **kwargs)
+        vis_train_loader = torch.utils.data.DataLoader(
+            datasets.MNIST('../data', train=True, download=True,
+                           transform=transforms.Compose([
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.1307,), (0.3081,))
+                        ])), batch_size=64, shuffle=False, **kwargs)
         test_loader = torch.utils.data.DataLoader(
             datasets.MNIST('../data', train=False, transform=transforms.Compose([
                                transforms.ToTensor(),
@@ -979,9 +1000,9 @@ if __name__ == '__main__':
                         momentum_mu = 0.9 # momentum mu
                         # Train and evaluate MNIST on resmlp or mlp model
                         if "MNIST" not in args.traindatadir: 
-                            train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, lasso_strength, max_val, max_epoch=args.maxepoch)
+                            train_validate_test_resmlp_model(args.modelname, model_ft, gpu_id, train_loader, vis_train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, lasso_strength, max_val, max_epoch=args.maxepoch)
                         else:
-                            train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, lasso_strength, max_val, max_epoch=args.maxepoch)
+                            train_validate_test_resmlp_model_MNIST(args.modelname, model_ft, gpu_id, train_loader, vis_train_loader, test_loader, criterion, optimizer_ft, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, dim_vec[1], weightdecay, args.firstepochs, label_num, lasso_strength, max_val, max_epoch=args.maxepoch)
 
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname regmlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 5 -gpuid 0 --priorbeta 1.0
 # CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 0 -modelname mlp -blocks 2 -lr 0.01 -decay 0.00001 -reglambda 0.00001 -batchsize 65 -regmethod 5 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 --priorbeta 1.0

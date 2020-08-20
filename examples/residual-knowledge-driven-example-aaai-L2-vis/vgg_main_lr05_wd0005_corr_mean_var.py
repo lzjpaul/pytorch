@@ -356,6 +356,16 @@ def main():
         ]), download=True),
         batch_size=args.batch_size, shuffle=True,
         num_workers=args.workers, pin_memory=True)
+    torch.manual_seed(123)
+    vis_train_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR10(root='./vgg_data', train=True, transform=transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomCrop(32, 4),
+            transforms.ToTensor(),
+            normalize,
+        ]), download=True),
+        batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root='./vgg_data', train=False, transform=transforms.Compose([
@@ -474,7 +484,7 @@ def main():
                             adjust_learning_rate(optimizer, epoch)
 
                             # train for one epoch
-                            train(train_loader, model, criterion, optimizer, epoch, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, \
+                            train(train_loader, vis_train_loader, model, criterion, optimizer, epoch, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, \
                                 args.firstepochs, label_num, logger, res_regularizer_instance, baseline_method_instance, args.regmethod, lasso_strength, max_val)
 
                             # evaluate on validation set
@@ -501,7 +511,7 @@ def main():
                         print('Finished Training')
 
 
-def train(train_loader, model, criterion, optimizer, epoch, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, \
+def train(train_loader, vis_train_loader, model, criterion, optimizer, epoch, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, \
     logger, res_regularizer_instance, baseline_method_instance, regmethod, lasso_strength, max_val):
     """
         Run one train epoch
