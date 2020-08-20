@@ -1,0 +1,20 @@
+python corr_reg_vis.py -corr_file saved_matrix/correlation_abs_matrix_corr_reg_10.0_1.0_autoencoder_regautoenc_7_199 -weight_file saved_matrix/w_array_corr_reg_10.0_1.0_autoencoder_regautoenc_7_199
+
+python corr_reg_vis.py -corr_file saved_matrix/correlation_abs_matrix_wd_autoencoder_autoenc_7_199 -weight_file saved_matrix/w_array_wd_autoencoder_autoenc_7_199
+
+
+python plot_save_png.py -datapath vis_results/reg_autoencoder/top_weight_ratios.csv -savepath vis_results/reg_autoencoder/top_weight_ratios.png
+python plot_save_png.py -datapath vis_results/reg_autoencoder/bottom_weight_ratios.csv -savepath vis_results/reg_autoencoder/bottom_weight_ratios.png
+
+python plot_save_png.py -datapath vis_results/wd_autoencoder/bottom_weight_ratios.csv -savepath vis_results/wd_autoencoder/bottom_weight_ratios.png
+python plot_save_png.py -datapath vis_results/wd_autoencoder/top_weight_ratios.csv -savepath vis_results/wd_autoencoder/top_weight_ratios.png
+
+python plot_save_png.py -datapath vis_results/wd_autoencoder/top_weight_values.csv -savepath vis_results/wd_autoencoder/top_weight_values.png
+python plot_save_png.py -datapath vis_results/wd_autoencoder/bottom_weight_values.csv -savepath vis_results/wd_autoencoder/bottom_weight_values.png
+python plot_save_png.py -datapath vis_results/reg_autoencoder/bottom_weight_values.csv -savepath vis_results/reg_autoencoder/bottom_weight_values.png
+python plot_save_png.py -datapath vis_results/reg_autoencoder/top_weight_values.csv -savepath vis_results/reg_autoencoder/top_weight_values.png
+
+#############
+python corr_reg_vis.py -corr_file saved_matrix/correlation_abs_matrix_corr_reg_0.005_100.0_Movie_Review_reglstm_0_499 -weight_file saved_matrix/w_array_corr_reg_0.005_100.0_Movie_Review_reglstm_0_499
+
+python corr_reg_vis.py -corr_file saved_matrix/correlation_abs_matrix_wd_Movie_Review_lstm_0_499 -weight_file saved_matrix/w_array_wd_Movie_Review_lstm_0_499
