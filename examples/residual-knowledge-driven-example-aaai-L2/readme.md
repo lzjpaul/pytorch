@@ -166,3 +166,31 @@ etc ...
 res_regularizer_diff_dim_vis.py and res_regularizer_vis.py
 autoencoder_MNIST_main_SGD_lr10_wd000001_tune_corr_reg_vis.py: best lambda and beta for corr_reg
 train_lstm_main_hook_resreg_real_wlm_wd00001_tune_corr_reg_vis.py: best lambda and beta for corr_reg
+
+20-8-18
+(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
+(1) visualization code: corr_reg_vis.py
+
+20-8-19
+(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
+(1) plot_save_png.py:
+plot histogram
+(2) t-test for print average and mean and critical values
+null-hypothesis, using small_value to fill in nan cells ...
+
+autoencoder_MNIST_main_SGD_lr10_wd000001_corr_mean_var.py
+lenet_main_NLL_GPU_Adam_wd0_corr_mean_var.py
+mlp_residual_hook_resreg_real_mnist_wd00001_corr_mean_var.py
+train_lstm_main_hook_resreg_real_wlm_wd00001_corr_mean_var.py
+vgg_main_lr05_wd0005_corr_mean_var.py
+
+20-8-20
+(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
+plot_correlation_null_hypothesis.py
+plot_correlation_null_hypothesis_batch.py
+
+code for t-test
+
+20-8-21
+(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
+corr_reg_vis_lstm.py: LSTM has four weight matrices ...
