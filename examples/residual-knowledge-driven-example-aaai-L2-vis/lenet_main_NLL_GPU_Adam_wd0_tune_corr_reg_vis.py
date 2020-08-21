@@ -10,7 +10,7 @@ import onnx
 import numpy as np
 import torch.nn.functional as F
 from collections import OrderedDict
-from res_regularizer_diff_dim import ResRegularizerDiffDim
+from res_regularizer_diff_dim_vis import ResRegularizerDiffDim
 import time
 import datetime
 import argparse

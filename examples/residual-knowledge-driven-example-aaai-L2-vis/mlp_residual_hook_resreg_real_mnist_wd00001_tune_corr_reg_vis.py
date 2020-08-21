@@ -31,7 +31,7 @@ import math
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 from init_linear import InitLinear
-from res_regularizer import ResRegularizer
+from res_regularizer_vis import ResRegularizer
 import torch
 import torch.nn as nn
 import torch.optim as optim

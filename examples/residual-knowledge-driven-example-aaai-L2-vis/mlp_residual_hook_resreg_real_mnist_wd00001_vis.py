@@ -31,7 +31,7 @@ import math
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 from init_linear import InitLinear
-from res_regularizer import ResRegularizer
+from res_regularizer_vis import ResRegularizer
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -479,6 +479,36 @@ def train_validate_test_resmlp_model(model_name, model, gpu_id, train_loader, te
                             logger.debug ('param norm: %f', np.linalg.norm(param.data.cpu().numpy()))
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
+            else:  # weightdecay
+                if True and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
+                for name, param in model.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight" in name:
+                        if True and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            res_regularizer_instance.apply_vis(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        """
+                        elif reg_method == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
+                            baseline_method_instance.lasso_regularization(param, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
+                        """
+                    """
+                    else:
+                        if weightdecay != 0:
+                            logger.debug ('weightdecay name: ' + name)
+                            logger.debug ('weightdecay: %f', weightdecay)
+                            param.grad.data.add_(float(weightdecay), param.data)
+                            logger.debug ('param norm: %f', np.linalg.norm(param.data.cpu().numpy()))
+                            logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
+                            logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
+                    """
             ### print norm
             optimizer.step()
             ### maxnorm constraist
@@ -605,6 +635,36 @@ def train_validate_test_resmlp_model_MNIST(model_name, model, gpu_id, train_load
                             logger.debug ('param norm: %f', np.linalg.norm(param.data.cpu().numpy()))
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
+            else:  # weightdecay
+                if True and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
+                for name, param in model.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (param.size())
+                    if "layer1" in name and "weight" in name:
+                        if True and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            res_regularizer_instance.apply_vis(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, param, name, batch_idx)
+                        """
+                        elif reg_method == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
+                            baseline_method_instance.lasso_regularization(param, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
+                        """
+                    """
+                    else:
+                        if weightdecay != 0:
+                            logger.debug ('weightdecay name: ' + name)
+                            logger.debug ('weightdecay: %f', weightdecay)
+                            param.grad.data.add_(float(weightdecay), param.data)
+                            logger.debug ('param norm: %f', np.linalg.norm(param.data.cpu().numpy()))
+                            logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*param.data.cpu().numpy()))
+                            logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(param.grad.data.cpu().numpy() * 1.0))
+                    """
             ### print norm
 
             optimizer.step()

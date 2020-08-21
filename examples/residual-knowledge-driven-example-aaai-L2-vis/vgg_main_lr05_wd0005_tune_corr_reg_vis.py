@@ -17,7 +17,7 @@ import torchvision.datasets as datasets
 # import vgg
 import logging
 from collections import OrderedDict
-from res_regularizer import ResRegularizer
+from res_regularizer_vis import ResRegularizer
 import numpy as np
 from baseline_method import BaselineMethod
 

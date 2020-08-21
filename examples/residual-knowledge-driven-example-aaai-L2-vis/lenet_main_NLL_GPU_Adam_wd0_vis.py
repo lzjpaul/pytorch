@@ -10,7 +10,7 @@ import onnx
 import numpy as np
 import torch.nn.functional as F
 from collections import OrderedDict
-from res_regularizer_diff_dim import ResRegularizerDiffDim
+from res_regularizer_diff_dim_vis import ResRegularizerDiffDim
 import time
 import datetime
 import argparse
@@ -333,6 +333,42 @@ def train(epoch, net, data_train_loader, optimizer, criterion, logger, res_regul
                         logger.debug ('three models check param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
                         logger.debug ('three models check weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
                         logger.debug ('three models check lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+        else:  # weightdecay
+            if True and epoch >= firstepochs:
+                feature_idx = -1 # which feature to use for regularization
+            for name, f in net.named_parameters():
+                logger.debug ("three models check param name: " +  name)
+                logger.debug ("three models check param size:")
+                logger.debug (f.size())
+                if "c3.c3.c3.weight" in name or "f4.f4.f4.weight" in name:
+                    if True and epoch >= firstepochs:  # corr-reg
+                        logger.debug ('three models check res_reg param name: '+ name)
+                        feature_idx = feature_idx + 1
+                        logger.debug ('three models check labelnum: %d', labelnum)
+                        logger.debug ('three models check trainnum: %d', len(data_train_loader.dataset))
+                        res_regularizer_diff_dim_instance.apply_vis(model_name, 0, features, feature_idx, regmethod, reg_lambda, labelnum, 1, len(data_train_loader.dataset), epoch, f, name, i)
+                        # res_regularizer_instance.apply(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
+                        # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                    """
+                    elif regmethod == 7:  # L1-norm
+                        logger.debug ('L1 norm param name: '+ name)
+                        logger.debug ('lasso_strength: %f', lasso_strength)
+                        ### !! change param name to f ..
+                        # print ("lasso param f: ", f)
+                        baseline_method_instance.lasso_regularization(f, lasso_strength)
+                    else:  # maxnorm and dropout
+                        logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
+                    """
+                """
+                else:
+                    if weightdecay != 0:
+                        logger.debug ('three models check weightdecay name: ' + name)
+                        logger.debug ('three models check weightdecay: %f', weightdecay)
+                        f.grad.data.add_(float(weightdecay), f.data)
+                        logger.debug ('three models check param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
+                        logger.debug ('three models check weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
+                        logger.debug ('three models check lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+                """
 
         ### print norm
         optimizer.step()
