@@ -20,7 +20,7 @@ from torchvision.utils import save_image
 from PIL import Image
 import numpy as np
 import argparse
-from res_regularizer_diff_dim import ResRegularizerDiffDim
+from res_regularizer_diff_dim_vis import ResRegularizerDiffDim
 import time
 import datetime
 import logging
@@ -342,8 +342,6 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
         print('Test Loss Per Sample: {:.3f}'.format(test_loss))
         print('Test Loss All Samples: {:.3f}'.format(test_loss * len(test_loader.dataset)))
 
-
-
 ### The below function will be called to train the model. 
 def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
@@ -417,6 +415,44 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
                             logger.debug ('three models check param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
                             logger.debug ('three models check weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
                             logger.debug ('three models check lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+            else:  # weightdecay
+                # if regmethod == 6 and epoch >= firstepochs:
+                if True and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
+                for name, f in model.named_parameters():
+                    logger.debug ("three models check param name: " +  name)
+                    logger.debug ("three models check param size:")
+                    logger.debug (f.size())
+                    if "enc2.enc2.weight" in name or "enc3.enc3.weight" in name or "enc4.enc4.weight" in name or "enc5.enc5.weight" in name \
+                        or "dec1.dec1.weight" in name or "dec2.dec2.weight" in name or "dec3.dec3.weight" in name or "dec4.dec4.weight" in name:
+                        # if regmethod == 6 and epoch >= firstepochs:  # corr-reg
+                        if True and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('three models check res_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            logger.debug ('three models check labelnum: %d', labelnum)
+                            logger.debug ('three models check trainnum: %d', len(train_loader.dataset))
+                            res_regularizer_diff_dim_instance.apply_vis(model_name, 0, features, feature_idx, regmethod, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, data_idx)  # in order for print ...
+                            # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        """
+                        elif regmethod == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
+                            ### !! change param name to f ..
+                            baseline_method_instance.lasso_regularization(f, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
+                        """
+                    """
+                    else:
+                        if weightdecay != 0:
+                            logger.debug ('three models check weightdecay name: ' + name)
+                            logger.debug ('three models check weightdecay: %f', weightdecay)
+                            f.grad.data.add_(float(weightdecay), f.data)
+                            logger.debug ('three models check param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
+                            logger.debug ('three models check weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
+                            logger.debug ('three models check lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+                    """
+
             ### print norm
             optimizer.step()
 
@@ -506,8 +542,8 @@ if __name__ == '__main__':
     ########## using for
     # weightdecay_list = [0.0000001, 0.000001]
     weightdecay_list = [0.000001]
-    reglambda_list = [1e-8, 1e-6, 1e-4, 1e-2, 1.]
-    priorbeta_list = [1e-4, 1e-3, 1e-2, 1e-1, 1., 10., 100.]
+    reglambda_list = [1.0]
+    priorbeta_list = [1.0]
     lasso_strength_list = [1.0]
     max_val_list = [3.0]
 

@@ -525,9 +525,9 @@ class ResRegularizerDiffDim():
             else:
                 dataset_name = 'invalid_data_set'
             saved_correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-            np.savetxt('saved_matrix/correlation_abs_matrix_corr_reg' + '_' + str(self.reg_lambda) + '_' + str(self.prior_beta) + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_correlation_abs_matrix, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('/hdd2/zhaojing/res-regularization/20-8-17/saved_matrices/correlation_abs_matrix_corr_reg' + '_' + str(self.reg_lambda) + '_' + str(self.prior_beta) + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_correlation_abs_matrix, fmt = '%6f', delimiter=",") #modify here
             saved_w_array = np.abs(self.w_array)
-            np.savetxt('saved_matrix/w_array_corr_reg' + '_' + str(self.reg_lambda) + '_' + str(self.prior_beta) + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_w_array, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('/hdd2/zhaojing/res-regularization/20-8-17/saved_matrices/w_array_corr_reg' + '_' + str(self.reg_lambda) + '_' + str(self.prior_beta) + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_w_array, fmt = '%6f', delimiter=",") #modify here
 
     def apply_vis(self, model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, trainnum, epoch, param, name, step, batch_first=True, cal_all_timesteps=False):
         # logging.basicConfig(level=logging.INFO, filename="./logfile", filemode="a+", format="%(asctime)-15s %(levelname)-8s %(message)s")
@@ -601,9 +601,9 @@ class ResRegularizerDiffDim():
             else:
                 dataset_name = 'invalid_data_set'
             saved_correlation_abs_matrix = np.abs(self.correlation_moving_average[self.feature_idx])
-            np.savetxt('saved_matrix/correlation_abs_matrix_wd' + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_correlation_abs_matrix, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('/hdd2/zhaojing/res-regularization/20-8-17/saved_matrices/correlation_abs_matrix_wd' + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_correlation_abs_matrix, fmt = '%6f', delimiter=",") #modify here
             saved_w_array = np.abs(self.w_array)
-            np.savetxt('saved_matrix/w_array_wd' + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_w_array, fmt = '%6f', delimiter=",") #modify here
+            np.savetxt('/hdd2/zhaojing/res-regularization/20-8-17/saved_matrices/w_array_wd' + '_' + dataset_name + '_' + str(model_name) + '_' + str(self.feature_idx) + '_' + str(epoch), saved_w_array, fmt = '%6f', delimiter=",") #modify here
         """
         # self.reg_grad_w = self.calcRegGrad()
         # print ("trainnum: ", trainnum)

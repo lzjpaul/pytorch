@@ -49,7 +49,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from init_linear import InitLinear
-from res_regularizer import ResRegularizer
+from res_regularizer_vis import ResRegularizer
 import torch.utils.data as Data
 import torch.autograd as autograd
 import random
@@ -1331,9 +1331,9 @@ if __name__ == '__main__':
         input_dim = args.emsize
 
     ########## using for
-    weightdecay_list = [0.00001]
-    reglambda_list = [1e-8, 1e-6, 1e-4, 1e-2, 1.]
-    priorbeta_list = [1e-4, 1e-3, 1e-2, 1e-1, 1., 10., 100.]
+    weightdecay_list = [0.0001]
+    reglambda_list = [2.0]
+    priorbeta_list = [10.0, 100.]
     lasso_strength_list = [1.0]
     max_val_list = [3.0]
 

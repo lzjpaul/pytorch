@@ -342,10 +342,8 @@ def test_image_reconstruct(model, test_loader, device, criterion, final=False):
         print('Test Loss Per Sample: {:.3f}'.format(test_loss))
         print('Test Loss All Samples: {:.3f}'.format(test_loss * len(test_loader.dataset)))
 
-
-
 ### The below function will be called to train the model. 
-def training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
+def training(model, train_loader, vis_train_loader, Epochs, test_loader, device, optimizer, criterion, model_name, prior_beta, reg_lambda, momentum_mu, weightdecay, firstepochs, labelnum, regmethod, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
     feature_dim_vec = [256, 128, 64, 32, 16, 32, 64, 128, 256]
     res_regularizer_diff_dim_instance = ResRegularizerDiffDim(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=len(feature_dim_vec)-1, feature_dim_vec=feature_dim_vec, model_name=model_name)
@@ -441,6 +439,86 @@ def training(model, train_loader, Epochs, test_loader, device, optimizer, criter
         print('Epoch {} of {}, Train Loss: {:.3f}'.format(
             epoch+1, Epochs, loss))
         
+        ### 20-8-20 correlation printing
+        if epoch == 0 or ((epoch+1) % int(Epochs/4)) == 0:
+            non_nan_count = np.zeros(len(feature_dim_vec)-1)
+            model.eval()
+            verify_correlation_avg = []
+            for i in range(len(feature_dim_vec)-1):
+                verify_correlation_avg.append(np.zeros((feature_dim_vec[i+1], feature_dim_vec[i])))  # [output*input]
+            with torch.no_grad():
+                for data in vis_train_loader:
+                    img, _ = data
+                    img = img.to(device)
+                    img = img.view(img.size(0), -1)
+                    features.clear()
+                    outputs = model(img)
+                    ### all layers can be updated ...
+                    for i in range(len(feature_dim_vec)-1):
+                        if 'dropout' not in model_name:
+                            feature_matrix = features[i].data.cpu().numpy()
+                            second_feature_matrix = features[i + 1].data.cpu().numpy()
+                        else:
+                            feature_matrix = features[2 * i].data.cpu().numpy()
+                            second_feature_matrix = features[2 * i + 1].data.cpu().numpy()
+                        out_feature_dim = feature_dim_vec[i + 1]
+                        assert second_feature_matrix.shape[1] == out_feature_dim
+                        in_feature_dim = feature_dim_vec[i]
+                        assert feature_matrix.shape[1] == in_feature_dim
+                        ### only this layer ...
+                        correlation_added = np.corrcoef(feature_matrix, second_feature_matrix, rowvar=False)[in_feature_dim:, 0:in_feature_dim]  # only this layer
+                        small_value = np.finfo(float).eps
+                        if np.isnan(np.linalg.norm(correlation_added)):  # only this layer ...
+                            correlation_added[np.isnan(correlation_added)]=small_value
+                        if not np.isnan(np.linalg.norm(correlation_added)):
+                            non_nan_count[i] =  non_nan_count[i] + 1
+                            verify_correlation_avg[i] = verify_correlation_avg[i] + correlation_added
+            print ("non_nan_count: ", non_nan_count)
+            for i in range(len(feature_dim_vec)-1):
+                verify_correlation_avg[i] = verify_correlation_avg[i] / float(non_nan_count[i])
+
+            non_nan_count = np.zeros(len(feature_dim_vec)-1)
+            model.eval()
+            verify_correlation_var_avg = []
+            for i in range(len(feature_dim_vec)-1):
+                verify_correlation_var_avg.append(np.zeros((feature_dim_vec[i+1], feature_dim_vec[i])))  # [output*input]
+            with torch.no_grad():
+                for data in vis_train_loader:
+                    img, _ = data
+                    img = img.to(device)
+                    img = img.view(img.size(0), -1)
+                    features.clear()
+                    outputs = model(img)
+                    ### all layers can be updated ...
+                    for i in range(len(feature_dim_vec)-1):
+                        if 'dropout' not in model_name:
+                            feature_matrix = features[i].data.cpu().numpy()
+                            second_feature_matrix = features[i + 1].data.cpu().numpy()
+                        else:
+                            feature_matrix = features[2 * i].data.cpu().numpy()
+                            second_feature_matrix = features[2 * i + 1].data.cpu().numpy()
+                        out_feature_dim = feature_dim_vec[i + 1]
+                        assert second_feature_matrix.shape[1] == out_feature_dim
+                        in_feature_dim = feature_dim_vec[i]
+                        assert feature_matrix.shape[1] == in_feature_dim
+                        ### only this layer ...
+                        correlation_added = np.corrcoef(feature_matrix, second_feature_matrix, rowvar=False)[in_feature_dim:, 0:in_feature_dim]  # only this layer
+                        small_value = np.finfo(float).eps
+                        if np.isnan(np.linalg.norm(correlation_added)):  # only this layer ...
+                            correlation_added[np.isnan(correlation_added)]=small_value
+                        if not np.isnan(np.linalg.norm(correlation_added)):
+                            non_nan_count[i] =  non_nan_count[i] + 1
+                            # verify_correlation_avg[i] = verify_correlation_avg[i] + correlation_added
+                            # verify_correlation_var_avg = verify_correlation_var_avg + np.square(correlation_added - verify_correlation_avg)
+                            verify_correlation_var_avg[i] = verify_correlation_var_avg[i] + np.square(correlation_added - verify_correlation_avg[i])
+            print ("non_nan_count: ", non_nan_count)
+            # verify_correlation_var_avg = verify_correlation_var_avg / float(non_nan_count)
+            for i in range(len(feature_dim_vec)-1):
+                verify_correlation_var_avg[i] = verify_correlation_var_avg[i] / float(non_nan_count[i])
+            for i in range(len(feature_dim_vec)-1):
+                np.savetxt('autoencoder_verify_correlation_avg_matrix_' + str(i) + '_' + str(model_name) + '_' + str(epoch), verify_correlation_avg[i], fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('autoencoder_verify_correlation_var_avg_matrix_' + str(i) + '_' + str(model_name) + '_' + str(epoch), verify_correlation_var_avg[i], fmt = '%6f', delimiter=",") #modify here
+
         # evaluation
         if epoch != (Epochs-1):
             test_image_reconstruct(model, test_loader, device, criterion)
@@ -496,6 +574,7 @@ if __name__ == '__main__':
     test_set = datasets.MNIST(root='./autoencoder_data', train=False, download=True, transform=transform)
 
     train_loader = DataLoader(train_set, batch_size=Batch_Size, shuffle=True)
+    vis_train_loader = DataLoader(train_set, batch_size=Batch_Size, shuffle=False)
     test_loader = DataLoader(test_set, batch_size=Batch_Size, shuffle=True)
 
     print(train_set)
@@ -506,8 +585,8 @@ if __name__ == '__main__':
     ########## using for
     # weightdecay_list = [0.0000001, 0.000001]
     weightdecay_list = [0.000001]
-    reglambda_list = [1e-8, 1e-6, 1e-4, 1e-2, 1.]
-    priorbeta_list = [1e-4, 1e-3, 1e-2, 1e-1, 1., 10., 100.]
+    reglambda_list = [1.0]
+    priorbeta_list = [1.0]
     lasso_strength_list = [1.0]
     max_val_list = [3.0]
 
@@ -544,7 +623,7 @@ if __name__ == '__main__':
                         momentum_mu = 0.9 # momentum mu
                         print ('three models check momentum_mu: ', momentum_mu)
                         ### Now, the training of the model will be performed.
-                        train_loss = training(model, train_loader, Epochs, test_loader, device, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, args.regmethod, lasso_strength, max_val)
+                        train_loss = training(model, train_loader, vis_train_loader, Epochs, test_loader, device, optimizer, criterion, args.modelname, prior_beta, reg_lambda, momentum_mu, weightdecay, args.firstepochs, label_num, args.regmethod, lasso_strength, max_val)
 
                         ### image plot
 

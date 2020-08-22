@@ -913,7 +913,7 @@ def batchify(data, bsz, gpu_id):
     return data.cuda(gpu_id)
 
 
-def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs, lasso_strength, max_val):
+def train(model_name, rnn, gpu_id, train_loader, vis_train_loader, test_loader, criterion, optimizer, reg_method, prior_beta, reg_lambda, momentum_mu, blocks, n_hidden, weightdecay, firstepochs, labelnum, batch_first, n_epochs, lasso_strength, max_val):
     logger = logging.getLogger('res_reg')
     res_regularizer_instance = ResRegularizer(prior_beta=prior_beta, reg_lambda=reg_lambda, momentum_mu=momentum_mu, blocks=blocks, feature_dim=n_hidden, model_name=model_name)
     baseline_method_instance = BaselineMethod()
@@ -1010,6 +1010,80 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
         print('epoch: %d, training loss per sample per label =  %f, training accuracy =  %f'%(epoch, running_loss, running_accuracy))
         print('abs(running_loss - pre_running_loss)', abs(running_loss - pre_running_loss))
         pre_running_loss = running_loss
+
+
+        # 19-5-10 Iterate over train data to get correlation
+        # if epoch == (max_epoch-1):
+        if epoch == 0 or ((epoch+1) % int(n_epochs/4)) == 0:
+            rnn.eval()
+            non_nan_count = 0
+            verify_correlation_avg = np.zeros((n_hidden, n_hidden))
+            with torch.no_grad():
+                for batch_idx, data_iter in enumerate(vis_train_loader, 0):
+                    data_x, data_y = data_iter
+                    data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+                    rnn.init_hidden(data_x.shape[0])
+                    features.clear()
+                    outputs = rnn(data_x)
+                    if batch_first:
+                        for i in range(features[0].data.cpu().numpy().shape[1]):
+                            correlation_added = np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[n_hidden:, 0:n_hidden]
+                            small_value = np.finfo(float).eps
+                            if np.isnan(np.linalg.norm(correlation_added)):
+                                correlation_added[np.isnan(correlation_added)]=small_value
+                            if not np.isnan(np.linalg.norm(correlation_added)):
+                                non_nan_count = non_nan_count + 1
+                                verify_correlation_avg = verify_correlation_avg + correlation_added
+                    else:
+                        for i in range(features[0].data.cpu().numpy().shape[0]):
+                            correlation_added = np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[n_hidden:, 0:n_hidden]
+                            small_value = np.finfo(float).eps
+                            if np.isnan(np.linalg.norm(correlation_added)):  
+                                correlation_added[np.isnan(correlation_added)]=small_value
+                            if not np.isnan(np.linalg.norm(correlation_added)):
+                                non_nan_count = non_nan_count + 1
+                                verify_correlation_avg = verify_correlation_avg + correlation_added
+            print ("batch_idx: ", batch_idx)
+            print ("non_nan_count: ", non_nan_count)
+            verify_correlation_avg = verify_correlation_avg / float(non_nan_count)
+
+            rnn.eval()
+            non_nan_count = 0
+            verify_correlation_var_avg = np.zeros((n_hidden, n_hidden))
+            with torch.no_grad():
+                for batch_idx, data_iter in enumerate(vis_train_loader, 0):
+                    data_x, data_y = data_iter
+                    data_x, data_y = Variable(data_x.cuda(gpu_id)), Variable(data_y.cuda(gpu_id))
+                    rnn.init_hidden(data_x.shape[0])
+                    features.clear()
+                    outputs = rnn(data_x)
+                    if batch_first:
+                        for i in range(features[0].data.cpu().numpy().shape[1]):
+                            correlation_added = np.corrcoef(features[0].data.cpu().numpy()[:,i,:], features[1].data.cpu().numpy()[:,i,:], rowvar=False)[n_hidden:, 0:n_hidden]
+                            small_value = np.finfo(float).eps
+                            if np.isnan(np.linalg.norm(correlation_added)):  
+                                correlation_added[np.isnan(correlation_added)]=small_value
+                            if not np.isnan(np.linalg.norm(correlation_added)):
+                                non_nan_count = non_nan_count + 1
+                                verify_correlation_var_avg = verify_correlation_var_avg + np.square(correlation_added - verify_correlation_avg)
+                    else:
+                        for i in range(features[0].data.cpu().numpy().shape[0]):
+                            correlation_added = np.corrcoef(features[0].data.cpu().numpy()[i,:,:], features[1].data.cpu().numpy()[i,:,:], rowvar=False)[n_hidden:, 0:n_hidden]
+                            small_value = np.finfo(float).eps
+                            if np.isnan(np.linalg.norm(correlation_added)):  
+                                correlation_added[np.isnan(correlation_added)]=small_value
+                            if not np.isnan(np.linalg.norm(correlation_added)):
+                                non_nan_count = non_nan_count + 1
+                                verify_correlation_var_avg = verify_correlation_var_avg + np.square(correlation_added - verify_correlation_avg)
+            print ("batch_idx: ", batch_idx)
+            print ("non_nan_count: ", non_nan_count)
+            verify_correlation_var_avg = verify_correlation_var_avg / float(non_nan_count)
+            if labelnum > 1:
+                np.savetxt('mimic-iii_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('mimic-iii_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
+            else:
+                np.savetxt('movie_review_verify_correlation_avg_matrix' + str(model_name) + str(epoch), verify_correlation_avg, fmt = '%6f', delimiter=",") #modify here
+                np.savetxt('movie_review_verify_correlation_var_avg_matrix' + str(model_name) + str(epoch), verify_correlation_var_avg, fmt = '%6f', delimiter=",") #modify here
 
         # test
         rnn.eval()
@@ -1311,6 +1385,9 @@ if __name__ == '__main__':
         train_loader = Data.DataLoader(dataset=train_dataset,
                                        batch_size=args.batchsize,
                                        shuffle=True)
+        vis_train_loader = Data.DataLoader(dataset=train_dataset,
+                                       batch_size=args.batchsize,
+                                       shuffle=False)
         print ('check len(train_dataset): ', len(train_dataset))
         test_dataset = Data.TensorDataset(torch.from_numpy(test_x), torch.from_numpy(test_y))
         test_loader = Data.DataLoader(dataset=test_dataset,
@@ -1331,9 +1408,9 @@ if __name__ == '__main__':
         input_dim = args.emsize
 
     ########## using for
-    weightdecay_list = [0.00001]
-    reglambda_list = [1e-8, 1e-6, 1e-4, 1e-2, 1.]
-    priorbeta_list = [1e-4, 1e-3, 1e-2, 1e-1, 1., 10., 100.]
+    weightdecay_list = [0.0001]
+    reglambda_list = [5.0]
+    priorbeta_list = [1e-4]
     lasso_strength_list = [1.0]
     max_val_list = [3.0]
 
@@ -1423,7 +1500,7 @@ if __name__ == '__main__':
                         print ('criterion: ', criterion)
                         momentum_mu = 0.9 # momentum mu
                         if "wikitext" not in args.traindatadir:
-                            train(args.modelname, rnn, args.gpuid, train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch, lasso_strength, max_val)
+                            train(args.modelname, rnn, args.gpuid, train_loader, vis_train_loader, test_loader, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch, lasso_strength, max_val)
                         else:
                             trainwlm(args.modelname, rnn, args.gpuid, corpus, args.batchsize, train_data, val_data, test_data, args.seqnum, args.clip, criterion, optimizer, args.regmethod, prior_beta, reg_lambda, momentum_mu, args.blocks, n_hidden, weightdecay, args.firstepochs, label_num, args.batch_first, args.maxepoch, lasso_strength, max_val)
 

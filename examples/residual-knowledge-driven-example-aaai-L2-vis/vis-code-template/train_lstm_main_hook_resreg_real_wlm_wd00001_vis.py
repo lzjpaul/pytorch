@@ -49,7 +49,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from init_linear import InitLinear
-from res_regularizer import ResRegularizer
+from res_regularizer_vis import ResRegularizer
 import torch.utils.data as Data
 import torch.autograd as autograd
 import random
@@ -984,6 +984,40 @@ def train(model_name, rnn, gpu_id, train_loader, test_loader, criterion, optimiz
                             logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+            else:  # weight decay
+                # if reg_method == 6 and epoch >= firstepochs:
+                if True and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
+                for name, f in rnn.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (f.size())
+                    if "layer1" in name and "weight_ih" in name:
+                        # if reg_method == 6 and epoch >= firstepochs:  # corr-reg
+                        if True and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            cal_all_timesteps=False
+                            res_regularizer_instance.apply_vis(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, 1, len(train_loader.dataset), epoch, f, name, batch_idx, batch_first, cal_all_timesteps)
+                            # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        """
+                        elif reg_method == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
+                            baseline_method_instance.lasso_regularization(f, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
+                        """
+                    """
+                    else:
+                        if weightdecay != 0:
+                            logger.debug ('weightdecay name: ' + name)
+                            logger.debug ('weightdecay: %f', weightdecay)
+                            f.grad.data.add_(float(weightdecay), f.data)
+                            logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
+                            logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
+                            logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+                    """
             ### print norm
             optimizer.step()
 
@@ -1131,6 +1165,40 @@ def trainwlm(model_name, rnn, gpu_id, corpus, batchsize, train_data, val_data, t
                             logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
                             logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
                             logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+            else:  # weightdecay
+                # if reg_method == 6 and epoch >= firstepochs:
+                if True and epoch >= firstepochs:
+                    feature_idx = -1 # which feature to use for regularization
+                for name, f in rnn.named_parameters():
+                    logger.debug ("param name: " +  name)
+                    logger.debug ("param size:")
+                    logger.debug (f.size())
+                    if "layer1" in name and "weight_ih" in name:
+                        # if reg_method == 6 and epoch >= firstepochs:  # corr-reg
+                        if True and epoch >= firstepochs:  # corr-reg
+                            logger.debug ('corr_reg param name: '+ name)
+                            feature_idx = feature_idx + 1
+                            cal_all_timesteps=True
+                            res_regularizer_instance.apply_vis(model_name, gpu_id, features, feature_idx, reg_method, reg_lambda, labelnum, seqnum, (train_data.size(0) * train_data.size(1))/seqnum, epoch, f, name, batch_idx, batch_first, cal_all_timesteps)  # only printing
+                            # print ("check len(train_loader.dataset): ", len(train_loader.dataset))
+                        """
+                        elif reg_method == 7:  # L1-norm
+                            logger.debug ('L1 norm param name: '+ name)
+                            logger.debug ('lasso_strength: %f', lasso_strength)
+                            baseline_method_instance.lasso_regularization(f, lasso_strength)
+                        else:  # maxnorm and dropout
+                            logger.debug ('no actions of param grad for maxnorm or dropout param name: '+ name)
+                        """
+                    """
+                    else:
+                        if weightdecay != 0:
+                            logger.debug ('weightdecay name: ' + name)
+                            logger.debug ('weightdecay: %f', weightdecay)
+                            f.grad.data.add_(float(weightdecay), f.data)
+                            logger.debug ('param norm: %f', np.linalg.norm(f.data.cpu().numpy()))
+                            logger.debug ('weightdecay norm: %f', np.linalg.norm(float(weightdecay)*f.data.cpu().numpy()))
+                            logger.debug ('lr 1.0 * param grad norm: %f', np.linalg.norm(f.grad.data.cpu().numpy() * 1.0))
+                    """
             ### print norm
             torch.nn.utils.clip_grad_norm_(rnn.parameters(), clip)
             optimizer.step()
@@ -1332,8 +1400,8 @@ if __name__ == '__main__':
 
     ########## using for
     weightdecay_list = [0.00001]
-    reglambda_list = [1e-8, 1e-6, 1e-4, 1e-2, 1.]
-    priorbeta_list = [1e-4, 1e-3, 1e-2, 1e-1, 1., 10., 100.]
+    reglambda_list = [1.0]
+    priorbeta_list = [1.0]
     lasso_strength_list = [1.0]
     max_val_list = [3.0]
 
