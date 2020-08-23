@@ -191,6 +191,20 @@ plot_correlation_null_hypothesis_batch.py
 
 code for t-test
 
-20-8-21
+20-8-21 plot top/bottom weight ratios/values
 (code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
 corr_reg_vis_lstm.py: LSTM has four weight matrices ...
+corr_reg_vis.py: for MLPs
+plot_save_png.py: plot
+vis_matrix_script_final.sh
+corr_reg_vis.py
+corr_reg_vis_lstm.py
+plot_save_png.py
+
+these files are moved to /hdd2/zhaojing/res-regularization/20-8-17
+to execute
+
+20-8-23
+plot_correlation_null_hypothesis_batch_mlp/lstm/lenet/vgg/autoencoder...py: plot null hypothesis
+these files are moved to /hdd2/zhaojing/res-regularization/20-8-17/saved_corr_mean_var
+to execute

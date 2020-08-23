@@ -1,7 +1,8 @@
 import numpy as np
 import argparse
+import os
 
-def sub_matrix(corr_abs, w_array, index):
+def sub_matrix(corr_abs, w_array, index, output_dir):
     print ("index: ", index)
     print ("corr_abs shape: ", corr_abs.shape)
     corr_abs_flat = corr_abs.reshape(-1)
@@ -34,10 +35,10 @@ def sub_matrix(corr_abs, w_array, index):
     bottom_weight_ratios = w_array_argsort_array_index_normalize[bottom_elements_index]
     top_weight_ratios = w_array_argsort_array_index_normalize[top_elements_index]
 
-    np.savetxt('bottom_weight_values_'+str(index)+'.csv', bottom_weight_values, fmt = '%6f', delimiter=",") #modify here
-    np.savetxt('top_weight_values_'+str(index)+'.csv', top_weight_values, fmt = '%6f', delimiter=",") #modify here
-    np.savetxt('bottom_weight_ratios_'+str(index)+'.csv', bottom_weight_ratios, fmt = '%6f', delimiter=",") #modify here
-    np.savetxt('top_weight_ratios_'+str(index)+'.csv', top_weight_ratios, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(output_dir + '/bottom_weight_values_'+str(index)+'.csv', bottom_weight_values, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(output_dir + '/top_weight_values_'+str(index)+'.csv', top_weight_values, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(output_dir + '/bottom_weight_ratios_'+str(index)+'.csv', bottom_weight_ratios, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(output_dir + '/top_weight_ratios_'+str(index)+'.csv', top_weight_ratios, fmt = '%6f', delimiter=",") #modify here
 
 def chunk_array(arr, chunks, dim):
     if dim == 0:
@@ -51,7 +52,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Visualization for CORR Reg')
     parser.add_argument('-corr_file', type=str, help='correlation file')
     parser.add_argument('-weight_file', type=str, help='weight file')
+    parser.add_argument('-output_dir', type=str, help='weight file')
     args = parser.parse_args()
+
+    if not os.path.exists(args.output_dir.rstrip()):
+        os.mkdir(args.output_dir.rstrip())
+        print("Directory " + args.output_dir.rstrip() +  " Created ")
 
     corr_abs = np.genfromtxt(args.corr_file, delimiter=',')
     w_array = np.genfromtxt(args.weight_file, delimiter=',')
@@ -60,4 +66,4 @@ if __name__ == '__main__':
     w_array_chunk = chunk_array(w_array,4,0)
 
     for i in range(4):
-        sub_matrix(corr_abs, w_array_chunk[i], i)
+        sub_matrix(corr_abs, w_array_chunk[i], i, args.output_dir.rstrip())

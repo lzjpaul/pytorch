@@ -1,11 +1,17 @@
 import numpy as np
 import argparse
+import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Visualization for CORR Reg')
     parser.add_argument('-corr_file', type=str, help='correlation file')
     parser.add_argument('-weight_file', type=str, help='weight file')
+    parser.add_argument('-output_dir', type=str, help='weight file')
     args = parser.parse_args()
+
+    if not os.path.exists(args.output_dir.rstrip()):
+        os.mkdir(args.output_dir.rstrip())
+        print("Directory " + args.output_dir.rstrip() +  " Created ")
 
     corr_abs = np.genfromtxt(args.corr_file, delimiter=',')
     w_array = np.genfromtxt(args.weight_file, delimiter=',')
@@ -41,7 +47,7 @@ if __name__ == '__main__':
     bottom_weight_ratios = w_array_argsort_array_index_normalize[bottom_elements_index]
     top_weight_ratios = w_array_argsort_array_index_normalize[top_elements_index]
 
-    np.savetxt('bottom_weight_values.csv', bottom_weight_values, fmt = '%6f', delimiter=",") #modify here
-    np.savetxt('top_weight_values.csv', top_weight_values, fmt = '%6f', delimiter=",") #modify here
-    np.savetxt('bottom_weight_ratios.csv', bottom_weight_ratios, fmt = '%6f', delimiter=",") #modify here
-    np.savetxt('top_weight_ratios.csv', top_weight_ratios, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(args.output_dir.rstrip() + '/bottom_weight_values.csv', bottom_weight_values, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(args.output_dir.rstrip() + '/top_weight_values.csv', top_weight_values, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(args.output_dir.rstrip() + '/bottom_weight_ratios.csv', bottom_weight_ratios, fmt = '%6f', delimiter=",") #modify here
+    np.savetxt(args.output_dir.rstrip() + '/top_weight_ratios.csv', top_weight_ratios, fmt = '%6f', delimiter=",") #modify here

@@ -14,5 +14,5 @@ if __name__ == '__main__':
     print ('data shape: ')
     print (data.shape)
     plt.hist(data, bins=50, normed=1, color='g', alpha=0.75)
-    plt.savefig(args.savepath)
+    plt.savefig(args.savepath.rstrip())
     # plt.show()
