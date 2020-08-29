@@ -1,0 +1,4 @@
+### panda4-1
+CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real_mnist_mlp_mnist_vis.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 1 -modelname mlp -blocks 1 -lr 0.01 -batchsize 65 -regmethod 100 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 | tee -a /hdd2/zhaojing/res-regularization/20-8-17/20-8-17-third-run-visualization/20-8-17-third-run-visualization-20.log
+## (2)
+CUDA_VISIBLE_DEVICES=1 python mlp_residual_hook_resreg_real_mnist_mlp_mnist_tune_corr_reg_vis_1.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 1 -modelname regmlp -blocks 1 -lr 0.01 -batchsize 65 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 | tee -a /hdd2/zhaojing/res-regularization/20-8-17/20-8-17-third-run-visualization/20-8-17-third-run-visualization-21.log

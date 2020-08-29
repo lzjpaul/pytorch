@@ -1,0 +1,36 @@
+##### 0
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_ratios_0.csv -savepath vis_results/reg_movie_review_lstm/top_weight_ratios_0.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_ratios_0.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_ratios_0.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_values_0.csv -savepath vis_results/reg_movie_review_lstm/top_weight_values_0.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_values_0.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_values_0.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_ratios_0.csv -savepath vis_results/wd_movie_review_lstm/top_weight_ratios_0.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_ratios_0.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_ratios_0.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_values_0.csv -savepath vis_results/wd_movie_review_lstm/top_weight_values_0.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_values_0.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_values_0.png
+##### 1
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_ratios_1.csv -savepath vis_results/reg_movie_review_lstm/top_weight_ratios_1.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_ratios_1.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_ratios_1.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_values_1.csv -savepath vis_results/reg_movie_review_lstm/top_weight_values_1.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_values_1.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_values_1.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_ratios_1.csv -savepath vis_results/wd_movie_review_lstm/top_weight_ratios_1.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_ratios_1.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_ratios_1.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_values_1.csv -savepath vis_results/wd_movie_review_lstm/top_weight_values_1.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_values_1.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_values_1.png
+##### 2
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_ratios_2.csv -savepath vis_results/reg_movie_review_lstm/top_weight_ratios_2.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_ratios_2.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_ratios_2.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_values_2.csv -savepath vis_results/reg_movie_review_lstm/top_weight_values_2.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_values_2.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_values_2.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_ratios_2.csv -savepath vis_results/wd_movie_review_lstm/top_weight_ratios_2.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_ratios_2.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_ratios_2.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_values_2.csv -savepath vis_results/wd_movie_review_lstm/top_weight_values_2.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_values_2.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_values_2.png
+##### 3
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_ratios_3.csv -savepath vis_results/reg_movie_review_lstm/top_weight_ratios_3.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_ratios_3.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_ratios_3.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/top_weight_values_3.csv -savepath vis_results/reg_movie_review_lstm/top_weight_values_3.png
+python plot_save_png.py -datapath vis_results/reg_movie_review_lstm/bottom_weight_values_3.csv -savepath vis_results/reg_movie_review_lstm/bottom_weight_values_3.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_ratios_3.csv -savepath vis_results/wd_movie_review_lstm/top_weight_ratios_3.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_ratios_3.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_ratios_3.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/top_weight_values_3.csv -savepath vis_results/wd_movie_review_lstm/top_weight_values_3.png
+python plot_save_png.py -datapath vis_results/wd_movie_review_lstm/bottom_weight_values_3.csv -savepath vis_results/wd_movie_review_lstm/bottom_weight_values_3.png
