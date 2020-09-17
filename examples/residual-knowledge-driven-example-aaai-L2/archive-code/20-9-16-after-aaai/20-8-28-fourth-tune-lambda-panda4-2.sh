@@ -1,0 +1,4 @@
+###### MLP-MIMIC-III, panda2-1 (16 hours: 33)
+### panda4-2
+CUDA_VISIBLE_DEVICES=2 python mlp_residual_hook_resreg_real_mnist_wd00001_tune_corr_reg_mlp_mimic_iii_lambda_1.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname regmlp -blocks 1 -lr 0.3 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-tune-lambda/20-8-28-fourth-run-tune-lambda-8.log
+############################################ 20-8-28-end !!!!!!!!!!!!!! ##############################################

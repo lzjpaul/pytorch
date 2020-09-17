@@ -1,0 +1,7 @@
+###### VGG
+### panda4-2
+CUDA_VISIBLE_DEVICES=2 python vgg_main_lr05_wd0005.py -modelname dropoutregvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 9 --dropout 0.3 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-154.log
+CUDA_VISIBLE_DEVICES=2 python vgg_main_lr05_wd0005.py -modelname dropoutregvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 9 --dropout 0.2 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-155.log
+CUDA_VISIBLE_DEVICES=2 python vgg_main_lr05_wd0005_tune_corr_reg_vgg_e6543210_3_1.py -modelname regvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-175.log
+CUDA_VISIBLE_DEVICES=2 python vgg_main_lr05_wd0005_tune_corr_reg_vgg_e6543210_3_2.py -modelname regvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-176.log
+############################################ 20-9-1-end !!!!!!!!!!!!!! ##############################################

@@ -1,0 +1,4 @@
+###### VGG-3, panda16-1
+CUDA_VISIBLE_DEVICES=1 /hdd1/zhaojing/anaconda3-cuda-10/bin/python vgg_main_lr05_wd0005.py -modelname vgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 100 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-15/20-8-15-second-run/20-8-15-second-run-82.log
+CUDA_VISIBLE_DEVICES=1 /hdd1/zhaojing/anaconda3-cuda-10/bin/python vgg_main_lr05_wd0005.py -modelname dropoutregvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 9 --dropout 0.3 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-15/20-8-15-second-run/20-8-15-second-run-89.log
+CUDA_VISIBLE_DEVICES=1 /hdd1/zhaojing/anaconda3-cuda-10/bin/python vgg_main_lr05_wd0005_tune_corr_reg_vgg_2.py -modelname regvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-15/20-8-15-second-run/20-8-15-second-run-94.log

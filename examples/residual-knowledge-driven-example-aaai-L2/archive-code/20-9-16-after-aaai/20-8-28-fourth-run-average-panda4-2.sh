@@ -1,0 +1,5 @@
+### panda4-2
+CUDA_VISIBLE_DEVICES=2 python autoencoder_MNIST_main_SGD_lr10_wd000001_tune_lasso_8.py -modelname regautoenc -firstepochs 0 -considerlabelnum 1 -regmethod 7 --dropout 0.5 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-111.log
+CUDA_VISIBLE_DEVICES=2 python autoencoder_MNIST_main_SGD_lr10_wd000001_tune_maxnorm_34.py -modelname regautoenc -firstepochs 0 -considerlabelnum 1 -regmethod 8 --dropout 0.5 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-114.log
+CUDA_VISIBLE_DEVICES=2 python autoencoder_MNIST_main_SGD_lr10_wd000001_tune_corr_reg_autoencoder_2510_1.py -modelname regautoenc -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-122.log
+############################################ 20-8-29-end !!!!!!!!!!!!!! ##############################################

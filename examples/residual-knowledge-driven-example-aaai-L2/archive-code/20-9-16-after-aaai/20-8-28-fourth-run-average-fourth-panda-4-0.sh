@@ -1,0 +1,6 @@
+###### VGG
+### panda4-0
+CUDA_VISIBLE_DEVICES=0 python vgg_main_lr05_wd0005_tune_maxnorm_123.py -modelname regvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 8 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-150.log
+CUDA_VISIBLE_DEVICES=0 python vgg_main_lr05_wd0005_tune_corr_reg_vgg_e6543210_1_1.py -modelname regvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-171.log
+CUDA_VISIBLE_DEVICES=0 python vgg_main_lr05_wd0005_tune_corr_reg_vgg_e6543210_1_2.py -modelname regvgg16_bn -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 --save-dir=save_vgg16 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-average/8-28-fourth-run-average-172.log
+############################################ 20-9-1-end !!!!!!!!!!!!!! ##############################################
