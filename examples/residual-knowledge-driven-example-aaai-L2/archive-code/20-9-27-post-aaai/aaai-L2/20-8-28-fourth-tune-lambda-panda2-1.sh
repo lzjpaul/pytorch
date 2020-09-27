@@ -1,0 +1,3 @@
+### panda2-1
+CUDA_VISIBLE_DEVICES=1 python autoencoder_MNIST_main_SGD_lr10_wd000001_tune_corr_reg_autoencoder_lambda_2.py -modelname regautoenc -firstepochs 0 -considerlabelnum 1 -regmethod 6 --dropout 0.5 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-tune-lambda/20-8-28-fourth-run-tune-lambda-2.log
+############################################ 20-8-28-end !!!!!!!!!!!!!! ##############################################

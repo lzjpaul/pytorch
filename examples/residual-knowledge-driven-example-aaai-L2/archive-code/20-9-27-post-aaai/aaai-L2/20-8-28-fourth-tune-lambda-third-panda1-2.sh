@@ -1,0 +1,4 @@
+###### LSTM-MIMIC-III-1(16 hours: 14)
+### panda1-2
+CUDA_VISIBLE_DEVICES=2 python train_lstm_main_hook_resreg_real_wlm_wd0001_tune_corr_reg_lstm_mimic_iii_lambda_2.py -traindatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_x_seq_sparse.npz -trainlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_train_y_seq.csv -testdatadir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_x_seq_sparse.npz -testlabeldir /hdd1/zhaojing/res-regularization/MIMIC-III-dataset/formal_test_y_seq.csv -seqnum 9 -modelname reglstm -blocks 1 -lr 1.0 -batchsize 100 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 500 -gpuid 0 --batch_first --nhid 128 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-tune-lambda/20-8-28-fourth-run-tune-lambda-15.log
+############################################ 20-8-30-end !!!!!!!!!!!!!! ##############################################

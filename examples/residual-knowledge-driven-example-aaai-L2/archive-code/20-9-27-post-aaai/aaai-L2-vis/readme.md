@@ -152,87 +152,8 @@ debug for nan correlation of autoencoder and lenet ...
 (1) for lazy update, self.reg_grad_w needs to be a list ...
 self.reg_grad_w[self.feature_idx]
 
-20-8-16
-(1) fine tune parameters:
-
-tune_corr_reg_mlp_movie.py
-tune_corr_reg_mlp_mimic_iii.py
-tune_corr_reg_mlp_movie_autoencoder.py
-etc ...
-
 20-8-17 
 (1) visualization of correlation and weights ...
 (code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-res_regularizer_diff_dim_vis.py and res_regularizer_vis.py
-autoencoder_MNIST_main_SGD_lr10_wd000001_tune_corr_reg_vis.py: best lambda and beta for corr_reg
-train_lstm_main_hook_resreg_real_wlm_wd00001_tune_corr_reg_vis.py: best lambda and beta for corr_reg
 
-20-8-18
-(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-(1) visualization code: corr_reg_vis.py
-
-20-8-19
-(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-(1) plot_save_png.py:
-plot histogram
-(2) t-test for print average and mean and critical values
-null-hypothesis, using small_value to fill in nan cells ...
-
-autoencoder_MNIST_main_SGD_lr10_wd000001_corr_mean_var.py
-lenet_main_NLL_GPU_Adam_wd0_corr_mean_var.py
-mlp_residual_hook_resreg_real_mnist_wd00001_corr_mean_var.py
-train_lstm_main_hook_resreg_real_wlm_wd00001_corr_mean_var.py
-vgg_main_lr05_wd0005_corr_mean_var.py
-
-20-8-20
-(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-plot_correlation_null_hypothesis.py
-plot_correlation_null_hypothesis_batch.py
-
-code for t-test
-
-20-8-21 plot top/bottom weight ratios/values
-(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-corr_reg_vis_lstm.py: LSTM has four weight matrices ...
-corr_reg_vis.py: for MLPs
-plot_save_png.py: plot
-vis_matrix_script_final.sh
-corr_reg_vis.py
-corr_reg_vis_lstm.py
-plot_save_png.py
-
-these files are moved to /hdd2/zhaojing/res-regularization/20-8-17
-to execute!!! (vis_matrix_script_final.sh)
-
-20-8-23
-plot_correlation_null_hypothesis_batch_mlp/lstm/lenet/vgg/autoencoder...py: plot null hypothesis
-these files are moved to /hdd2/zhaojing/res-regularization/20-8-17/saved_corr_mean_var
-to execute!!! (python plot_correlation_null_hypothesis_batch_mlp/lstm/lenet/vgg/autoencoder...py)
-
-20-8-24
-(code in "residual-knowledge-driven-example-aaai-L2-vis" folder)
-corr_reg_vis_lstm_average.py
-corr_reg_vis_average.py
-vis_matrix_script_final_average_results
-
-these two files not displaying the distribution, but calculate the average raios/values of top and bottom weights
-
-execute in /hdd2/zhaojing/res-regularization/20-8-17
-
-20-9-2
-residual-knowledge-driven-example-aaai-L2-tune-lazy: efficiency tuning
--- no printing/logger.debug ... !!
--- no warning ... !!
--- batchsize = 128 !! better than 100 !!
--- upt_freq and first epochs seem not so important if I only tune upt_freq from 10 to 20, printing/logger.debug/warning msgs occupies most
-
--rw-r--r-- 1 zhaojing ncr   32691 Sep  2 21:41 res_regularizer.py
--rw-r--r-- 1 zhaojing ncr   47646 Sep  2 21:50 mlp_residual_hook_resreg_real_mnist_wd00001_tune_corr_reg_mlp_mimic_iii_efficiency.py
--rw-r--r-- 1 zhaojing ncr   47454 Sep  2 21:56 mlp_residual_hook_resreg_real_mnist_wd00001.py
--rw-r--r-- 1 zhaojing ncr   29843 Sep  2 22:35 res_regularizer_diff_dim_origin.py
-drwxr-xr-x 4 zhaojing ncr    4096 Sep  2 22:38 autoencoder_data
-drwxr-xr-x 2 zhaojing ncr    4096 Sep  2 22:38 MNIST_Out_Images
--rw-r--r-- 1 zhaojing ncr   30281 Sep  2 22:52 res_regularizer_diff_dim.py
-drwxr-xr-x 2 zhaojing ncr    4096 Sep  2 23:02 __pycache__
--rw-r--r-- 1 zhaojing ncr   26401 Sep  2 23:28 autoencoder_MNIST_main_SGD_lr10_wd000001_tune_corr_reg_autoencoder_1_efficiency.py
--rw-r--r-- 1 zhaojing ncr   26288 Sep  2 23:28 autoencoder_MNIST_main_SGD_lr10_wd000001.py
+############please see residual-knowledge-driven-example-aaai-L2-vis/readme.md

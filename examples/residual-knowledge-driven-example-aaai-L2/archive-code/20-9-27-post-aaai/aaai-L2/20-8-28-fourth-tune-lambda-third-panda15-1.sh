@@ -1,0 +1,3 @@
+### panda15-1
+CUDA_VISIBLE_DEVICES=1 /hdd1/zhaojing/anaconda3-cuda-10/bin/python mlp_residual_hook_resreg_real_mnist_wd0001_tune_corr_reg_mlp_mnist_lambda_7.py -traindatadir MNIST -trainlabeldir MNIST -testdatadir MNIST -testlabeldir MNIST -seqnum 1 -modelname regmlp -blocks 1 -lr 0.01 -batchsize 65 -regmethod 6 -firstepochs 0 -considerlabelnum 1 -maxepoch 200 -gpuid 0 | tee -a /hdd2/zhaojing/res-regularization/20-8-28/20-8-28-fourth-run-tune-lambda/20-8-28-fourth-run-tune-lambda-23.log
+############################################ 20-8-30-end !!!!!!!!!!!!!! ##############################################
